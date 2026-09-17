@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
 from app.db.session import get_db
 from app.models.producto import Producto, Categoria, Talla, Color, ProductoVariante
@@ -141,3 +141,36 @@ def listar_tallas(db: Session = Depends(get_db)):
 def listar_colores(db: Session = Depends(get_db)):
     """Lista los colores disponibles y activos."""
     return db.query(Color).filter(Color.activo == True).all()
+
+
+# =============================================================================
+# VESTIDOR VIRTUAL AR (RF13, CU-13)
+# =============================================================================
+from app.api.deps import require_roles
+from app.models.interacciones import SesionVestidorVirtual
+from app.schemas.vestidor import SesionVestidorCreate, SesionVestidorOut
+
+@router.post("/vestidor-virtual/sesion", response_model=SesionVestidorOut, status_code=status.HTTP_201_CREATED)
+def registrar_sesion_vestidor(
+    data: SesionVestidorCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["cliente"]))
+):
+    """
+    Registra una sesión de prueba en el Vestidor Virtual (AR) desde la aplicación móvil.
+    """
+    variante = db.query(ProductoVariante).filter(ProductoVariante.id == data.variante_id).first()
+    if not variante:
+        raise HTTPException(status_code=404, detail="La prenda seleccionada no existe.")
+
+    nueva_sesion = SesionVestidorVirtual(
+        cliente_id=current_user["id"],
+        variante_id=data.variante_id,
+        imagen_resultado_url=data.imagen_resultado_url,
+        dispositivo=data.dispositivo
+    )
+    db.add(nueva_sesion)
+    db.commit()
+    db.refresh(nueva_sesion)
+    return nueva_sesion
+

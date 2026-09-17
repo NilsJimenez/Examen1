@@ -104,6 +104,17 @@ class StockIngresoInput(BaseModel):
 
 
 # --- Personal Interno (Usuarios & Roles) ---
+class RolCreate(BaseModel):
+    nombre: str
+
+class RolOut(BaseModel):
+    id: int
+    nombre: str
+
+    class Config:
+        from_attributes = True
+
+
 class UsuarioCreate(BaseModel):
     nombres: str
     apellidos: str

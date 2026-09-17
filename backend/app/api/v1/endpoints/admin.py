@@ -14,7 +14,8 @@ from app.models.inventario import InventarioSucursal, MovimientoInventario
 from app.schemas.admin import (
     ProductoCreate, ProductoUpdate, CategoriaCreate, TallaCreate, ColorCreate,
     SucursalCreate, CiudadCreate, ProveedorCreate, TemporadaCreate, ColeccionCreate,
-    UsuarioCreate, UsuarioRolUpdate, StockIngresoInput, VarianteUpdateInput
+    UsuarioCreate, UsuarioRolUpdate, StockIngresoInput, VarianteUpdateInput,
+    RolCreate, RolOut
 )
 from app.schemas.producto import ProductoDetailOut, CategoriaOut, TallaOut, ColorOut
 
@@ -563,4 +564,60 @@ def eliminar_usuario(usuario_id: int, db: Session = Depends(get_db)):
     usuario.activo = False
     db.commit()
     return {"message": f"Empleado '{usuario.nombres} {usuario.apellidos}' desactivado exitosamente."}
+
+
+# =============================================================================
+# GESTIÓN DE ROLES (RF02, CU-04)
+# =============================================================================
+@router.post("/roles", response_model=RolOut, status_code=status.HTTP_201_CREATED)
+def crear_rol(rol_in: RolCreate, db: Session = Depends(get_db)):
+    """Crea un nuevo rol en el sistema."""
+    rol_existente = db.query(Rol).filter(Rol.nombre == rol_in.nombre).first()
+    if rol_existente:
+        raise HTTPException(status_code=400, detail="El rol ya existe.")
+    
+    nuevo_rol = Rol(nombre=rol_in.nombre)
+    db.add(nuevo_rol)
+    db.commit()
+    db.refresh(nuevo_rol)
+    return nuevo_rol
+
+
+@router.get("/roles", response_model=List[RolOut])
+def listar_roles(db: Session = Depends(get_db)):
+    """Lista todos los roles disponibles en el sistema."""
+    return db.query(Rol).all()
+
+
+@router.put("/roles/{rol_id}", response_model=RolOut)
+def actualizar_rol(rol_id: int, rol_in: RolCreate, db: Session = Depends(get_db)):
+    """Edita el nombre de un rol existente."""
+    rol = db.query(Rol).filter(Rol.id == rol_id).first()
+    if not rol:
+        raise HTTPException(status_code=404, detail="Rol no encontrado.")
+    
+    rol_duplicado = db.query(Rol).filter(Rol.nombre == rol_in.nombre, Rol.id != rol_id).first()
+    if rol_duplicado:
+        raise HTTPException(status_code=400, detail="Ya existe otro rol con ese nombre.")
+        
+    rol.nombre = rol_in.nombre
+    db.commit()
+    db.refresh(rol)
+    return rol
+
+
+@router.delete("/roles/{rol_id}")
+def eliminar_rol(rol_id: int, db: Session = Depends(get_db)):
+    """Elimina un rol si no tiene usuarios asociados."""
+    rol = db.query(Rol).filter(Rol.id == rol_id).first()
+    if not rol:
+        raise HTTPException(status_code=404, detail="Rol no encontrado.")
+    
+    usuarios_asociados = db.query(Usuario).filter(Usuario.rol_id == rol_id).first()
+    if usuarios_asociados:
+        raise HTTPException(status_code=400, detail="No se puede eliminar el rol porque tiene usuarios asociados.")
+        
+    db.delete(rol)
+    db.commit()
+    return {"message": f"Rol '{rol.nombre}' eliminado exitosamente."}
 
