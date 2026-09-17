@@ -25,7 +25,8 @@ def listar_productos(
     """
     query = db.query(Producto).options(
         joinedload(Producto.categoria),
-        joinedload(Producto.variantes)
+        joinedload(Producto.variantes).joinedload(ProductoVariante.talla),
+        joinedload(Producto.variantes).joinedload(ProductoVariante.color)
     ).filter(Producto.activo == True)
 
     if categoria_id:
@@ -83,7 +84,8 @@ def listar_productos(
             "activo": p.activo,
             "stock_total": stock_total,
             "stock_sucursal_seleccionada": stock_sucursal,
-            "stock_por_sucursal": sucursales_list
+            "stock_por_sucursal": sucursales_list,
+            "variantes": p.variantes
         }
         resultado.append(prod_dict)
 

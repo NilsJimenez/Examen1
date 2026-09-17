@@ -240,6 +240,17 @@ def crear_sucursal(data: SucursalCreate, db: Session = Depends(get_db)):
     return sucursal
 
 
+@router.delete("/sucursales/{sucursal_id}")
+def eliminar_sucursal(sucursal_id: int, db: Session = Depends(get_db)):
+    """Desactiva una sucursal para que no aparezca en el sistema."""
+    sucursal = db.query(Sucursal).filter(Sucursal.id == sucursal_id).first()
+    if not sucursal:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada.")
+    sucursal.activo = False
+    db.commit()
+    return {"message": f"Sucursal '{sucursal.nombre}' desactivada exitosamente."}
+
+
 # =============================================================================
 # PROVEEDORES Y TEMPORADAS (RF06, RF23, CU-08, CU-09)
 # =============================================================================
@@ -313,7 +324,7 @@ def listar_roles(db: Session = Depends(get_db)):
 
 @router.get("/usuarios")
 def listar_usuarios(db: Session = Depends(get_db)):
-    usuarios = db.query(Usuario).options(joinedload(Usuario.rol), joinedload(Usuario.sucursal)).all()
+    usuarios = db.query(Usuario).options(joinedload(Usuario.rol), joinedload(Usuario.sucursal)).filter(Usuario.activo == True).all()
     return [
         {
             "id": u.id,
@@ -351,3 +362,15 @@ def crear_usuario_interno(data: UsuarioCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(nuevo_usuario)
     return {"message": "Usuario empleado creado exitosamente", "id": nuevo_usuario.id}
+
+
+@router.delete("/usuarios/{usuario_id}")
+def eliminar_usuario(usuario_id: int, db: Session = Depends(get_db)):
+    """Desactiva un empleado interno de la tienda."""
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+    usuario.activo = False
+    db.commit()
+    return {"message": f"Empleado '{usuario.nombres} {usuario.apellidos}' desactivado exitosamente."}
+

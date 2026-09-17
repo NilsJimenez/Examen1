@@ -97,7 +97,44 @@ def test_cycle1_full():
     assert r_recup.status_code == 200
     print("8. CU-03 Recuperación: Enlace de recuperación generado.")
 
+    # 9. Limpieza de datos de prueba para mantener la base de datos sin duplicados
+    try:
+        from app.db.session import SessionLocal
+        from app.models.producto import Producto
+        from app.models.inventario import InventarioSucursal
+        from app.models.usuario import Usuario, Cliente
+        from app.models.sucursal import Sucursal
+
+        clean_db = SessionLocal()
+        p = clean_db.query(Producto).filter(Producto.id == prod_creado['id']).first()
+        if p:
+            clean_db.query(InventarioSucursal).filter(InventarioSucursal.variante_id.in_([v.id for v in p.variantes])).delete()
+            clean_db.delete(p)
+
+        u = clean_db.query(Usuario).filter(Usuario.id == r_emp.json()['id']).first()
+        if u:
+            clean_db.delete(u)
+
+        c = clean_db.query(Cliente).filter(Cliente.email == f"laura{rand_num}@cliente.com").first()
+        if c:
+            clean_db.delete(c)
+
+        if r_suc.status_code in [200, 201]:
+            suc_id = r_suc.json().get("id")
+            s = clean_db.query(Sucursal).filter(Sucursal.id == suc_id).first()
+            if s and s.id > 3:
+                clean_db.query(InventarioSucursal).filter(InventarioSucursal.sucursal_id == s.id).delete()
+                clean_db.delete(s)
+
+        clean_db.commit()
+        clean_db.close()
+        print("9. Limpieza post-test completada: Base de datos limpia de registros temporales.")
+    except Exception as e:
+        print(f"Nota de limpieza post-test: {e}")
+
     print("\nTODAS LAS PRUEBAS DEL CICLO 1 PASARON AL 100%!")
+
 
 if __name__ == "__main__":
     test_cycle1_full()
+

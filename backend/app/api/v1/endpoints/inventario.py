@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from typing import Optional
 from pydantic import BaseModel
@@ -95,7 +95,7 @@ def get_inventario_sucursal(sucursal_id: int, db: Session = Depends(get_db), cur
     }
 
 @router.post("/movimiento", status_code=status.HTTP_201_CREATED)
-def registrar_movimiento(data: MovimientoCreate, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(["administrador", "encargado_sucursal"]))):
+def registrar_movimiento(data: MovimientoCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     """CU-12: Ingreso, devolucion, ajuste o transferencia."""
     inv = db.query(InventarioSucursal).filter(
         InventarioSucursal.variante_id == data.variante_id,

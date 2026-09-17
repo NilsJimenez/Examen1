@@ -41,11 +41,11 @@ import { VentaService } from '../../services/venta.service';
         </a>
       </div>
 
-      <div *ngIf="!loading && compras.length > 0" class="flex flex-col gap-5">
-        <div *ngFor="let c of compras" class="card p-5">
-          <div class="flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
-              <span style="font-size: 1.4rem; color: var(--accent);">
+      <div *ngIf="!loading && compras.length > 0" class="flex flex-col gap-7">
+        <div *ngFor="let c of compras" class="card p-6">
+          <div class="flex flex-wrap items-center justify-between gap-5">
+            <div class="flex items-center gap-3.5">
+              <span style="font-size: 1.6rem; color: var(--accent);">
                 <i class="fa-solid fa-receipt"></i>
               </span>
               <div>
@@ -53,19 +53,19 @@ import { VentaService } from '../../services/venta.service';
                   Orden #{{ c.id }}
                   <span *ngIf="c.numero_comprobante" class="font-mono text-xs ml-2" style="color: var(--text-muted);">({{ c.numero_comprobante }})</span>
                 </span>
-                <span class="text-xs" style="color: var(--text-muted);">
+                <span class="text-xs mt-0.5 block" style="color: var(--text-muted);">
                   <i class="fa-regular fa-clock mr-1"></i> {{ c.fecha | date:'dd/MM/yyyy HH:mm' }} • Modalidad: <strong style="color: var(--text-main); text-transform: capitalize;">{{ c.tipo }}</strong>
                 </span>
               </div>
             </div>
 
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-5">
               <span 
                 class="badge" 
                 [style.background]="c.estado === 'completada' ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.15)'"
                 [style.color]="c.estado === 'completada' ? '#22c55e' : '#f59e0b'"
                 [style.border]="'1px solid ' + (c.estado === 'completada' ? '#22c55e' : '#f59e0b')"
-                style="padding: 0.3rem 0.75rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;"
+                style="padding: 0.35rem 0.85rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase;"
               >
                 {{ c.estado }}
               </span>
@@ -77,23 +77,23 @@ import { VentaService } from '../../services/venta.service';
               <button 
                 (click)="toggleDetalle(c.id)" 
                 class="btn btn-outline" 
-                style="padding: 0.35rem 0.7rem; font-size: 0.8rem;"
+                style="padding: 0.4rem 0.8rem; font-size: 0.8rem;"
               >
                 <i class="fa-solid" [class.fa-chevron-up]="compraExpandida === c.id" [class.fa-chevron-down]="compraExpandida !== c.id"></i>
               </button>
             </div>
           </div>
 
-          <div *ngIf="compraExpandida === c.id" class="mt-4 pt-4" style="border-top: 1px solid var(--border-color);">
-            <h4 class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--text-muted);">Prendas Adquiridas:</h4>
-            <div class="flex flex-col gap-2.5">
-              <div *ngFor="let item of c.items" class="flex flex-wrap items-center justify-between p-3 rounded-xl gap-3" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+          <div *ngIf="compraExpandida === c.id" class="mt-6 pt-6" style="border-top: 1px solid var(--border-color);">
+            <h4 class="text-xs font-bold uppercase tracking-wider mb-4" style="color: var(--text-muted);">Prendas Adquiridas:</h4>
+            <div class="flex flex-col gap-3.5">
+              <div *ngFor="let item of c.items" class="flex flex-wrap items-center justify-between p-4 rounded-xl gap-4" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
                 
-                <div class="flex items-center gap-3.5">
+                <div class="flex items-center gap-4">
                   <img 
                     [src]="item.imagen_url || 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=150'" 
                     [alt]="item.producto" 
-                    style="width: 54px; height: 54px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border-color); flex-shrink: 0;"
+                    style="width: 58px; height: 58px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border-color); flex-shrink: 0;"
                   />
                   <div>
                     <strong class="font-serif block text-sm font-bold" style="color: var(--text-main);">{{ item.producto }}</strong>

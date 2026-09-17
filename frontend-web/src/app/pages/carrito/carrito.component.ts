@@ -1,4 +1,4 @@
-﻿import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -48,21 +48,21 @@ import { AuthService } from '../../services/auth.service';
         <p class="text-sm mt-3" style="color: var(--text-muted);">Cargando tu carrito...</p>
       </div>
 
-      <div *ngIf="!loading && items.length > 0" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div class="lg:col-span-2 flex flex-col gap-4">
-          <div *ngFor="let item of items" class="card p-4 flex items-center justify-between gap-4">
+      <div *ngIf="!loading && items.length > 0" class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div class="lg:col-span-2 flex flex-col gap-5">
+          <div *ngFor="let item of items" class="card p-5 flex items-center justify-between gap-5">
             <div class="flex items-center gap-4 min-w-0">
               <img 
                 [src]="item.imagen_url || 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=200'" 
                 [alt]="item.producto" 
-                style="width: 72px; height: 72px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border-color);"
+                style="width: 80px; height: 80px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border-color);"
               />
               <div class="min-w-0">
                 <h3 class="font-serif font-bold text-base truncate" style="color: var(--text-main);">{{ item.producto }}</h3>
-                <div class="flex items-center gap-2 mt-1 text-xs" style="color: var(--text-muted);">
+                <div class="flex items-center gap-2 mt-1.5 text-xs" style="color: var(--text-muted);">
                   <span>Talla: <strong style="color: var(--text-main);">{{ item.talla }}</strong></span>
                   <span>•</span>
-                  <span class="flex items-center gap-1">
+                  <span class="flex items-center gap-1.5">
                     Color:
                     <span [style.background-color]="item.color_hex" style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--border-color);"></span>
                     <strong style="color: var(--text-main);">{{ item.color }}</strong>
@@ -79,7 +79,7 @@ import { AuthService } from '../../services/auth.service';
                 <button 
                   (click)="cambiarCantidad(item, item.cantidad - 1)" 
                   class="btn btn-outline" 
-                  style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem;"
+                  style="width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem;"
                   title="Disminuir"
                 >
                   <i class="fa-solid fa-minus"></i>
@@ -88,21 +88,21 @@ import { AuthService } from '../../services/auth.service';
                 <button 
                   (click)="cambiarCantidad(item, item.cantidad + 1)" 
                   class="btn btn-outline" 
-                  style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem;"
+                  style="width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem;"
                   title="Aumentar"
                 >
                   <i class="fa-solid fa-plus"></i>
                 </button>
               </div>
 
-              <div class="text-right" style="min-width: 90px;">
+              <div class="text-right" style="min-width: 95px;">
                 <span class="block text-xs" style="color: var(--text-muted);">Bs. {{ item.precio_unitario | number:'1.2-2' }} c/u</span>
                 <span class="font-serif font-bold text-base" style="color: var(--accent);">Bs. {{ item.subtotal | number:'1.2-2' }}</span>
               </div>
 
               <button 
                 (click)="eliminar(item.id)" 
-                style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 6px; font-size: 1rem; opacity: 0.8;"
+                style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 8px; font-size: 1rem; opacity: 0.8;"
                 title="Eliminar prenda"
               >
                 <i class="fa-solid fa-trash-can"></i>
@@ -112,16 +112,16 @@ import { AuthService } from '../../services/auth.service';
         </div>
 
         <div class="lg:col-span-1">
-          <div class="card p-6 flex flex-col gap-5 sticky top-24">
+          <div class="card p-7 flex flex-col gap-6 sticky top-24">
             <h2 class="font-serif text-xl font-bold pb-3" style="color: var(--text-main); border-bottom: 1px solid var(--border-color);">
               Resumen de Compra
             </h2>
 
             <div>
               <label class="form-label mb-2">Método de Entrega</label>
-              <div class="flex flex-col gap-2">
+              <div class="flex flex-col gap-3">
                 <label 
-                  class="flex items-center gap-3 p-3 rounded-lg cursor-pointer"
+                  class="flex items-center gap-3.5 p-4 rounded-xl cursor-pointer"
                   [style.border]="metodoEntrega === 'retiro_tienda' ? '1.5px solid var(--accent)' : '1px solid var(--border-color)'"
                   [style.background]="metodoEntrega === 'retiro_tienda' ? 'rgba(245,158,11,0.08)' : 'var(--card-bg)'"
                 >
@@ -135,7 +135,7 @@ import { AuthService } from '../../services/auth.service';
                 </label>
 
                 <label 
-                  class="flex items-center gap-3 p-3 rounded-lg cursor-pointer"
+                  class="flex items-center gap-3.5 p-4 rounded-xl cursor-pointer"
                   [style.border]="metodoEntrega === 'delivery' ? '1.5px solid var(--accent)' : '1px solid var(--border-color)'"
                   [style.background]="metodoEntrega === 'delivery' ? 'rgba(245,158,11,0.08)' : 'var(--card-bg)'"
                 >

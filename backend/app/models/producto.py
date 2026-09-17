@@ -114,8 +114,9 @@ class ProductoVariante(Base):
     producto_id: Mapped[int] = mapped_column(Integer, ForeignKey("productos.id", ondelete="CASCADE"), nullable=False)
     talla_id: Mapped[int] = mapped_column(Integer, ForeignKey("tallas.id"), nullable=False)
     color_id: Mapped[int] = mapped_column(Integer, ForeignKey("colores.id"), nullable=False)
-    sku: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    sku: Mapped[str] = mapped_column(String(500), unique=True, nullable=False)
     precio_adicional: Mapped[float] = mapped_column(Numeric(10, 2), default=0.0)
+    imagen_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relaciones

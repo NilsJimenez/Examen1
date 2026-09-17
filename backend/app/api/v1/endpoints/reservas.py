@@ -139,13 +139,13 @@ def cancelar_reserva(reserva_id: int, db: Session = Depends(get_db), current_use
     return {"message": "Reserva cancelada. Stock liberado."}
 
 @router.get("/sucursal/{sucursal_id}")
-def reservas_sucursal(sucursal_id: int, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(["administrador", "encargado_sucursal"]))):
+def reservas_sucursal(sucursal_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     """CU-16: Ver reservas de la sucursal."""
     reservas = db.query(Reserva).options(joinedload(Reserva.cliente), joinedload(Reserva.detalles).joinedload(ReservaDetalle.variante).joinedload(ProductoVariante.producto), joinedload(Reserva.detalles).joinedload(ReservaDetalle.variante).joinedload(ProductoVariante.talla), joinedload(Reserva.detalles).joinedload(ReservaDetalle.variante).joinedload(ProductoVariante.color)).filter(Reserva.sucursal_id == sucursal_id, Reserva.estado.in_(["pendiente", "preparada"])).order_by(Reserva.fecha_reserva, Reserva.horario_atencion).all()
     return [{"id": r.id, "codigo_reserva": r.codigo_reserva, "cliente": f"{r.cliente.nombres} {r.cliente.apellidos}" if r.cliente else "—", "fecha": str(r.fecha_reserva), "hora": str(r.horario_atencion), "estado": r.estado, "items": [{"producto": d.variante.producto.nombre if d.variante and d.variante.producto else "—", "talla": d.variante.talla.nombre if d.variante and d.variante.talla else "—", "color": d.variante.color.nombre if d.variante and d.variante.color else "—", "cantidad": d.cantidad} for d in r.detalles]} for r in reservas]
 
 @router.patch("/{reserva_id}/preparar")
-def preparar_reserva(reserva_id: int, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(["administrador", "encargado_sucursal"]))):
+def preparar_reserva(reserva_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     """CU-16: Marcar reserva como preparada."""
     r = db.query(Reserva).filter(Reserva.id == reserva_id).first()
     if not r:
@@ -156,7 +156,7 @@ def preparar_reserva(reserva_id: int, db: Session = Depends(get_db), current_use
     return {"message": "Reserva marcada como Preparada. Cliente notificado."}
 
 @router.patch("/{reserva_id}/atender")
-def atender_reserva(reserva_id: int, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(["administrador", "encargado_sucursal"]))):
+def atender_reserva(reserva_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     """CU-16: Marcar reserva como atendida."""
     r = db.query(Reserva).filter(Reserva.id == reserva_id).first()
     if not r:
@@ -167,7 +167,7 @@ def atender_reserva(reserva_id: int, db: Session = Depends(get_db), current_user
     return {"message": "Reserva marcada como Atendida."}
 
 @router.get("/qr/{codigo}")
-def checkin_qr(codigo: str, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(["administrador", "encargado_sucursal"]))):
+def checkin_qr(codigo: str, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     """CU-17: Check-in instantaneo por codigo QR."""
     reserva = db.query(Reserva).options(joinedload(Reserva.cliente), joinedload(Reserva.detalles).joinedload(ReservaDetalle.variante).joinedload(ProductoVariante.producto)).filter(Reserva.codigo_reserva == codigo).first()
     if not reserva:

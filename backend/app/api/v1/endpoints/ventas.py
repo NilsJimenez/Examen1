@@ -106,7 +106,7 @@ def pagar_venta(venta_id: int, data: PagoInput, db: Session = Depends(get_db), c
     return {"mensaje": "Pago aprobado. Compra completada.", "numero_comprobante": num_comp, "venta_id": venta.id, "total_pagado": data.monto}
 
 @router.post("/pos", status_code=status.HTTP_201_CREATED)
-def venta_pos(data: PosVentaInput, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(["administrador", "cajero"]))):
+def venta_pos(data: PosVentaInput, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(["administrador", "cajero", "encargado_sucursal"]))):
     """CU-21: Venta presencial POS."""
     subtotal = sum(i.precio_unitario * i.cantidad for i in data.items)
     venta = Venta(tipo_venta="presencial", sucursal_id=data.sucursal_id, usuario_id=current_user["id"], cliente_id=data.cliente_id, metodo_entrega="retiro_tienda", subtotal=subtotal, total=subtotal, estado="completada")

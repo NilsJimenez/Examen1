@@ -22,6 +22,7 @@ export interface Variante {
   talla: Talla;
   color: Color;
   precio_adicional: number;
+  imagen_url?: string;
   activo: boolean;
 }
 
@@ -38,4 +39,5 @@ export interface Producto {
   stock_total?: number;
   stock_sucursal_seleccionada?: number;
   stock_por_sucursal?: { sucursal_id: number; sucursal_nombre: string; stock_disponible: number }[];
+  imagen_url_preview?: string;
 }

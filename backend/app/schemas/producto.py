@@ -35,6 +35,7 @@ class VarianteOut(BaseModel):
     talla: TallaOut
     color: ColorOut
     precio_adicional: float
+    imagen_url: Optional[str] = None
     activo: bool
 
     class Config:
@@ -53,6 +54,7 @@ class ProductoOut(BaseModel):
     stock_total: Optional[int] = 0
     stock_sucursal_seleccionada: Optional[int] = None
     stock_por_sucursal: Optional[List[dict]] = []
+    variantes: Optional[List[VarianteOut]] = []
 
     class Config:
         from_attributes = True

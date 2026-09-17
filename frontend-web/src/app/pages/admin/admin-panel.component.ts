@@ -33,7 +33,7 @@ import { Sucursal } from '../../models/sucursal.models';
       </div>
 
       <!-- Navegación por Pestañas (Tabs Limpias sin códigos de materia) -->
-      <div class="flex items-center gap-3 mb-8 overflow-x-auto pb-2">
+      <div class="flex items-center gap-4 mb-10 overflow-x-auto pb-3">
         <button 
           (click)="activeTab = 'prendas'" 
           [class.tab-btn-active]="activeTab === 'prendas'" 
@@ -165,7 +165,7 @@ import { Sucursal } from '../../models/sucursal.models';
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
           
           <!-- 1. Categorías -->
           <div class="card p-6 flex flex-col justify-between">
@@ -187,7 +187,7 @@ import { Sucursal } from '../../models/sucursal.models';
                 </div>
               </div>
 
-              <ul class="flex flex-col gap-2" style="max-height: 280px; overflow-y: auto;">
+              <ul class="flex flex-col gap-3" style="max-height: 280px; overflow-y: auto;">
                 <li *ngFor="let c of categorias" style="
                   background: var(--table-th-bg);
                   border: 1px solid var(--border-color);
@@ -242,7 +242,7 @@ import { Sucursal } from '../../models/sucursal.models';
           </div>
 
           <!-- 2. Tallas -->
-          <div class="card p-6 flex flex-col gap-4">
+          <div class="card p-6 flex flex-col gap-5">
             <div class="flex items-center justify-between">
               <h3 class="font-serif text-xl font-bold flex items-center gap-2" style="color: var(--text-main);">
                 <i class="fa-solid fa-ruler-combined text-amber-600"></i> 2. Tallas de Ropa
@@ -255,7 +255,7 @@ import { Sucursal } from '../../models/sucursal.models';
             </p>
 
             <!-- Chips de tallas con clic directo para marcar/desmarcar -->
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-3">
               <button
                 *ngFor="let pt of presetTallas"
                 type="button"
@@ -298,7 +298,7 @@ import { Sucursal } from '../../models/sucursal.models';
           </div>
 
           <!-- 3. Colores -->
-          <div class="card p-6 flex flex-col gap-4">
+          <div class="card p-6 flex flex-col gap-5">
             <div class="flex items-center justify-between">
               <h3 class="font-serif text-xl font-bold flex items-center gap-2" style="color: var(--text-main);">
                 <i class="fa-solid fa-palette text-amber-600"></i> 3. Colores &amp; Paleta
@@ -311,7 +311,7 @@ import { Sucursal } from '../../models/sucursal.models';
             </p>
 
             <!-- Chips de colores con clic directo para marcar/desmarcar -->
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-3">
               <button
                 *ngFor="let pc of presetColores"
                 type="button"
@@ -375,7 +375,7 @@ import { Sucursal } from '../../models/sucursal.models';
           </button>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div *ngFor="let s of sucursales" class="card p-6 flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between mb-3">
@@ -396,7 +396,7 @@ import { Sucursal } from '../../models/sucursal.models';
       <!-- =================================================================== -->
       <!-- PESTAÑA 4: PROVEEDORES Y TEMPORADAS                                 -->
       <!-- =================================================================== -->
-      <div *ngIf="activeTab === 'proveedores'" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div *ngIf="activeTab === 'proveedores'" class="grid grid-cols-1 md:grid-cols-2 gap-8">
         
         <!-- Proveedores -->
         <div class="card p-6">
@@ -404,7 +404,7 @@ import { Sucursal } from '../../models/sucursal.models';
             <i class="fa-solid fa-truck-fast text-amber-600"></i> Empresas Proveedoras
           </h3>
 
-          <div class="mb-4 flex flex-col gap-2 p-4 rounded-lg" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+          <div class="mb-5 flex flex-col gap-3 p-5 rounded-xl" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
             <h4 class="text-xs font-bold uppercase" style="color: var(--text-muted);">Registrar Proveedor</h4>
             <input type="text" [(ngModel)]="nuevoProvNombre" placeholder="Razón Social / Empresa" class="form-input" style="padding: 0.5rem;" />
             <div class="flex gap-2">
@@ -414,8 +414,8 @@ import { Sucursal } from '../../models/sucursal.models';
             <button (click)="crearProveedor()" class="btn btn-primary" style="padding: 0.5rem;"><i class="fa-solid fa-plus"></i> Guardar Proveedor</button>
           </div>
 
-          <div class="flex flex-col gap-2">
-            <div *ngFor="let pr of proveedores" class="p-3 rounded-lg" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+          <div class="flex flex-col gap-3">
+            <div *ngFor="let pr of proveedores" class="p-3.5 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border-color);">
               <h4 class="font-bold" style="color: var(--text-main);">{{ pr.nombre }}</h4>
               <p class="text-xs" style="color: var(--text-muted);">Contacto: {{ pr.contacto_nombre || 'N/A' }} | Tel: {{ pr.telefono || 'N/A' }}</p>
             </div>
@@ -428,15 +428,15 @@ import { Sucursal } from '../../models/sucursal.models';
             <i class="fa-solid fa-calendar-week text-amber-600"></i> Campañas & Colecciones
           </h3>
 
-          <div class="mb-4 flex flex-col gap-2 p-4 rounded-lg" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+          <div class="mb-5 flex flex-col gap-3 p-5 rounded-xl" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
             <h4 class="text-xs font-bold uppercase" style="color: var(--text-muted);">Crear Temporada de Moda</h4>
             <input type="text" [(ngModel)]="nuevaTempNombre" placeholder="Ej: Primavera-Verano 2026" class="form-input" style="padding: 0.5rem;" />
             <input type="text" [(ngModel)]="nuevaTempTipo" placeholder="Tipo (Casual, Gala, Escolar)" class="form-input" style="padding: 0.5rem;" />
             <button (click)="crearTemporada()" class="btn btn-primary" style="padding: 0.5rem;"><i class="fa-solid fa-plus"></i> Crear Temporada</button>
           </div>
 
-          <div class="flex flex-col gap-2">
-            <div *ngFor="let t of temporadas" class="p-3 rounded-lg flex items-center justify-between" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+          <div class="flex flex-col gap-3">
+            <div *ngFor="let t of temporadas" class="p-3.5 rounded-xl flex items-center justify-between" style="background: var(--card-bg); border: 1px solid var(--border-color);">
               <div>
                 <h4 class="font-bold" style="color: var(--text-main);">{{ t.nombre }}</h4>
                 <p class="text-xs" style="color: var(--text-muted);">Tipo: {{ t.tipo || 'General' }}</p>
@@ -839,10 +839,10 @@ import { Sucursal } from '../../models/sucursal.models';
     .admin-tab-btn {
       display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.65rem 1.25rem;
-      border-radius: 0.625rem;
-      font-size: 0.9rem;
+      gap: 0.65rem;
+      padding: 0.75rem 1.45rem;
+      border-radius: 0.75rem;
+      font-size: 0.925rem;
       font-weight: 600;
       color: var(--text-muted);
       background: var(--card-bg);
