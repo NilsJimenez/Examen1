@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AdminService } from '../../services/admin.service';
 import { ProductoService } from '../../services/producto.service';
+import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
 import { Producto, Categoria, Talla, Color } from '../../models/producto.models';
 import { Sucursal } from '../../models/sucursal.models';
@@ -75,17 +76,6 @@ import { Sucursal } from '../../models/sucursal.models';
         </button>
       </div>
 
-      <!-- Alertas de Éxito / Error -->
-      <div *ngIf="successMessage" class="p-4 mb-6 rounded-lg text-sm flex items-center justify-between" style="background-color: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35);">
-        <span><i class="fa-solid fa-circle-check mr-2"></i> {{ successMessage }}</span>
-        <button (click)="successMessage = ''" style="border:none; background:none; cursor:pointer; color: inherit;"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <div *ngIf="errorMessage" class="p-4 mb-6 rounded-lg text-sm flex items-center justify-between" style="background-color: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35);">
-        <span><i class="fa-solid fa-triangle-exclamation mr-2"></i> {{ errorMessage }}</span>
-        <button (click)="errorMessage = ''" style="border:none; background:none; cursor:pointer; color: inherit;"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
       <!-- =================================================================== -->
       <!-- PESTAÑA 1: PRENDAS DE ROPA                                          -->
       <!-- =================================================================== -->
@@ -98,6 +88,44 @@ import { Sucursal } from '../../models/sucursal.models';
           </div>
           <button (click)="abrirModalPrenda()" class="btn btn-accent">
             <i class="fa-solid fa-plus"></i> Nueva Prenda
+          </button>
+        </div>
+
+        <!-- Barra de Clasificación por Etiquetas de Categorías -->
+        <div class="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-bold uppercase tracking-wider mr-1" style="color: var(--text-muted);">
+              <i class="fa-solid fa-tags mr-1"></i> Categorías:
+            </span>
+            <button 
+              type="button"
+              (click)="categoriaFiltroId = null" 
+              class="category-filter-chip"
+              [class.active]="categoriaFiltroId === null"
+            >
+              <span>Todas</span>
+              <span class="chip-count">{{ productos.length }}</span>
+            </button>
+            <button 
+              type="button"
+              *ngFor="let c of categorias"
+              (click)="categoriaFiltroId = c.id" 
+              class="category-filter-chip"
+              [class.active]="categoriaFiltroId === c.id"
+            >
+              <span>{{ c.nombre }}</span>
+              <span class="chip-count">{{ getPrendasPorCategoriaCount(c.id) }}</span>
+            </button>
+          </div>
+
+          <button 
+            *ngIf="categoriaFiltroId !== null" 
+            type="button"
+            (click)="abrirModalPrenda(categoriaFiltroId)" 
+            class="btn btn-primary" 
+            style="font-size: 0.8rem; padding: 0.45rem 0.9rem;"
+          >
+            <i class="fa-solid fa-plus mr-1"></i> Añadir a {{ getCategoriaNombre(categoriaFiltroId) }}
           </button>
         </div>
 
@@ -115,7 +143,7 @@ import { Sucursal } from '../../models/sucursal.models';
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let p of productos">
+              <tr *ngFor="let p of productosFiltrados">
                 <td>
                   <img [src]="p.imagen_url || 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=100'" [alt]="p.nombre" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);" />
                 </td>
@@ -213,16 +241,32 @@ import { Sucursal } from '../../models/sucursal.models';
                   font-size: 0.875rem;
                   color: var(--text-main);
                 ">
-                  <span>{{ c.nombre }}</span>
-                  <button 
-                    type="button"
-                    (click)="eliminarCategoria(c)" 
-                    class="btn btn-outline"
-                    style="padding: 0.2rem 0.5rem; font-size: 0.75rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);"
-                    title="Eliminar categoría"
-                  >
-                    <i class="fa-solid fa-trash-can"></i>
-                  </button>
+                  <div class="flex items-center gap-2">
+                    <span style="font-weight: 600;">{{ c.nombre }}</span>
+                    <span class="badge" style="background: rgba(245,158,11,0.12); color: var(--accent); font-size: 0.7rem; padding: 0.15rem 0.45rem;">
+                      {{ getPrendasPorCategoriaCount(c.id) }} prendas
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <button 
+                      type="button"
+                      (click)="abrirModalPrenda(c.id)" 
+                      class="btn btn-outline"
+                      style="padding: 0.2rem 0.5rem; font-size: 0.75rem; color: var(--accent); border-color: rgba(245, 158, 11, 0.4);"
+                      title="Añadir prenda a esta categoría"
+                    >
+                      <i class="fa-solid fa-plus mr-1"></i> Prenda
+                    </button>
+                    <button 
+                      type="button"
+                      (click)="eliminarCategoria(c)" 
+                      class="btn btn-outline"
+                      style="padding: 0.2rem 0.5rem; font-size: 0.75rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);"
+                      title="Eliminar categoría"
+                    >
+                      <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                  </div>
                 </li>
               </ul>
             </div>
@@ -568,49 +612,112 @@ import { Sucursal } from '../../models/sucursal.models';
 
         <form (ngSubmit)="guardarPrenda()">
           
-          <!-- SECCIÓN 1: DATOS BÁSICOS & CATEGORÍA -->
+          <!-- SECCIÓN 1: SELECCIÓN DE CATEGORÍA POR ETIQUETAS (TAGS/CHIPS) -->
+          <div class="p-4 rounded-xl mb-4" style="background: var(--table-th-bg); border: 1.5px solid" [style.border-color]="!prendaForm.categoria_id ? '#ef4444' : 'var(--border-color)'">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-xs font-bold uppercase" [style.color]="!prendaForm.categoria_id ? '#ef4444' : 'var(--accent)'">
+                <i class="fa-solid fa-tags mr-1"></i> 1. Categoría de la Prenda *
+              </h4>
+              <button 
+                type="button" 
+                (click)="mostrarCrearCategoriaRapida = !mostrarCrearCategoriaRapida"
+                class="text-xs font-bold hover:underline flex items-center gap-1"
+                style="color: var(--accent); background: none; border: none; cursor: pointer;"
+              >
+                <i class="fa-solid" [ngClass]="mostrarCrearCategoriaRapida ? 'fa-xmark' : 'fa-plus'"></i>
+                {{ mostrarCrearCategoriaRapida ? 'Cerrar' : '+ Nueva Categoría' }}
+              </button>
+            </div>
+
+            <!-- Mini formulario en línea para crear categoría al vuelo -->
+            <div *ngIf="mostrarCrearCategoriaRapida" class="flex gap-2 mb-3 p-3 rounded-xl animate-fade-in" style="background: rgba(245,158,11,0.08); border: 1px dashed var(--accent);">
+              <input 
+                type="text" 
+                [(ngModel)]="nuevaCategoriaRapidaNombre" 
+                [ngModelOptions]="{standalone: true}"
+                placeholder="Nombre de la nueva categoría (ej: Abrigos de Invierno)..." 
+                class="form-input text-xs" 
+                style="flex: 1; padding: 0.45rem 0.8rem;"
+                (keyup.enter)="crearCategoriaRapida()"
+              />
+              <button 
+                type="button" 
+                (click)="crearCategoriaRapida()" 
+                class="btn btn-accent" 
+                style="font-size: 0.75rem; padding: 0.45rem 0.9rem;"
+              >
+                <i class="fa-solid fa-plus mr-1"></i> Crear y Usar
+              </button>
+            </div>
+
+            <p class="text-xs mb-3" style="color: var(--text-muted);">
+              Toca una etiqueta para clasificar la prenda y activar sugerencias inteligentes de tallas, colores y cortes:
+            </p>
+
+            <!-- Etiquetas / Chips de Categorías -->
+            <div class="flex flex-wrap gap-2 mb-1">
+              <button 
+                type="button"
+                *ngFor="let c of categorias"
+                (click)="onCategoriaSeleccionada(c.id)"
+                class="category-tag-chip"
+                [class.selected]="prendaForm.categoria_id === c.id"
+              >
+                <i *ngIf="prendaForm.categoria_id === c.id" class="fa-solid fa-circle-check text-xs mr-1"></i>
+                <i *ngIf="prendaForm.categoria_id !== c.id" class="fa-solid fa-tag text-xs mr-1 opacity-50"></i>
+                <span>{{ c.nombre }}</span>
+              </button>
+            </div>
+
+            <!-- Asistente de Estilo según categoría -->
+            <div *ngIf="sugerenciaEstiloPrenda" class="mt-3 p-2.5 rounded-lg flex items-center gap-2 text-xs animate-fade-in" style="background: rgba(245,158,11,0.08); border-left: 3px solid var(--accent); color: var(--text-main);">
+              <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
+              <span><strong>Guía de Estilo:</strong> {{ sugerenciaEstiloPrenda }}</span>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 2: INFORMACIÓN GENERAL -->
           <div class="p-4 rounded-xl mb-4" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
             <h4 class="text-xs font-bold uppercase mb-3" style="color: var(--accent);">
-              <i class="fa-solid fa-circle-info mr-1"></i> 1. Información General y Categoría
+              <i class="fa-solid fa-circle-info mr-1"></i> 2. Detalles de la Prenda
             </h4>
 
             <div class="form-group mb-3">
               <label class="form-label text-xs">Nombre de la Prenda *</label>
-              <input type="text" [(ngModel)]="prendaForm.nombre" name="nombre" required placeholder="Ej: Vestido Midi Satinado de Gala" class="form-input" />
+              <input 
+                type="text" 
+                [(ngModel)]="prendaForm.nombre" 
+                name="nombre" 
+                required 
+                [placeholder]="nombrePlaceholderPrenda" 
+                class="form-input" 
+              />
             </div>
 
             <div class="grid grid-cols-2 gap-4 mb-3">
-              <div class="form-group mb-0">
-                <label class="form-label text-xs">Categoría Obligatoria *</label>
-                <select [(ngModel)]="prendaForm.categoria_id" name="categoria_id" required class="form-select">
-                  <option [ngValue]="null" disabled>-- Selecciona una Categoría --</option>
-                  <option *ngFor="let c of categorias" [ngValue]="c.id">{{ c.nombre }}</option>
-                </select>
-              </div>
-
               <div class="form-group mb-0">
                 <label class="form-label text-xs">Precio Base (Bs.) *</label>
                 <input type="number" step="0.5" [(ngModel)]="prendaForm.precio_base" name="precio_base" required placeholder="180.00" class="form-input" />
               </div>
-            </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-3">
               <div class="form-group mb-0">
                 <label class="form-label text-xs">Empresa Proveedora</label>
                 <select [(ngModel)]="prendaForm.proveedor_id" name="proveedor_id" class="form-select">
                   <option *ngFor="let pr of proveedores" [value]="pr.id">{{ pr.nombre }}</option>
                 </select>
               </div>
+            </div>
 
+            <div class="grid grid-cols-2 gap-4 mb-3">
               <div class="form-group mb-0">
                 <label class="form-label text-xs">Foto Oficial de Portada (URL)</label>
                 <input type="url" [(ngModel)]="prendaForm.imagen_url" name="imagen_url" placeholder="https://images.unsplash.com/..." class="form-input" />
               </div>
-            </div>
 
-            <div class="form-group mb-0">
-              <label class="form-label text-xs">URL Modelo 3D / Realidad Aumentada (.glb)</label>
-              <input type="url" [(ngModel)]="prendaForm.modelo_ar_url" name="modelo_ar_url" placeholder="https://modelviewer.dev/shared-assets/models/Astronaut.glb" class="form-input" />
+              <div class="form-group mb-0">
+                <label class="form-label text-xs">URL Modelo 3D / Realidad Aumentada (.glb)</label>
+                <input type="url" [(ngModel)]="prendaForm.modelo_ar_url" name="modelo_ar_url" placeholder="https://modelviewer.dev/shared-assets/models/Astronaut.glb" class="form-input" />
+              </div>
             </div>
           </div>
 
@@ -667,13 +774,25 @@ import { Sucursal } from '../../models/sucursal.models';
 
           <!-- SECCIÓN 4: FOTOS POR COLOR Y CANTIDAD INICIAL QUE ENTRA -->
           <div *ngIf="coloresSeleccionadosIds.length > 0" class="p-4 rounded-xl mb-4" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
-            <div class="flex items-center justify-between mb-3">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
               <h4 class="text-xs font-bold uppercase" style="color: var(--accent);">
-                <i class="fa-solid fa-camera mr-1"></i> 4. Fotos Dedicadas por Color &amp; Cantidad que Entra
+                <i class="fa-solid fa-camera mr-1"></i> 4. Fotos Dedicadas por Color &amp; Lote de Entrada
               </h4>
               <div class="flex items-center gap-2">
-                <span class="text-xs" style="color: var(--text-muted);">Cantidad inicial que entra por tienda:</span>
-                <input type="number" [(ngModel)]="stockInicialNuevoProducto" [ngModelOptions]="{standalone: true}" min="1" class="form-input text-xs font-bold" style="width: 80px; padding: 0.3rem 0.5rem; color: #10b981;" />
+                <span class="text-xs font-medium" style="color: var(--text-muted);">Stock por variante:</span>
+                <div class="flex items-center gap-1">
+                  <button 
+                    type="button" 
+                    *ngFor="let cant of [5, 10, 15, 20, 30]" 
+                    (click)="seleccionarLoteStock(cant)" 
+                    class="batch-preset-btn"
+                    [class.selected]="stockInicialNuevoProducto === cant"
+                  >
+                    {{ cant }}
+                  </button>
+                </div>
+                <input type="number" [(ngModel)]="stockInicialNuevoProducto" [ngModelOptions]="{standalone: true}" min="1" class="form-input text-xs font-bold" style="width: 70px; padding: 0.3rem 0.5rem; color: #10b981; text-align: center;" />
+                <span class="text-xs" style="color: var(--text-muted);">Uds</span>
               </div>
             </div>
 
@@ -697,16 +816,22 @@ import { Sucursal } from '../../models/sucursal.models';
             </div>
           </div>
 
-          <!-- RESUMEN AUTOMÁTICO DE VARIANTES A GENERAR -->
-          <div *ngIf="esPrendaValida()" class="p-4 rounded-xl mb-4" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3);">
+          <!-- RESUMEN AUTOMÁTICO DE VARIANTES Y CANTIDADES A GENERAR -->
+          <div *ngIf="esPrendaValida()" class="p-4 rounded-xl mb-4 animate-fade-in" style="background: rgba(245, 158, 11, 0.08); border: 1.5px solid rgba(245, 158, 11, 0.35);">
             <div class="flex items-center justify-between mb-2">
-              <span class="font-bold text-xs" style="color: #10b981;">
-                <i class="fa-solid fa-circle-check mr-1"></i> {{ getVariantesGeneradasCount() }} variantes se crearán automáticamente
+              <span class="font-bold text-xs" style="color: var(--accent);">
+                <i class="fa-solid fa-boxes-stacked mr-1"></i> Resumen de Producción e Inventario
               </span>
-              <span class="badge badge-stock">{{ tallasSeleccionadasIds.length }} tallas × {{ coloresSeleccionadosIds.length }} colores</span>
+              <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: var(--accent); font-weight: 700; border: 1px solid rgba(245, 158, 11, 0.4);">
+                {{ tallasSeleccionadasIds.length }} tallas × {{ coloresSeleccionadosIds.length }} colores = {{ getVariantesGeneradasCount() }} variantes
+              </span>
             </div>
-            <p class="text-xs" style="color: var(--text-muted);">
-              Cada variante entrará con {{ stockInicialNuevoProducto || 10 }} unidades iniciales en cada sucursal física.
+            <p class="text-xs" style="color: var(--text-main); margin-bottom: 0.25rem;">
+              Cada combinación de talla y color entrará con <strong>{{ stockInicialNuevoProducto || 10 }} unidades</strong> en el inventario de la tienda.
+            </p>
+            <p class="text-xs font-bold flex items-center gap-1.5" style="color: #10b981; margin: 0;">
+              <i class="fa-solid fa-arrow-trend-up"></i>
+              <span>Total en lote: <strong>{{ getTotalUnidadesEntrantes() }} prendas</strong> ingresarán automáticamente al Kardex de Inventario.</span>
             </p>
           </div>
 
@@ -1016,15 +1141,115 @@ import { Sucursal } from '../../models/sucursal.models';
       border-color: var(--primary) !important;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
+
+    /* Chips de Filtro por Categoría en Tabla Principal */
+    .category-filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.4rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--text-muted);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .category-filter-chip:hover {
+      border-color: var(--accent);
+      color: var(--text-main);
+    }
+    .category-filter-chip.active {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 700;
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.2);
+    }
+    .chip-count {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: inherit;
+    }
+    .category-filter-chip.active .chip-count {
+      background: var(--accent);
+      color: #18181b;
+      font-weight: 800;
+    }
+
+    /* Chips de Selección de Categoría en Modal */
+    .category-tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.55rem 1.1rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1.5px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--text-main);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .category-tag-chip:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .category-tag-chip.selected {
+      background: rgba(245, 158, 11, 0.18);
+      border-color: #f59e0b;
+      color: #f59e0b;
+      font-weight: 700;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.25);
+    }
+
+    /* Botones de Lote Rápido de Stock */
+    .batch-preset-btn {
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .batch-preset-btn:hover {
+      border-color: var(--accent);
+      color: var(--text-main);
+    }
+    .batch-preset-btn.selected {
+      background: #f59e0b;
+      border-color: #f59e0b;
+      color: #18181b;
+      font-weight: 800;
+    }
   `]
 })
 export class AdminPanelComponent implements OnInit {
   private adminService = inject(AdminService);
   private productoService = inject(ProductoService);
+  private toastService = inject(ToastService);
   private authService = inject(AuthService);
   private router = inject(Router);
 
   activeTab: 'prendas' | 'atributos' | 'sucursales' | 'proveedores' | 'usuarios' = 'prendas';
+  categoriaFiltroId: number | null = null;
+  mostrarCrearCategoriaRapida: boolean = false;
+  nuevaCategoriaRapidaNombre: string = '';
+  nombrePlaceholderPrenda: string = 'Ej: Polera Heavy Cotton Oversize';
+  sugerenciaEstiloPrenda: string = '';
+
+  get productosFiltrados(): Producto[] {
+    if (this.categoriaFiltroId === null) return this.productos;
+    return this.productos.filter(p => p.categoria_id === this.categoriaFiltroId || (p.categoria && p.categoria.id === this.categoriaFiltroId));
+  }
 
   productos: Producto[] = [];
   categorias: Categoria[] = [];
@@ -1068,8 +1293,27 @@ export class AdminPanelComponent implements OnInit {
   guardandoStock: boolean = false;
   cargandoVariantes: boolean = false;
 
-  successMessage: string = '';
-  errorMessage: string = '';
+  private _successMessage: string = '';
+  get successMessage(): string {
+    return this._successMessage;
+  }
+  set successMessage(val: string) {
+    this._successMessage = val;
+    if (val) {
+      this.toastService.success('Operación Exitosa', val);
+    }
+  }
+
+  private _errorMessage: string = '';
+  get errorMessage(): string {
+    return this._errorMessage;
+  }
+  set errorMessage(val: string) {
+    this._errorMessage = val;
+    if (val) {
+      this.toastService.error('Aviso del Sistema', val);
+    }
+  }
 
   // Formulario de Prenda
   prendaForm = {
@@ -1218,13 +1462,117 @@ export class AdminPanelComponent implements OnInit {
     });
   }
 
+  // --- Helpers de Clasificación por Categorías ---
+  getPrendasPorCategoriaCount(catId: number): number {
+    return this.productos.filter(p => p.categoria_id === catId || (p.categoria && p.categoria.id === catId)).length;
+  }
+
+  getCategoriaNombre(catId: number | null): string {
+    if (catId === null) return 'Todas las Categorías';
+    const c = this.categorias.find(x => x.id === catId);
+    return c ? c.nombre : 'Categoría';
+  }
+
+  onCategoriaSeleccionada(categoriaId: number): void {
+    this.prendaForm.categoria_id = categoriaId;
+    const cat = this.categorias.find(c => c.id === categoriaId);
+    if (!cat) return;
+    const catLower = cat.nombre.toLowerCase();
+
+    if (catLower.includes('polera') || catLower.includes('camiset') || catLower.includes('remera') || catLower.includes('t-shirt')) {
+      this.nombrePlaceholderPrenda = 'Ej: Polera Heavy Cotton Oversize de Temporada';
+      this.sugerenciaEstiloPrenda = 'Cortes oversize, cuello redondo y gramaje 240g/m²';
+      this.autoSeleccionarTallas(['S', 'M', 'L', 'XL']);
+      this.autoSeleccionarColores(['Negro', 'Blanco', 'Azul Marino', 'Gris Plomo']);
+    } else if (catLower.includes('camisa') || catLower.includes('blusa')) {
+      this.nombrePlaceholderPrenda = 'Ej: Camisa Oxford Slim Fit Cuello Italiano';
+      this.sugerenciaEstiloPrenda = 'Telas 100% algodón, corte slim fit o lino fino';
+      this.autoSeleccionarTallas(['S', 'M', 'L', 'XL']);
+      this.autoSeleccionarColores(['Blanco', 'Azul Celeste', 'Azul Marino', 'Rosa Pastel']);
+    } else if (catLower.includes('vestid')) {
+      this.nombrePlaceholderPrenda = 'Ej: Vestido Midi Satinado Escote Halter';
+      this.sugerenciaEstiloPrenda = 'Acabado satinado, corte midi o fiesta de noche';
+      this.autoSeleccionarTallas(['XS', 'S', 'M', 'L']);
+      this.autoSeleccionarColores(['Negro', 'Rojo Borgoña', 'Verde Esmeralda', 'Rosa Pastel']);
+    } else if (catLower.includes('pantal') || catLower.includes('jean') || catLower.includes('short') || catLower.includes('bermuda')) {
+      this.nombrePlaceholderPrenda = 'Ej: Pantalón Chino Stretch Slim Fit';
+      this.sugerenciaEstiloPrenda = 'Tallas de cintura numérica (28-36) y tela stretch';
+      this.autoSeleccionarTallas(['28', '30', '32', '34', '36']);
+      this.autoSeleccionarColores(['Negro', 'Azul Marino', 'Beige Arena', 'Verde Oliva']);
+    } else if (catLower.includes('abrigo') || catLower.includes('chaquet') || catLower.includes('chompa') || catLower.includes('blazer') || catLower.includes('saco')) {
+      this.nombrePlaceholderPrenda = 'Ej: Abrigo Trench Clásico de Paño y Lana';
+      this.sugerenciaEstiloPrenda = 'Forro térmico, solapa ancha y botones carey';
+      this.autoSeleccionarTallas(['S', 'M', 'L', 'XL', '2XL']);
+      this.autoSeleccionarColores(['Negro', 'Café Chocolate', 'Beige Arena', 'Gris Plomo']);
+    } else if (catLower.includes('calzad') || catLower.includes('zapato') || catLower.includes('zapatill') || catLower.includes('bota')) {
+      this.nombrePlaceholderPrenda = 'Ej: Mocasines de Cuero Genuino Suela Track';
+      this.sugerenciaEstiloPrenda = 'Tallas numéricas de calzado y cuero legítimo';
+      this.autoSeleccionarTallas(['38', '39', '40', '41', '42']);
+      this.autoSeleccionarColores(['Negro', 'Café Chocolate', 'Blanco']);
+    } else {
+      this.nombrePlaceholderPrenda = `Ej: ${cat.nombre} Edición Exclusiva`;
+      this.sugerenciaEstiloPrenda = `Prenda clasificada en categoría ${cat.nombre}`;
+      this.autoSeleccionarTallas(['S', 'M', 'L', 'XL']);
+      this.autoSeleccionarColores(['Negro', 'Blanco']);
+    }
+  }
+
+  autoSeleccionarTallas(nombresTallas: string[]): void {
+    const ids: number[] = [];
+    for (const nombre of nombresTallas) {
+      const t = this.tallas.find(x => x.nombre.trim().toUpperCase() === nombre.toUpperCase());
+      if (t) ids.push(t.id);
+    }
+    if (ids.length > 0) this.tallasSeleccionadasIds = ids;
+  }
+
+  autoSeleccionarColores(nombresColores: string[]): void {
+    const ids: number[] = [];
+    for (const nombre of nombresColores) {
+      const c = this.colores.find(x => x.nombre.trim().toLowerCase() === nombre.toLowerCase());
+      if (c) ids.push(c.id);
+    }
+    if (ids.length > 0) this.coloresSeleccionadosIds = ids;
+  }
+
+  seleccionarLoteStock(cant: number): void {
+    this.stockInicialNuevoProducto = cant;
+  }
+
+  getTotalUnidadesEntrantes(): number {
+    return this.tallasSeleccionadasIds.length * this.coloresSeleccionadosIds.length * (Number(this.stockInicialNuevoProducto) || 0);
+  }
+
+  crearCategoriaRapida(): void {
+    if (!this.nuevaCategoriaRapidaNombre.trim()) return;
+    const nombre = this.nuevaCategoriaRapidaNombre.trim();
+    this.adminService.crearCategoria({ nombre }).subscribe({
+      next: () => {
+        this.nuevaCategoriaRapidaNombre = '';
+        this.mostrarCrearCategoriaRapida = false;
+        this.productoService.getCategorias().subscribe(data => {
+          this.categorias = data || [];
+          const encontrada = this.categorias.find(c => c.nombre.toLowerCase() === nombre.toLowerCase());
+          if (encontrada) {
+            this.onCategoriaSeleccionada(encontrada.id);
+          }
+        });
+        this.toastService.success('Categoría Creada', `Categoría "${nombre}" creada y seleccionada.`);
+      },
+      error: (err) => {
+        this.toastService.error('Error al Crear Categoría', err.error?.detail || 'No se pudo crear la categoría.');
+      }
+    });
+  }
+
   // --- Modal Prenda ---
-  abrirModalPrenda(): void {
+  abrirModalPrenda(categoriaIdTarget?: number): void {
+    const targetCatId = categoriaIdTarget || (this.categoriaFiltroId !== null ? this.categoriaFiltroId : (this.categorias.length > 0 ? this.categorias[0].id : null));
     this.prendaForm = {
       nombre: '',
       descripcion: '',
       precio_base: 180,
-      categoria_id: this.categorias.length > 0 ? this.categorias[0].id : null,
+      categoria_id: targetCatId,
       proveedor_id: this.proveedores.length > 0 ? this.proveedores[0].id : 1,
       imagen_url: '',
       modelo_ar_url: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb'
@@ -1233,7 +1581,13 @@ export class AdminPanelComponent implements OnInit {
     this.coloresSeleccionadosIds = [];
     this.fotosColoresNuevoProducto = {};
     this.stockInicialNuevoProducto = 15;
+    this.mostrarCrearCategoriaRapida = false;
+    this.nuevaCategoriaRapidaNombre = '';
     this.mostrarModalPrenda = true;
+
+    if (targetCatId) {
+      this.onCategoriaSeleccionada(targetCatId);
+    }
   }
 
   toggleTalla(tallaId: number): void {

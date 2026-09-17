@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ProductoService } from '../../services/producto.service';
+import { ToastService } from '../../services/toast.service';
 import { CarritoService } from '../../services/carrito.service';
 import { ReservaService } from '../../services/reserva.service';
 import { InventarioService } from '../../services/inventario.service';
@@ -15,44 +16,6 @@ import { Producto, Variante, Color, Talla } from '../../models/producto.models';
   imports: [CommonModule, FormsModule, RouterLink],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
-    <!-- Toast Flotante de Notificaciones (Error / Éxito) -->
-    <div 
-      *ngIf="errorMessage" 
-      class="custom-toast toast-error animate-slide-in"
-    >
-      <div class="toast-icon text-red-500">
-        <i class="fa-solid fa-circle-exclamation"></i>
-      </div>
-      <div class="toast-body">
-        <h5 class="toast-title text-red-500">Aviso del Sistema</h5>
-        <p class="toast-desc">{{ errorMessage }}</p>
-      </div>
-      <button (click)="errorMessage = ''" class="toast-close">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </div>
-
-    <div 
-      *ngIf="successMessage" 
-      class="custom-toast toast-success animate-slide-in"
-    >
-      <div class="toast-icon text-green-500">
-        <i class="fa-solid fa-circle-check"></i>
-      </div>
-      <div class="toast-body">
-        <h5 class="toast-title text-green-500">Operación Exitosa</h5>
-        <p class="toast-desc">{{ successMessage }}</p>
-        <div *ngIf="mostrarLinkCarrito" class="mt-2.5">
-          <a routerLink="/carrito" class="btn btn-primary btn-sm">
-            <i class="fa-solid fa-cart-shopping mr-1"></i> Ir al Carrito
-          </a>
-        </div>
-      </div>
-      <button (click)="successMessage = ''" class="toast-close">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </div>
-
     <!-- Contenedor Principal de la Página -->
     <div class="product-page-wrapper" *ngIf="producto; else loadingTpl">
       
@@ -1334,88 +1297,13 @@ import { Producto, Variante, Color, Talla } from '../../models/producto.models';
       flex-shrink: 0;
     }
 
-    /* TOAST FLOTANTE */
-    .custom-toast {
-      position: fixed;
-      top: 88px;
-      right: 24px;
-      z-index: 99999;
-      max-width: 400px;
-      background: #18181b;
-      color: #f4f4f5;
-      border-radius: 14px;
-      padding: 1rem 1.25rem;
-      display: flex;
-      align-items: flex-start;
-      gap: 0.85rem;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
-    }
-
-    .toast-error {
-      border: 1.5px solid #ef4444;
-      box-shadow: 0 16px 40px rgba(0,0,0,0.6), 0 0 25px rgba(239,68,68,0.25);
-    }
-
-    .toast-success {
-      border: 1.5px solid #22c55e;
-      box-shadow: 0 16px 40px rgba(0,0,0,0.6), 0 0 25px rgba(34,197,94,0.25);
-    }
-
-    .toast-icon {
-      font-size: 1.35rem;
-      line-height: 1;
-      margin-top: 1px;
-    }
-
-    .toast-body {
-      flex: 1;
-    }
-
-    .toast-title {
-      font-weight: 700;
-      font-size: 0.9rem;
-      margin: 0 0 3px 0;
-    }
-
-    .toast-desc {
-      font-size: 0.82rem;
-      margin: 0;
-      color: #d4d4d8;
-      line-height: 1.4;
-    }
-
-    .toast-close {
-      background: none;
-      border: none;
-      color: #a1a1aa;
-      cursor: pointer;
-      padding: 2px;
-      font-size: 1rem;
-    }
-
-    .animate-slide-in {
-      animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes slideInRight {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-
-    .animate-fade-in {
-      animation: fadeIn 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
   `]
 })
 export class ProductoDetalleComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private productoService = inject(ProductoService);
+  private toastService = inject(ToastService);
   carritoService = inject(CarritoService);
   private reservaService = inject(ReservaService);
   private inventarioService = inject(InventarioService);
@@ -1666,20 +1554,15 @@ export class ProductoDetalleComponent implements OnInit {
   }
 
   mostrarError(msg: string): void {
-    this.errorMessage = msg;
-    if (this.errorTimer) clearTimeout(this.errorTimer);
-    this.errorTimer = setTimeout(() => {
-      this.errorMessage = '';
-    }, 6000);
+    this.toastService.error('Aviso del Sistema', msg);
   }
 
   mostrarExito(msg: string, conCarrito: boolean = false): void {
-    this.successMessage = msg;
-    this.mostrarLinkCarrito = conCarrito;
-    if (this.successTimer) clearTimeout(this.successTimer);
-    this.successTimer = setTimeout(() => {
-      this.successMessage = '';
-    }, 6000);
+    if (conCarrito) {
+      this.toastService.success('Operación Exitosa', msg, 6500, 'Ir al Carrito', '/carrito');
+    } else {
+      this.toastService.success('Operación Exitosa', msg, 5000);
+    }
   }
 
   agregarAlCarrito(): void {

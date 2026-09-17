@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { CarritoService } from '../../services/carrito.service';
 import { VentaService } from '../../services/venta.service';
 import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-carrito',
@@ -24,10 +25,6 @@ import { AuthService } from '../../services/auth.service';
         <button *ngIf="items.length > 0" (click)="vaciar()" class="btn btn-outline" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;">
           <i class="fa-solid fa-trash"></i> Vaciar Carrito
         </button>
-      </div>
-
-      <div *ngIf="errorMessage" class="p-4 mb-4 rounded-lg flex items-center gap-2 text-sm" style="background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.3);">
-        <i class="fa-solid fa-circle-exclamation"></i> {{ errorMessage }}
       </div>
 
       <div *ngIf="!loading && items.length === 0" class="card text-center py-16 px-4">
@@ -203,6 +200,7 @@ export class CarritoComponent implements OnInit {
   private ventaService = inject(VentaService);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private toastService = inject(ToastService);
 
   items: any[] = [];
   subtotal: number = 0;
@@ -228,8 +226,8 @@ export class CarritoComponent implements OnInit {
         this.loading = false;
       },
       error: (err) => {
-        this.errorMessage = err.error?.detail || 'Inicia sesión como cliente para ver tu carrito.';
         this.loading = false;
+        this.toastService.error('Aviso del Carrito', err.error?.detail || 'Inicia sesión como cliente para ver tu carrito.');
       }
     });
   }
@@ -246,7 +244,7 @@ export class CarritoComponent implements OnInit {
         this.totalItems = res.total_items || 0;
       },
       error: (err) => {
-        this.errorMessage = err.error?.detail || 'No se pudo actualizar la cantidad.';
+        this.toastService.error('Inventario Insuficiente', err.error?.detail || 'No se pudo actualizar la cantidad.');
       }
     });
   }
@@ -257,6 +255,7 @@ export class CarritoComponent implements OnInit {
         this.items = res.items || [];
         this.subtotal = res.subtotal || 0;
         this.totalItems = res.total_items || 0;
+        this.toastService.info('Carrito', 'Prenda eliminada del carrito.', 3500);
       }
     });
   }
@@ -267,6 +266,7 @@ export class CarritoComponent implements OnInit {
         this.items = [];
         this.subtotal = 0;
         this.totalItems = 0;
+        this.toastService.info('Carrito', 'Se ha vaciado el carrito de compras.', 3500);
       }
     });
   }
@@ -278,12 +278,11 @@ export class CarritoComponent implements OnInit {
     }
 
     if (this.metodoEntrega === 'delivery' && !this.direccionEnvio.trim()) {
-      this.errorMessage = 'Por favor ingresa tu dirección para el envío a domicilio.';
+      this.toastService.warning('Dirección Requerida', 'Por favor ingresa tu dirección para el envío a domicilio.');
       return;
     }
 
     this.checkoutLoading = true;
-    this.errorMessage = '';
 
     this.ventaService.checkout({
       metodo_entrega: this.metodoEntrega,
@@ -291,11 +290,12 @@ export class CarritoComponent implements OnInit {
     }).subscribe({
       next: (res) => {
         this.checkoutLoading = false;
+        this.toastService.success('Orden Generada', 'Venta registrada. Procede a confirmar el método de pago.');
         this.router.navigate(['/pago', res.venta_id]);
       },
       error: (err) => {
         this.checkoutLoading = false;
-        this.errorMessage = err.error?.detail || 'Error al iniciar el checkout.';
+        this.toastService.error('Error en Checkout', err.error?.detail || 'Error al iniciar el checkout.');
       }
     });
   }

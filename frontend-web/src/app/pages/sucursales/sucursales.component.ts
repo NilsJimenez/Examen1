@@ -2,6 +2,7 @@ import { Component, OnInit, AfterViewInit, OnDestroy, inject } from '@angular/co
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { ProductoService } from '../../services/producto.service';
+import { ToastService } from '../../services/toast.service';
 import { Sucursal } from '../../models/sucursal.models';
 
 declare const L: any;
@@ -45,14 +46,6 @@ interface SucursalConDistancia extends Sucursal {
         </div>
       </div>
 
-      <!-- Alerta de Geolocalización GPS -->
-      <div *ngIf="mensajeGps" class="p-4 mb-6 rounded-xl flex items-center justify-between text-sm animate-fade-in" style="background: rgba(245, 158, 11, 0.12); color: var(--accent); border: 1px solid rgba(245, 158, 11, 0.3);">
-        <div class="flex items-center gap-2.5">
-          <i class="fa-solid fa-location-crosshairs text-base"></i>
-          <span>{{ mensajeGps }}</span>
-        </div>
-        <button (click)="mensajeGps = ''" class="opacity-70 hover:opacity-100"><i class="fa-solid fa-xmark"></i></button>
-      </div>
 
       <!-- Spinner de Carga -->
       <div *ngIf="loading" class="text-center py-16">
@@ -194,6 +187,7 @@ interface SucursalConDistancia extends Sucursal {
 export class SucursalesComponent implements OnInit, AfterViewInit, OnDestroy {
   private productoService = inject(ProductoService);
   private router = inject(Router);
+  private toastService = inject(ToastService);
 
   sucursales: SucursalConDistancia[] = [];
   loading: boolean = true;
@@ -353,12 +347,12 @@ export class SucursalesComponent implements OnInit, AfterViewInit, OnDestroy {
 
   localizarSucursalMasCercana(): void {
     if (!navigator.geolocation) {
-      this.mensajeGps = 'Tu navegador no soporta geolocalización GPS.';
+      this.toastService.warning('Geolocalización GPS', 'Tu navegador no soporta geolocalización GPS.');
       return;
     }
 
     this.localizandoGps = true;
-    this.mensajeGps = 'Obteniendo tu ubicación satelital...';
+    this.toastService.info('Geolocalización GPS', 'Obteniendo tu ubicación satelital...', 2500, 'fa-solid fa-location-crosshairs');
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -381,7 +375,12 @@ export class SucursalesComponent implements OnInit, AfterViewInit, OnDestroy {
         this.sucursales.forEach((s, idx) => s.esMasCercana = (idx === 0));
 
         const masCercana = this.sucursales[0];
-        this.mensajeGps = `¡Tu tienda más cercana es "${masCercana.nombre}" a solo ${masCercana.distanciaKm} km de tu ubicación!`;
+        this.toastService.info(
+          'Tienda Más Cercana',
+          `¡Tu tienda más cercana es "${masCercana.nombre}" a solo ${masCercana.distanciaKm} km de tu ubicación!`,
+          7000,
+          'fa-solid fa-location-crosshairs'
+        );
 
         // Agregar marcador de usuario en el mapa
         if (this.map && typeof L !== 'undefined') {
@@ -419,9 +418,9 @@ export class SucursalesComponent implements OnInit, AfterViewInit, OnDestroy {
       (error) => {
         this.localizandoGps = false;
         if (error.code === error.PERMISSION_DENIED) {
-          this.mensajeGps = 'Permiso de ubicación denegado. Por favor habilita el GPS en tu navegador para ver la tienda más cercana.';
+          this.toastService.error('GPS no disponible', 'Permiso de ubicación denegado. Por favor habilita el GPS en tu navegador para ver la tienda más cercana.');
         } else {
-          this.mensajeGps = 'No se pudo obtener la posición satelital en este momento.';
+          this.toastService.error('Error de Ubicación', 'No se pudo obtener la posición satelital en este momento.');
         }
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }

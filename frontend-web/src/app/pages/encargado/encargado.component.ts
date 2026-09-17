@@ -5,6 +5,7 @@ import { ReservaService } from '../../services/reserva.service';
 import { InventarioService } from '../../services/inventario.service';
 import { ProductoService } from '../../services/producto.service';
 import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../services/toast.service';
 import { Sucursal } from '../../models/sucursal.models';
 
 declare const Html5Qrcode: any;
@@ -133,23 +134,6 @@ declare const Html5Qrcode: any;
         >
           <i class="fa-solid fa-id-badge mr-1.5"></i> Cambiar a Cuenta Encargado (1 Clic)
         </button>
-      </div>
-
-      <!-- Mensajes de Notificación -->
-      <div *ngIf="successMessage" class="p-3.5 mb-6 rounded-xl flex items-center justify-between text-sm animate-fade-in" style="background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); width: 100%;">
-        <div class="flex items-center gap-2">
-          <i class="fa-solid fa-circle-check text-base"></i>
-          <span>{{ successMessage }}</span>
-        </div>
-        <button (click)="successMessage = ''" class="opacity-70 hover:opacity-100"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <div *ngIf="errorMessage" class="p-3.5 mb-6 rounded-xl flex items-center justify-between text-sm animate-fade-in" style="background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); width: 100%;">
-        <div class="flex items-center gap-2">
-          <i class="fa-solid fa-triangle-exclamation text-base"></i>
-          <span>{{ errorMessage }}</span>
-        </div>
-        <button (click)="errorMessage = ''" class="opacity-70 hover:opacity-100"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <!-- =================================================================== -->
@@ -949,6 +933,7 @@ export class EncargadoComponent implements OnInit, OnDestroy {
   private reservaService = inject(ReservaService);
   private inventarioService = inject(InventarioService);
   private productoService = inject(ProductoService);
+  private toastService = inject(ToastService);
   public authService = inject(AuthService);
 
   get currentUser() {
@@ -1001,8 +986,27 @@ export class EncargadoComponent implements OnInit, OnDestroy {
   movObservaciones: string = '';
   guardandoMovimiento: boolean = false;
 
-  successMessage: string = '';
-  errorMessage: string = '';
+  private _successMessage: string = '';
+  get successMessage(): string {
+    return this._successMessage;
+  }
+  set successMessage(val: string) {
+    this._successMessage = val;
+    if (val) {
+      this.toastService.success('Operación Exitosa', val);
+    }
+  }
+
+  private _errorMessage: string = '';
+  get errorMessage(): string {
+    return this._errorMessage;
+  }
+  set errorMessage(val: string) {
+    this._errorMessage = val;
+    if (val) {
+      this.toastService.error('Aviso del Sistema', val);
+    }
+  }
 
   @HostListener('document:click')
   onDocumentClick(): void {

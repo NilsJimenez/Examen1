@@ -92,6 +92,27 @@ def listar_productos(
     return resultado
 
 
+@router.get("/meta/categorias", response_model=List[CategoriaOut])
+@router.get("/categorias", response_model=List[CategoriaOut])
+def listar_categorias(db: Session = Depends(get_db)):
+    """Lista las categorías de ropa disponibles y activas."""
+    return db.query(Categoria).filter(Categoria.activo == True).all()
+
+
+@router.get("/meta/tallas", response_model=List[TallaOut])
+@router.get("/tallas", response_model=List[TallaOut])
+def listar_tallas(db: Session = Depends(get_db)):
+    """Lista las tallas ordenadas y activas."""
+    return db.query(Talla).filter(Talla.activo == True).order_by(Talla.orden.asc()).all()
+
+
+@router.get("/meta/colores", response_model=List[ColorOut])
+@router.get("/colores", response_model=List[ColorOut])
+def listar_colores(db: Session = Depends(get_db)):
+    """Lista los colores disponibles y activos."""
+    return db.query(Color).filter(Color.activo == True).all()
+
+
 @router.get("/{producto_id}", response_model=ProductoDetailOut)
 def obtener_detalle_producto(producto_id: int, db: Session = Depends(get_db)):
     """
@@ -123,21 +144,3 @@ def obtener_detalle_producto(producto_id: int, db: Session = Depends(get_db)):
     setattr(producto, "stock_total", total)
     setattr(producto, "stock_por_sucursal", list(suc_map.values()))
     return producto
-
-
-@router.get("/meta/categorias", response_model=List[CategoriaOut])
-def listar_categorias(db: Session = Depends(get_db)):
-    """Lista las categorías de ropa disponibles y activas."""
-    return db.query(Categoria).filter(Categoria.activo == True).all()
-
-
-@router.get("/meta/tallas", response_model=List[TallaOut])
-def listar_tallas(db: Session = Depends(get_db)):
-    """Lista las tallas ordenadas y activas."""
-    return db.query(Talla).filter(Talla.activo == True).order_by(Talla.orden.asc()).all()
-
-
-@router.get("/meta/colores", response_model=List[ColorOut])
-def listar_colores(db: Session = Depends(get_db)):
-    """Lista los colores disponibles y activos."""
-    return db.query(Color).filter(Color.activo == True).all()
