@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-registro',
@@ -520,6 +521,7 @@ import { AuthService } from '../../services/auth.service';
 export class RegistroComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
+  private toastService = inject(ToastService);
 
   nombres: string = '';
   apellidos: string = '';
@@ -542,6 +544,7 @@ export class RegistroComponent {
   onSubmit(): void {
     if (!this.nombres || !this.apellidos || !this.email || !this.password) {
       this.errorMessage = 'Por favor completa todos los campos obligatorios marcados con asterisco (*).';
+      this.toastService.error('Campos Incompletos', this.errorMessage);
       return;
     }
 
@@ -558,11 +561,13 @@ export class RegistroComponent {
     }).subscribe({
       next: () => {
         this.loading = false;
+        this.toastService.success('¡Registro Exitoso!', `Bienvenido a FashionStore, ${this.nombres}. Tu cuenta ha sido creada.`);
         this.router.navigate(['/catalogo']);
       },
       error: (err) => {
         this.loading = false;
         this.errorMessage = err.error?.detail || 'Error al crear la cuenta. Intenta con otro correo.';
+        this.toastService.error('Error de Registro', this.errorMessage);
       }
     });
   }

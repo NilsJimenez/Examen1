@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AdminService } from '../../services/admin.service';
 import { ProductoService } from '../../services/producto.service';
+import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
 import { Producto, Categoria, Talla, Color } from '../../models/producto.models';
 import { Sucursal } from '../../models/sucursal.models';
@@ -47,7 +48,7 @@ import { Sucursal } from '../../models/sucursal.models';
           [class.tab-btn-active]="activeTab === 'atributos'" 
           class="admin-tab-btn"
         >
-          <i class="fa-solid fa-tags"></i> Categorías, Tallas &amp; Colores
+          <i class="fa-solid fa-boxes-packing"></i> Mercadería por Categoría
         </button>
 
         <button 
@@ -75,17 +76,6 @@ import { Sucursal } from '../../models/sucursal.models';
         </button>
       </div>
 
-      <!-- Alertas de Éxito / Error -->
-      <div *ngIf="successMessage" class="p-4 mb-6 rounded-lg text-sm flex items-center justify-between" style="background-color: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35);">
-        <span><i class="fa-solid fa-circle-check mr-2"></i> {{ successMessage }}</span>
-        <button (click)="successMessage = ''" style="border:none; background:none; cursor:pointer; color: inherit;"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <div *ngIf="errorMessage" class="p-4 mb-6 rounded-lg text-sm flex items-center justify-between" style="background-color: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35);">
-        <span><i class="fa-solid fa-triangle-exclamation mr-2"></i> {{ errorMessage }}</span>
-        <button (click)="errorMessage = ''" style="border:none; background:none; cursor:pointer; color: inherit;"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
       <!-- =================================================================== -->
       <!-- PESTAÑA 1: PRENDAS DE ROPA                                          -->
       <!-- =================================================================== -->
@@ -98,6 +88,44 @@ import { Sucursal } from '../../models/sucursal.models';
           </div>
           <button (click)="abrirModalPrenda()" class="btn btn-accent">
             <i class="fa-solid fa-plus"></i> Nueva Prenda
+          </button>
+        </div>
+
+        <!-- Barra de Clasificación por Etiquetas de Categorías -->
+        <div class="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-bold uppercase tracking-wider mr-1" style="color: var(--text-muted);">
+              <i class="fa-solid fa-tags mr-1"></i> Categorías:
+            </span>
+            <button 
+              type="button"
+              (click)="categoriaFiltroId = null" 
+              class="category-filter-chip"
+              [class.active]="categoriaFiltroId === null"
+            >
+              <span>Todas</span>
+              <span class="chip-count">{{ productos.length }}</span>
+            </button>
+            <button 
+              type="button"
+              *ngFor="let c of categorias"
+              (click)="categoriaFiltroId = c.id" 
+              class="category-filter-chip"
+              [class.active]="categoriaFiltroId === c.id"
+            >
+              <span>{{ c.nombre }}</span>
+              <span class="chip-count">{{ getPrendasPorCategoriaCount(c.id) }}</span>
+            </button>
+          </div>
+
+          <button 
+            *ngIf="categoriaFiltroId !== null" 
+            type="button"
+            (click)="abrirModalPrenda(categoriaFiltroId)" 
+            class="btn btn-primary" 
+            style="font-size: 0.8rem; padding: 0.45rem 0.9rem;"
+          >
+            <i class="fa-solid fa-plus mr-1"></i> Añadir a {{ getCategoriaNombre(categoriaFiltroId) }}
           </button>
         </div>
 
@@ -115,7 +143,7 @@ import { Sucursal } from '../../models/sucursal.models';
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let p of productos">
+              <tr *ngFor="let p of productosFiltrados">
                 <td>
                   <img [src]="p.imagen_url || 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=100'" [alt]="p.nombre" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);" />
                 </td>
@@ -158,175 +186,357 @@ import { Sucursal } from '../../models/sucursal.models';
       </div>
 
       <!-- =================================================================== -->
-      <!-- PESTAÑA 2: ATRIBUTOS (CATEGORÍAS, TALLAS, COLORES EN SECUENCIA)    -->
+      <!-- PESTAÑA 2: ENTRADA DE MERCADERÍA & MATRIZ TALLA × COLOR             -->
       <!-- =================================================================== -->
       <div *ngIf="activeTab === 'atributos'" class="flex flex-col gap-6">
         
-        <div class="flow-step-bar">
-          <div class="flow-step-item active">
-            <span class="flow-step-number">1</span>
-            <span>1. Categoría de Prenda</span>
+        <!-- Cabecera de la Sección -->
+        <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b" style="border-color: var(--border-color);">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: var(--accent); border: 1px solid rgba(245, 158, 11, 0.35);">
+                <i class="fa-solid fa-boxes-stacked mr-1"></i> Operaciones Comerciales
+              </span>
+              <span class="text-xs" style="color: var(--text-muted);">Distribución Talla × Color</span>
+            </div>
+            <h2 class="font-serif text-2xl font-bold" style="color: var(--text-main);">Entrada de Mercadería por Categoría</h2>
+            <p class="text-xs" style="color: var(--text-muted);">
+              Selecciona una categoría para cargar cantidades exactas de ropa por talla y color al inventario y Kardex.
+            </p>
           </div>
-          <i class="fa-solid fa-arrow-right" style="color: var(--text-muted);"></i>
-          <div class="flow-step-item active">
-            <span class="flow-step-number">2</span>
-            <span>2. Tallas Disponibles</span>
-          </div>
-          <i class="fa-solid fa-arrow-right" style="color: var(--text-muted);"></i>
-          <div class="flow-step-item active">
-            <span class="flow-step-number">3</span>
-            <span>3. Colores &amp; Paleta</span>
+
+          <div class="flex items-center gap-3">
+            <button 
+              type="button" 
+              (click)="mostrarGestionAtributosBase = !mostrarGestionAtributosBase" 
+              class="btn btn-outline" 
+              style="font-size: 0.8rem; padding: 0.5rem 1rem;"
+            >
+              <i class="fa-solid fa-sliders mr-1.5" style="color: var(--accent);"></i>
+              {{ mostrarGestionAtributosBase ? 'Ocultar Atributos Base' : 'Configurar Tallas & Colores Base' }}
+            </button>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- 1. SELECTOR DE CATEGORÍA DE ROPA (CHIPS INTERACTIVOS) -->
+        <div class="card p-5">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-2" style="color: var(--accent);">
+              <i class="fa-solid fa-tags"></i> 1. Selecciona la Categoría de la Mercadería:
+            </span>
+
+            <button 
+              type="button" 
+              (click)="mostrarCrearCategoriaRapida = !mostrarCrearCategoriaRapida"
+              class="text-xs font-bold hover:underline flex items-center gap-1"
+              style="color: var(--accent); background: none; border: none; cursor: pointer;"
+            >
+              <i class="fa-solid" [ngClass]="mostrarCrearCategoriaRapida ? 'fa-xmark' : 'fa-plus'"></i>
+              {{ mostrarCrearCategoriaRapida ? 'Cerrar' : '+ Nueva Categoría' }}
+            </button>
+          </div>
+
+          <!-- Mini formulario en línea para crear categoría -->
+          <div *ngIf="mostrarCrearCategoriaRapida" class="flex gap-2 mb-4 p-3 rounded-xl animate-fade-in" style="background: rgba(245,158,11,0.08); border: 1px dashed var(--accent);">
+            <input 
+              type="text" 
+              [(ngModel)]="nuevaCategoriaRapidaNombre" 
+              placeholder="Nombre de la nueva categoría (ej: Trajes de Gala)..." 
+              class="form-input text-xs" 
+              style="flex: 1; padding: 0.45rem 0.8rem;"
+              (keyup.enter)="crearCategoriaRapida()"
+            />
+            <button 
+              type="button" 
+              (click)="crearCategoriaRapida()" 
+              class="btn btn-accent" 
+              style="font-size: 0.75rem; padding: 0.45rem 0.9rem;"
+            >
+              <i class="fa-solid fa-plus mr-1"></i> Crear y Usar
+            </button>
+          </div>
+
+          <!-- Lista de Categorías en Chips de Lujo con Icono y Contador -->
+          <div class="flex flex-wrap gap-2.5">
+            <button 
+              type="button"
+              *ngFor="let c of categorias"
+              (click)="seleccionarCategoriaMatriz(c.id)"
+              class="category-tag-chip"
+              [class.selected]="categoriaMatrizId === c.id"
+              style="padding: 0.6rem 1.1rem; font-size: 0.88rem;"
+            >
+              <i class="fa-solid mr-2 text-sm" [ngClass]="getCategoriaIcon(c.nombre)"></i>
+              <span style="font-weight: 700;">{{ c.nombre }}</span>
+              <span class="chip-count" style="margin-left: 0.5rem;">{{ getPrendasPorCategoriaCount(c.id) }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. PANEL OPERATIVO DE ENTRADA (SI HAY CATEGORÍA SELECCIONADA) -->
+        <div *ngIf="categoriaMatrizId !== null" class="flex flex-col gap-6 animate-fade-in">
           
-          <!-- 1. Categorías -->
-          <div class="card p-6 flex flex-col justify-between">
-            <div>
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="font-serif text-xl font-bold flex items-center gap-2" style="color: var(--text-main);">
-                  <i class="fa-solid fa-layer-group text-amber-600"></i> 1. Categorías
-                </h3>
-                <span class="badge" style="background: var(--table-th-bg); color: var(--text-muted);">{{ categorias.length }}</span>
-              </div>
-              <p class="text-xs mb-4" style="color: var(--text-muted);">Clasificación principal para catálogo y filtros</p>
+          <!-- Selección de Prenda dentro de la categoría y Parámetros de Destino -->
+          <div class="card p-5" style="background: var(--card-bg); border: 1.5px solid var(--border-color);">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
               
-              <div class="mb-4">
-                <div class="flex gap-2">
-                  <input type="text" [(ngModel)]="nuevaCategoriaNombre" placeholder="Nueva Categoría (ej: Abrigos)" class="form-input" style="padding: 0.5rem;" />
-                  <button (click)="crearCategoria()" class="btn btn-primary" style="padding: 0.5rem 1rem;" title="Crear Categoría">
-                    <i class="fa-solid fa-plus"></i>
-                  </button>
+              <!-- Selector de Prenda -->
+              <div>
+                <label class="form-label text-xs font-bold uppercase mb-1.5 block" style="color: var(--accent);">
+                  <i class="fa-solid fa-shirt mr-1"></i> Prenda a Recibir Mercadería:
+                </label>
+                
+                <div *ngIf="getPrendasDeCategoriaMatriz().length > 0">
+                  <select 
+                    [(ngModel)]="productoMatrizId" 
+                    (ngModelChange)="onProductoMatrizChange($event)"
+                    class="form-select text-sm font-semibold"
+                    style="width: 100%; padding: 0.55rem 0.75rem;"
+                  >
+                    <option *ngFor="let p of getPrendasDeCategoriaMatriz()" [value]="p.id">
+                      {{ p.nombre }} - Bs. {{ p.precio_base | number:'1.2-2' }}
+                    </option>
+                  </select>
+                </div>
+
+                <div *ngIf="getPrendasDeCategoriaMatriz().length === 0" class="p-3 rounded-lg text-xs" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25);">
+                  No hay prendas registradas en esta categoría aún.
+                </div>
+
+                <button 
+                  type="button" 
+                  (click)="abrirModalPrenda(categoriaMatrizId)" 
+                  class="btn btn-outline mt-2 text-xs" 
+                  style="width: 100%; padding: 0.4rem 0.75rem; color: var(--accent); border-color: rgba(245, 158, 11, 0.4);"
+                >
+                  <i class="fa-solid fa-plus mr-1"></i> + Registrar Nueva Prenda en esta Categoría
+                </button>
+              </div>
+
+              <!-- Selector de Sucursal Destino -->
+              <div>
+                <label class="form-label text-xs font-bold uppercase mb-1.5 block" style="color: var(--accent);">
+                  <i class="fa-solid fa-warehouse mr-1"></i> Sucursal Destino:
+                </label>
+                <select 
+                  [(ngModel)]="sucursalMatrizId" 
+                  class="form-select text-sm font-semibold"
+                  style="width: 100%; padding: 0.55rem 0.75rem;"
+                >
+                  <option *ngFor="let s of sucursales" [value]="s.id">
+                    {{ s.nombre }} ({{ s.ciudad.nombre || 'Bolivia' }})
+                  </option>
+                </select>
+                <p class="text-xs mt-2" style="color: var(--text-muted);">
+                  El stock ingresará de inmediato al Kardex de la tienda seleccionada.
+                </p>
+              </div>
+
+              <!-- Botones de Lote Rápido -->
+              <div>
+                <label class="form-label text-xs font-bold uppercase mb-1.5 block" style="color: var(--accent);">
+                  <i class="fa-solid fa-bolt mr-1"></i> Llenar Lote Parejo:
+                </label>
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <button type="button" (click)="llenarLoteParejo(5)" class="batch-preset-btn">+5 Uds</button>
+                  <button type="button" (click)="llenarLoteParejo(10)" class="batch-preset-btn">+10 Uds</button>
+                  <button type="button" (click)="llenarLoteParejo(15)" class="batch-preset-btn">+15 Uds</button>
+                  <button type="button" (click)="llenarLoteParejo(20)" class="batch-preset-btn">+20 Uds</button>
+                  <button type="button" (click)="llenarLoteParejo(30)" class="batch-preset-btn">+30 Uds</button>
+                  <button type="button" (click)="llenarLoteParejo(0)" class="batch-preset-btn" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">Limpiar</button>
+                </div>
+                <p class="text-xs mt-2" style="color: var(--text-muted);">
+                  Rellena todas las casillas de la matriz con un solo clic.
+                </p>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- 3. LA MATRIZ VISUAL INTERACTIVA (TALLA × COLOR) -->
+          <div *ngIf="productoMatrizId !== null" class="card p-6" style="border: 1.5px solid var(--accent); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);">
+            
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-5 pb-3 border-b" style="border-color: var(--border-color);">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="font-serif text-xl font-bold" style="color: var(--text-main);">
+                    <i class="fa-solid fa-table-cells mr-2" style="color: var(--accent);"></i>
+                    Matriz de Cantidades: {{ getProductoMatrizNombre() }}
+                  </h3>
+                </div>
+                <p class="text-xs mt-0.5" style="color: var(--text-muted);">
+                  Tallas filtradas para <strong>{{ getCategoriaNombre(categoriaMatrizId) }}</strong>. Ajusta las cantidades que entran para cada talla y color:
+                </p>
+              </div>
+
+              <!-- Gran Total Destacado -->
+              <div class="flex items-center gap-3">
+                <div class="px-4 py-2 rounded-xl text-center" style="background: rgba(245, 158, 11, 0.15); border: 1.5px solid var(--accent);">
+                  <span class="text-xs font-bold block" style="color: var(--text-muted);">TOTAL LOTE A INGRESAR:</span>
+                  <span class="font-serif text-2xl font-extrabold" style="color: var(--accent);">
+                    {{ getGranTotalMatriz() }} <span class="text-sm font-sans font-bold">Uds</span>
+                  </span>
                 </div>
               </div>
-
-              <ul class="flex flex-col gap-2" style="max-height: 280px; overflow-y: auto; padding-right: 4px;">
-                <li *ngFor="let c of categorias" style="
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-                  background: var(--table-th-bg);
-                  border: 1px solid var(--border-color);
-                  border-radius: 8px;
-                  padding: 0.45rem 0.75rem;
-                  font-size: 0.875rem;
-                  color: var(--text-main);
-                ">
-                  <span>{{ c.nombre }}</span>
-                  <button 
-                    type="button"
-                    (click)="eliminarCategoria(c)" 
-                    class="btn btn-outline"
-                    style="padding: 0.2rem 0.5rem; font-size: 0.75rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);"
-                    title="Eliminar categoría"
-                  >
-                    <i class="fa-solid fa-trash-can"></i>
-                  </button>
-                </li>
-              </ul>
             </div>
+
+            <!-- Tabla Matriz con Scroll Horizontal si es necesario -->
+            <div class="overflow-x-auto pb-2">
+              <table class="matrix-table" style="width: 100%; border-collapse: separate; border-spacing: 6px;">
+                <thead>
+                  <tr>
+                    <th style="text-align: left; padding: 0.75rem 1rem; background: var(--table-th-bg); border-radius: 8px; font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">
+                      Color de la Prenda
+                    </th>
+                    <th *ngFor="let t of tallasMatrizActivas" style="text-align: center; padding: 0.75rem 0.5rem; background: var(--table-th-bg); border-radius: 8px; font-size: 0.82rem; color: var(--accent); font-weight: 800; min-width: 85px;">
+                      Talla {{ t.nombre }}
+                    </th>
+                    <th style="text-align: center; padding: 0.75rem 0.75rem; background: rgba(245, 158, 11, 0.1); border-radius: 8px; font-size: 0.75rem; color: var(--accent); font-weight: 800; text-transform: uppercase; min-width: 100px;">
+                      Total Color
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let col of coloresMatrizActivos">
+                    <!-- Celda Color -->
+                    <td style="padding: 0.65rem 1rem; background: var(--table-th-bg); border-radius: 8px; font-weight: 700; color: var(--text-main); font-size: 0.85rem;">
+                      <div class="flex items-center gap-2.5">
+                        <span class="color-dot-indicator" [style.background-color]="col.codigo_hex || '#000'" style="width: 18px; height: 18px; min-width: 18px; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></span>
+                        <span>{{ col.nombre }}</span>
+                      </div>
+                    </td>
+
+                    <!-- Celdas de Cantidad por Talla -->
+                    <td *ngFor="let t of tallasMatrizActivas" style="text-align: center; padding: 0.4rem; background: var(--card-bg); border: 1.5px solid var(--border-color); border-radius: 8px;">
+                      <div class="flex items-center justify-center gap-1">
+                        <button 
+                          type="button" 
+                          (click)="incrementarCantidad(col.id, t.id, -1)" 
+                          class="matrix-btn-minus"
+                          title="Restar 1"
+                        >-</button>
+                        
+                        <input 
+                          type="number" 
+                          min="0" 
+                          [ngModel]="getCantidadMatriz(col.id, t.id)" 
+                          (ngModelChange)="setCantidadMatriz(col.id, t.id, $event)"
+                          class="matrix-cell-input"
+                        />
+
+                        <button 
+                          type="button" 
+                          (click)="incrementarCantidad(col.id, t.id, 1)" 
+                          class="matrix-btn-plus"
+                          title="Sumar 1"
+                        >+</button>
+                      </div>
+                    </td>
+
+                    <!-- Total de ese Color -->
+                    <td style="text-align: center; padding: 0.65rem; background: rgba(245, 158, 11, 0.08); border-radius: 8px; font-weight: 800; color: var(--accent); font-size: 0.95rem;">
+                      {{ getTotalPorColor(col.id) }} <span class="text-xs font-normal" style="color: var(--text-muted);">Uds</span>
+                    </td>
+                  </tr>
+
+                  <!-- Fila de Totales por Talla al Pie -->
+                  <tr>
+                    <td style="padding: 0.75rem 1rem; background: rgba(245, 158, 11, 0.1); border-radius: 8px; font-weight: 800; font-size: 0.8rem; color: var(--accent); text-transform: uppercase;">
+                      Total por Talla
+                    </td>
+                    <td *ngFor="let t of tallasMatrizActivas" style="text-align: center; padding: 0.65rem; background: rgba(245, 158, 11, 0.08); border-radius: 8px; font-weight: 800; color: var(--accent); font-size: 0.92rem;">
+                      {{ getTotalPorTalla(t.id) }} <span class="text-xs font-normal" style="color: var(--text-muted);">Uds</span>
+                    </td>
+                    <td style="text-align: center; padding: 0.75rem; background: var(--accent); border-radius: 8px; font-weight: 900; color: #18181b; font-size: 1.1rem;">
+                      {{ getGranTotalMatriz() }} Uds
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Fila de Observaciones y Botón de Envío -->
+            <div class="flex flex-wrap items-center justify-between gap-4 mt-6 pt-5 border-t" style="border-color: var(--border-color);">
+              <div class="flex-1" style="min-width: 260px;">
+                <label class="form-label text-xs block mb-1">Observaciones / Guía de Remisión (Opcional):</label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="observacionesMatriz" 
+                  placeholder="Ej: Lote Temporada Primavera-Verano #104 / Factura Proveedor..." 
+                  class="form-input text-xs" 
+                  style="padding: 0.5rem 0.75rem;" 
+                />
+              </div>
+
+              <button 
+                type="button" 
+                (click)="guardarEntradaMercaderiaMatriz()" 
+                [disabled]="guardandoMatriz || getGranTotalMatriz() <= 0" 
+                class="btn btn-primary"
+                style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800; letter-spacing: 0.04em;"
+              >
+                <span *ngIf="guardandoMatriz"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Registrando en Kardex...</span>
+                <span *ngIf="!guardandoMatriz"><i class="fa-solid fa-boxes-packing mr-2"></i> Registrar Entrada de Mercadería al Kardex</span>
+              </button>
+            </div>
+
           </div>
 
-          <!-- 2. Tallas -->
-          <div class="card p-6 flex flex-col gap-5">
-            <div class="flex items-center justify-between">
-              <h3 class="font-serif text-xl font-bold flex items-center gap-2" style="color: var(--text-main);">
-                <i class="fa-solid fa-ruler-combined text-amber-600"></i> 2. Tallas de Ropa
+        </div>
+
+        <!-- 4. SECCIÓN DISCRETA: CONFIGURACIÓN DE ATRIBUTOS BASE (COLAPSABLE) -->
+        <div *ngIf="mostrarGestionAtributosBase" class="card p-6 animate-fade-in" style="background: var(--table-th-bg); border: 1px dashed var(--border-color);">
+          <div class="flex items-center justify-between mb-4 pb-2 border-b" style="border-color: var(--border-color);">
+            <div>
+              <h3 class="font-serif text-lg font-bold" style="color: var(--text-main);">
+                <i class="fa-solid fa-sliders text-amber-600 mr-2"></i> Catálogo Maestro de Tallas y Colores
               </h3>
-              <span class="badge" style="background: var(--table-th-bg); color: var(--text-muted);">{{ tallas.length }}</span>
+              <p class="text-xs" style="color: var(--text-muted);">Administra la lista maestra de tallas y la paleta de colores global</p>
             </div>
-            <p class="text-xs" style="color: var(--text-muted);">
-              Clic en cualquier talla para <strong style="color:var(--accent);">marcarla</strong> o <strong style="color:var(--text-muted);">desmarcarla</strong>
-            </p>
+            <button (click)="mostrarGestionAtributosBase = false" class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;"><i class="fa-solid fa-xmark"></i></button>
+          </div>
 
-            <div class="flex flex-wrap gap-3">
-              <button
-                *ngFor="let pt of presetTallas"
-                type="button"
-                (click)="toggleTallaPreset(pt)"
-                class="size-chip"
-                [class.selected]="tallaRegistrada(pt)"
-                style="padding: 0.45rem 0.85rem; font-size: 0.82rem; cursor: pointer;"
-              >
-                <i class="fa-solid" [class.fa-check]="tallaRegistrada(pt)" [class.fa-plus]="!tallaRegistrada(pt)" style="font-size: 0.7rem; margin-right: 2px;"></i>
-                {{ pt }}
-              </button>
-
-              <button
-                *ngFor="let t of tallasPersonalizadas"
-                type="button"
-                (click)="eliminarTallaDB(t.id)"
-                class="size-chip selected"
-                style="padding: 0.45rem 0.85rem; font-size: 0.82rem; cursor: pointer;"
-              >
-                <i class="fa-solid fa-check" style="font-size: 0.7rem; margin-right: 2px;"></i>
-                {{ t.nombre }}
-              </button>
-            </div>
-
-            <div style="padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
-              <label class="text-xs font-semibold block mb-1" style="color: var(--text-muted);">Otra talla:</label>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Tallas Maestras -->
+            <div class="p-4 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold uppercase" style="color: var(--accent);">Tallas Maestras Registradas ({{ tallas.length }})</span>
+              </div>
+              <div class="flex flex-wrap gap-2 mb-3">
+                <span *ngFor="let t of tallas" class="badge" style="background: var(--table-th-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 0.3rem 0.6rem;">
+                  {{ t.nombre }}
+                </span>
+              </div>
               <div class="flex gap-2">
-                <input type="text" [(ngModel)]="nuevaTallaNombre" placeholder="Ej: 4XL, Especial" class="form-input" style="padding: 0.5rem;" />
-                <button (click)="crearTalla()" class="btn btn-primary" style="padding: 0.5rem 1rem;">
+                <input type="text" [(ngModel)]="nuevaTallaNombre" placeholder="Nueva talla (ej: 4XL)" class="form-input text-xs" style="padding: 0.4rem 0.6rem;" />
+                <button (click)="crearTalla()" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.75rem;">
                   <i class="fa-solid fa-plus"></i>
                 </button>
               </div>
             </div>
-          </div>
 
-          <!-- 3. Colores -->
-          <div class="card p-6 flex flex-col gap-5">
-            <div class="flex items-center justify-between">
-              <h3 class="font-serif text-xl font-bold flex items-center gap-2" style="color: var(--text-main);">
-                <i class="fa-solid fa-palette text-amber-600"></i> 3. Colores &amp; Paleta
-              </h3>
-              <span class="badge" style="background: var(--table-th-bg); color: var(--text-muted);">{{ colores.length }}</span>
-            </div>
-            <p class="text-xs" style="color: var(--text-muted);">
-              Clic en cualquier color para <strong style="color:var(--accent);">marcarlo</strong> o <strong style="color:var(--text-muted);">desmarcarlo</strong>
-            </p>
-
-            <div class="flex flex-wrap gap-3">
-              <button
-                *ngFor="let pc of presetColores"
-                type="button"
-                (click)="toggleColorPreset(pc)"
-                class="color-chip"
-                [class.selected]="colorRegistrado(pc.nombre)"
-                style="font-size: 0.82rem; padding: 0.4rem 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;"
-              >
-                <span class="color-dot-indicator" [style.background-color]="pc.hex" style="width:13px; height:13px; min-width:13px; border-radius: 50%; display: inline-block;"></span>
-                <i class="fa-solid" [class.fa-check]="colorRegistrado(pc.nombre)" [class.fa-plus]="!colorRegistrado(pc.nombre)" style="font-size:0.65rem;"></i>
-                {{ pc.nombre }}
-              </button>
-
-              <button
-                *ngFor="let c of coloresPersonalizados"
-                type="button"
-                (click)="eliminarColorDB(c.id)"
-                class="color-chip selected"
-                style="font-size: 0.82rem; padding: 0.4rem 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;"
-              >
-                <span class="color-dot-indicator" [style.background-color]="c.codigo_hex || '#888'" style="width:13px; height:13px; min-width:13px; border-radius: 50%; display: inline-block;"></span>
-                <i class="fa-solid fa-check" style="font-size:0.65rem;"></i>
-                {{ c.nombre }}
-              </button>
-            </div>
-
-            <div style="padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
-              <label class="text-xs font-semibold block mb-1" style="color: var(--text-muted);">Color libre:</label>
-              <div class="flex gap-2">
-                <input type="text" [(ngModel)]="nuevoColorNombre" placeholder="Ej: Verde Militar" class="form-input" style="padding: 0.5rem;" />
-                <input type="color" [(ngModel)]="nuevoColorHex" style="width: 44px; height: 42px; border:none; border-radius: 6px; cursor:pointer; background: transparent;" />
-                <button (click)="crearColor()" class="btn btn-primary" style="padding: 0.5rem 1rem;">
+            <!-- Colores Maestros -->
+            <div class="p-4 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold uppercase" style="color: var(--accent);">Paleta Maestra de Colores ({{ colores.length }})</span>
+              </div>
+              <div class="flex flex-wrap gap-2 mb-3">
+                <span *ngFor="let col of colores" class="badge flex items-center gap-1.5" style="background: var(--table-th-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 0.3rem 0.6rem;">
+                  <span class="color-dot-indicator" [style.background-color]="col.codigo_hex || '#000'" style="width: 10px; height: 10px; min-width: 10px; border-radius: 50%;"></span>
+                  {{ col.nombre }}
+                </span>
+              </div>
+              <div class="flex gap-2 items-center">
+                <input type="text" [(ngModel)]="nuevoColorNombre" placeholder="Nuevo color (ej: Celeste Cielo)" class="form-input text-xs" style="flex:1; padding: 0.4rem 0.6rem;" />
+                <input type="color" [(ngModel)]="nuevoColorHex" style="width: 36px; height: 32px; border:none; border-radius: 6px; cursor:pointer; background: transparent;" />
+                <button (click)="crearColor()" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.75rem;">
                   <i class="fa-solid fa-plus"></i>
                 </button>
               </div>
             </div>
-          </div>
 
+          </div>
         </div>
 
       </div>
@@ -568,49 +778,112 @@ import { Sucursal } from '../../models/sucursal.models';
 
         <form (ngSubmit)="guardarPrenda()">
           
-          <!-- SECCIÓN 1: DATOS BÁSICOS & CATEGORÍA -->
+          <!-- SECCIÓN 1: SELECCIÓN DE CATEGORÍA POR ETIQUETAS (TAGS/CHIPS) -->
+          <div class="p-4 rounded-xl mb-4" style="background: var(--table-th-bg); border: 1.5px solid" [style.border-color]="!prendaForm.categoria_id ? '#ef4444' : 'var(--border-color)'">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-xs font-bold uppercase" [style.color]="!prendaForm.categoria_id ? '#ef4444' : 'var(--accent)'">
+                <i class="fa-solid fa-tags mr-1"></i> 1. Categoría de la Prenda *
+              </h4>
+              <button 
+                type="button" 
+                (click)="mostrarCrearCategoriaRapida = !mostrarCrearCategoriaRapida"
+                class="text-xs font-bold hover:underline flex items-center gap-1"
+                style="color: var(--accent); background: none; border: none; cursor: pointer;"
+              >
+                <i class="fa-solid" [ngClass]="mostrarCrearCategoriaRapida ? 'fa-xmark' : 'fa-plus'"></i>
+                {{ mostrarCrearCategoriaRapida ? 'Cerrar' : '+ Nueva Categoría' }}
+              </button>
+            </div>
+
+            <!-- Mini formulario en línea para crear categoría al vuelo -->
+            <div *ngIf="mostrarCrearCategoriaRapida" class="flex gap-2 mb-3 p-3 rounded-xl animate-fade-in" style="background: rgba(245,158,11,0.08); border: 1px dashed var(--accent);">
+              <input 
+                type="text" 
+                [(ngModel)]="nuevaCategoriaRapidaNombre" 
+                [ngModelOptions]="{standalone: true}"
+                placeholder="Nombre de la nueva categoría (ej: Abrigos de Invierno)..." 
+                class="form-input text-xs" 
+                style="flex: 1; padding: 0.45rem 0.8rem;"
+                (keyup.enter)="crearCategoriaRapida()"
+              />
+              <button 
+                type="button" 
+                (click)="crearCategoriaRapida()" 
+                class="btn btn-accent" 
+                style="font-size: 0.75rem; padding: 0.45rem 0.9rem;"
+              >
+                <i class="fa-solid fa-plus mr-1"></i> Crear y Usar
+              </button>
+            </div>
+
+            <p class="text-xs mb-3" style="color: var(--text-muted);">
+              Toca una etiqueta para clasificar la prenda y activar sugerencias inteligentes de tallas, colores y cortes:
+            </p>
+
+            <!-- Etiquetas / Chips de Categorías -->
+            <div class="flex flex-wrap gap-2 mb-1">
+              <button 
+                type="button"
+                *ngFor="let c of categorias"
+                (click)="onCategoriaSeleccionada(c.id)"
+                class="category-tag-chip"
+                [class.selected]="prendaForm.categoria_id === c.id"
+              >
+                <i *ngIf="prendaForm.categoria_id === c.id" class="fa-solid fa-circle-check text-xs mr-1"></i>
+                <i *ngIf="prendaForm.categoria_id !== c.id" class="fa-solid fa-tag text-xs mr-1 opacity-50"></i>
+                <span>{{ c.nombre }}</span>
+              </button>
+            </div>
+
+            <!-- Asistente de Estilo según categoría -->
+            <div *ngIf="sugerenciaEstiloPrenda" class="mt-3 p-2.5 rounded-lg flex items-center gap-2 text-xs animate-fade-in" style="background: rgba(245,158,11,0.08); border-left: 3px solid var(--accent); color: var(--text-main);">
+              <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
+              <span><strong>Guía de Estilo:</strong> {{ sugerenciaEstiloPrenda }}</span>
+            </div>
+          </div>
+
+          <!-- SECCIÓN 2: INFORMACIÓN GENERAL -->
           <div class="p-4 rounded-xl mb-4" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
             <h4 class="text-xs font-bold uppercase mb-3" style="color: var(--accent);">
-              <i class="fa-solid fa-circle-info mr-1"></i> 1. Información General y Categoría
+              <i class="fa-solid fa-circle-info mr-1"></i> 2. Detalles de la Prenda
             </h4>
 
             <div class="form-group mb-3">
               <label class="form-label text-xs">Nombre de la Prenda *</label>
-              <input type="text" [(ngModel)]="prendaForm.nombre" name="nombre" required placeholder="Ej: Vestido Midi Satinado de Gala" class="form-input" />
+              <input 
+                type="text" 
+                [(ngModel)]="prendaForm.nombre" 
+                name="nombre" 
+                required 
+                [placeholder]="nombrePlaceholderPrenda" 
+                class="form-input" 
+              />
             </div>
 
             <div class="grid grid-cols-2 gap-4 mb-3">
-              <div class="form-group mb-0">
-                <label class="form-label text-xs">Categoría Obligatoria *</label>
-                <select [(ngModel)]="prendaForm.categoria_id" name="categoria_id" required class="form-select">
-                  <option [ngValue]="null" disabled>-- Selecciona una Categoría --</option>
-                  <option *ngFor="let c of categorias" [ngValue]="c.id">{{ c.nombre }}</option>
-                </select>
-              </div>
-
               <div class="form-group mb-0">
                 <label class="form-label text-xs">Precio Base (Bs.) *</label>
                 <input type="number" step="0.5" [(ngModel)]="prendaForm.precio_base" name="precio_base" required placeholder="180.00" class="form-input" />
               </div>
-            </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-3">
               <div class="form-group mb-0">
                 <label class="form-label text-xs">Empresa Proveedora</label>
                 <select [(ngModel)]="prendaForm.proveedor_id" name="proveedor_id" class="form-select">
                   <option *ngFor="let pr of proveedores" [value]="pr.id">{{ pr.nombre }}</option>
                 </select>
               </div>
+            </div>
 
+            <div class="grid grid-cols-2 gap-4 mb-3">
               <div class="form-group mb-0">
                 <label class="form-label text-xs">Foto Oficial de Portada (URL)</label>
                 <input type="url" [(ngModel)]="prendaForm.imagen_url" name="imagen_url" placeholder="https://images.unsplash.com/..." class="form-input" />
               </div>
-            </div>
 
-            <div class="form-group mb-0">
-              <label class="form-label text-xs">URL Modelo 3D / Realidad Aumentada (.glb)</label>
-              <input type="url" [(ngModel)]="prendaForm.modelo_ar_url" name="modelo_ar_url" placeholder="https://modelviewer.dev/shared-assets/models/Astronaut.glb" class="form-input" />
+              <div class="form-group mb-0">
+                <label class="form-label text-xs">URL Modelo 3D / Realidad Aumentada (.glb)</label>
+                <input type="url" [(ngModel)]="prendaForm.modelo_ar_url" name="modelo_ar_url" placeholder="https://modelviewer.dev/shared-assets/models/Astronaut.glb" class="form-input" />
+              </div>
             </div>
           </div>
 
@@ -667,13 +940,25 @@ import { Sucursal } from '../../models/sucursal.models';
 
           <!-- SECCIÓN 4: FOTOS POR COLOR Y CANTIDAD INICIAL QUE ENTRA -->
           <div *ngIf="coloresSeleccionadosIds.length > 0" class="p-4 rounded-xl mb-4" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
-            <div class="flex items-center justify-between mb-3">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
               <h4 class="text-xs font-bold uppercase" style="color: var(--accent);">
-                <i class="fa-solid fa-camera mr-1"></i> 4. Fotos Dedicadas por Color &amp; Cantidad que Entra
+                <i class="fa-solid fa-camera mr-1"></i> 4. Fotos Dedicadas por Color &amp; Lote de Entrada
               </h4>
               <div class="flex items-center gap-2">
-                <span class="text-xs" style="color: var(--text-muted);">Cantidad inicial que entra por tienda:</span>
-                <input type="number" [(ngModel)]="stockInicialNuevoProducto" [ngModelOptions]="{standalone: true}" min="1" class="form-input text-xs font-bold" style="width: 80px; padding: 0.3rem 0.5rem; color: #10b981;" />
+                <span class="text-xs font-medium" style="color: var(--text-muted);">Stock por variante:</span>
+                <div class="flex items-center gap-1">
+                  <button 
+                    type="button" 
+                    *ngFor="let cant of [5, 10, 15, 20, 30]" 
+                    (click)="seleccionarLoteStock(cant)" 
+                    class="batch-preset-btn"
+                    [class.selected]="stockInicialNuevoProducto === cant"
+                  >
+                    {{ cant }}
+                  </button>
+                </div>
+                <input type="number" [(ngModel)]="stockInicialNuevoProducto" [ngModelOptions]="{standalone: true}" min="1" class="form-input text-xs font-bold" style="width: 70px; padding: 0.3rem 0.5rem; color: #10b981; text-align: center;" />
+                <span class="text-xs" style="color: var(--text-muted);">Uds</span>
               </div>
             </div>
 
@@ -697,16 +982,22 @@ import { Sucursal } from '../../models/sucursal.models';
             </div>
           </div>
 
-          <!-- RESUMEN AUTOMÁTICO DE VARIANTES A GENERAR -->
-          <div *ngIf="esPrendaValida()" class="p-4 rounded-xl mb-4" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3);">
+          <!-- RESUMEN AUTOMÁTICO DE VARIANTES Y CANTIDADES A GENERAR -->
+          <div *ngIf="esPrendaValida()" class="p-4 rounded-xl mb-4 animate-fade-in" style="background: rgba(245, 158, 11, 0.08); border: 1.5px solid rgba(245, 158, 11, 0.35);">
             <div class="flex items-center justify-between mb-2">
-              <span class="font-bold text-xs" style="color: #10b981;">
-                <i class="fa-solid fa-circle-check mr-1"></i> {{ getVariantesGeneradasCount() }} variantes se crearán automáticamente
+              <span class="font-bold text-xs" style="color: var(--accent);">
+                <i class="fa-solid fa-boxes-stacked mr-1"></i> Resumen de Producción e Inventario
               </span>
-              <span class="badge badge-stock">{{ tallasSeleccionadasIds.length }} tallas × {{ coloresSeleccionadosIds.length }} colores</span>
+              <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: var(--accent); font-weight: 700; border: 1px solid rgba(245, 158, 11, 0.4);">
+                {{ tallasSeleccionadasIds.length }} tallas × {{ coloresSeleccionadosIds.length }} colores = {{ getVariantesGeneradasCount() }} variantes
+              </span>
             </div>
-            <p class="text-xs" style="color: var(--text-muted);">
-              Cada variante entrará con {{ stockInicialNuevoProducto || 10 }} unidades iniciales en cada sucursal física.
+            <p class="text-xs" style="color: var(--text-main); margin-bottom: 0.25rem;">
+              Cada combinación de talla y color entrará con <strong>{{ stockInicialNuevoProducto || 10 }} unidades</strong> en el inventario de la tienda.
+            </p>
+            <p class="text-xs font-bold flex items-center gap-1.5" style="color: #10b981; margin: 0;">
+              <i class="fa-solid fa-arrow-trend-up"></i>
+              <span>Total en lote: <strong>{{ getTotalUnidadesEntrantes() }} prendas</strong> ingresarán automáticamente al Kardex de Inventario.</span>
             </p>
           </div>
 
@@ -1016,15 +1307,174 @@ import { Sucursal } from '../../models/sucursal.models';
       border-color: var(--primary) !important;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
+
+    /* Chips de Filtro por Categoría en Tabla Principal */
+    .category-filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.4rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--text-muted);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .category-filter-chip:hover {
+      border-color: var(--accent);
+      color: var(--text-main);
+    }
+    .category-filter-chip.active {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 700;
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.2);
+    }
+    .chip-count {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: inherit;
+    }
+    .category-filter-chip.active .chip-count {
+      background: var(--accent);
+      color: #18181b;
+      font-weight: 800;
+    }
+
+    /* Chips de Selección de Categoría en Modal */
+    .category-tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.55rem 1.1rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1.5px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--text-main);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .category-tag-chip:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .category-tag-chip.selected {
+      background: rgba(245, 158, 11, 0.18);
+      border-color: #f59e0b;
+      color: #f59e0b;
+      font-weight: 700;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.25);
+    }
+
+    /* Botones de Lote Rápido de Stock */
+    .batch-preset-btn {
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .batch-preset-btn:hover {
+      border-color: var(--accent);
+      color: var(--text-main);
+    }
+    .batch-preset-btn.selected {
+      background: #f59e0b;
+      border-color: #f59e0b;
+      color: #18181b;
+      font-weight: 800;
+    }
+
+    /* Estilos de la Matriz de Mercadería */
+    .matrix-table {
+      border-collapse: separate;
+      border-spacing: 6px;
+    }
+    .matrix-cell-input {
+      width: 52px;
+      text-align: center;
+      padding: 0.35rem 0.2rem;
+      border-radius: 6px;
+      border: 1.5px solid var(--border-color);
+      background: var(--table-th-bg);
+      color: var(--text-main);
+      font-weight: 800;
+      font-size: 0.88rem;
+      transition: all 0.15s ease;
+    }
+    .matrix-cell-input:focus {
+      border-color: var(--accent);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+    }
+    .matrix-btn-minus, .matrix-btn-plus {
+      width: 22px;
+      height: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 5px;
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 800;
+      transition: all 0.15s ease;
+    }
+    .matrix-btn-minus:hover {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+      border-color: #ef4444;
+    }
+    .matrix-btn-plus:hover {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
   `]
 })
 export class AdminPanelComponent implements OnInit {
   private adminService = inject(AdminService);
   private productoService = inject(ProductoService);
+  private toastService = inject(ToastService);
   private authService = inject(AuthService);
   private router = inject(Router);
 
   activeTab: 'prendas' | 'atributos' | 'sucursales' | 'proveedores' | 'usuarios' = 'prendas';
+  categoriaFiltroId: number | null = null;
+  mostrarCrearCategoriaRapida: boolean = false;
+  nuevaCategoriaRapidaNombre: string = '';
+  nombrePlaceholderPrenda: string = 'Ej: Polera Heavy Cotton Oversize';
+  sugerenciaEstiloPrenda: string = '';
+
+  // --- Matriz de Mercadería por Categoría ---
+  categoriaMatrizId: number | null = null;
+  productoMatrizId: number | null = null;
+  sucursalMatrizId: number = 1;
+  observacionesMatriz: string = '';
+  matrizCantidades: { [colorId: number]: { [tallaId: number]: number } } = {};
+  tallasMatrizActivas: Talla[] = [];
+  coloresMatrizActivos: Color[] = [];
+  guardandoMatriz: boolean = false;
+  mostrarGestionAtributosBase: boolean = false;
+
+  get productosFiltrados(): Producto[] {
+    if (this.categoriaFiltroId === null) return this.productos;
+    return this.productos.filter(p => p.categoria_id === this.categoriaFiltroId || (p.categoria && p.categoria.id === this.categoriaFiltroId));
+  }
 
   productos: Producto[] = [];
   categorias: Categoria[] = [];
@@ -1068,8 +1518,27 @@ export class AdminPanelComponent implements OnInit {
   guardandoStock: boolean = false;
   cargandoVariantes: boolean = false;
 
-  successMessage: string = '';
-  errorMessage: string = '';
+  private _successMessage: string = '';
+  get successMessage(): string {
+    return this._successMessage;
+  }
+  set successMessage(val: string) {
+    this._successMessage = val;
+    if (val) {
+      this.toastService.success('Operación Exitosa', val);
+    }
+  }
+
+  private _errorMessage: string = '';
+  get errorMessage(): string {
+    return this._errorMessage;
+  }
+  set errorMessage(val: string) {
+    this._errorMessage = val;
+    if (val) {
+      this.toastService.error('Aviso del Sistema', val);
+    }
+  }
 
   // Formulario de Prenda
   prendaForm = {
@@ -1140,18 +1609,50 @@ export class AdminPanelComponent implements OnInit {
   }
 
   cargarDatosGenerales(): void {
-    this.productoService.getProductos().subscribe({ next: data => this.productos = data || [] });
+    this.productoService.getProductos().subscribe({ 
+      next: data => {
+        this.productos = data || [];
+        if (this.categoriaMatrizId !== null && !this.productoMatrizId) {
+          const prods = this.getPrendasDeCategoriaMatriz();
+          if (prods.length > 0) this.productoMatrizId = prods[0].id;
+        }
+      } 
+    });
     this.productoService.getCategorias().subscribe({ 
       next: data => {
         this.categorias = data || [];
         if (this.categorias.length > 0 && !this.prendaForm.categoria_id) {
           this.prendaForm.categoria_id = this.categorias[0].id;
         }
+        if (this.categorias.length > 0 && this.categoriaMatrizId === null) {
+          this.seleccionarCategoriaMatriz(this.categorias[0].id);
+        }
       }
     });
-    this.productoService.getTallas().subscribe({ next: data => this.tallas = data || [] });
-    this.productoService.getColores().subscribe({ next: data => this.colores = data || [] });
-    this.productoService.getSucursales().subscribe({ next: data => this.sucursales = data || [] });
+    this.productoService.getTallas().subscribe({ 
+      next: data => {
+        this.tallas = data || [];
+        if (this.categoriaMatrizId !== null) {
+          this.actualizarTallasYColoresMatriz(this.categoriaMatrizId);
+        }
+      } 
+    });
+    this.productoService.getColores().subscribe({ 
+      next: data => {
+        this.colores = data || [];
+        if (this.categoriaMatrizId !== null) {
+          this.actualizarTallasYColoresMatriz(this.categoriaMatrizId);
+        }
+      } 
+    });
+    this.productoService.getSucursales().subscribe({ 
+      next: data => {
+        this.sucursales = data || [];
+        if (this.sucursales.length > 0 && !this.sucursalMatrizId) {
+          this.sucursalMatrizId = this.sucursales[0].id;
+        }
+      } 
+    });
     this.adminService.getProveedores().subscribe({ 
       next: data => {
         this.proveedores = data || [];
@@ -1218,13 +1719,287 @@ export class AdminPanelComponent implements OnInit {
     });
   }
 
+  // --- Métodos de la Matriz de Mercadería por Categoría ---
+  getCategoriaIcon(nombre: string): string {
+    const n = (nombre || '').toLowerCase();
+    if (n.includes('polera') || n.includes('camiset') || n.includes('remera') || n.includes('t-shirt')) return 'fa-shirt';
+    if (n.includes('camisa') || n.includes('blusa')) return 'fa-shirt';
+    if (n.includes('vestid')) return 'fa-person-dress';
+    if (n.includes('pantal') || n.includes('jean') || n.includes('short') || n.includes('bermuda')) return 'fa-scissors';
+    if (n.includes('abrigo') || n.includes('chaquet') || n.includes('chompa') || n.includes('blazer') || n.includes('saco')) return 'fa-mitten';
+    if (n.includes('calzad') || n.includes('zapato') || n.includes('zapatill') || n.includes('bota')) return 'fa-shoe-prints';
+    if (n.includes('deport') || n.includes('fitness')) return 'fa-dumbbell';
+    return 'fa-tag';
+  }
+
+  getPrendasDeCategoriaMatriz(): Producto[] {
+    if (this.categoriaMatrizId === null) return [];
+    return this.productos.filter(p => p.categoria_id === this.categoriaMatrizId || (p.categoria && p.categoria.id === this.categoriaMatrizId));
+  }
+
+  getProductoMatrizNombre(): string {
+    if (!this.productoMatrizId) return 'Prenda Seleccionada';
+    const p = this.productos.find(x => x.id === this.productoMatrizId);
+    return p ? p.nombre : 'Prenda Seleccionada';
+  }
+
+  seleccionarCategoriaMatriz(catId: number): void {
+    this.categoriaMatrizId = catId;
+    const prods = this.getPrendasDeCategoriaMatriz();
+    if (prods.length > 0) {
+      this.productoMatrizId = prods[0].id;
+    } else {
+      this.productoMatrizId = null;
+    }
+    this.actualizarTallasYColoresMatriz(catId);
+  }
+
+  onProductoMatrizChange(prodId: number): void {
+    this.productoMatrizId = Number(prodId);
+  }
+
+  actualizarTallasYColoresMatriz(catId: number): void {
+    const cat = this.categorias.find(c => c.id === catId);
+    const catNombre = cat ? cat.nombre.toLowerCase() : '';
+
+    if (catNombre.includes('pantal') || catNombre.includes('jean') || catNombre.includes('short') || catNombre.includes('bermuda')) {
+      const waists = ['28', '30', '32', '34', '36', '38'];
+      this.tallasMatrizActivas = this.tallas.filter(t => waists.includes(t.nombre.trim()));
+      if (this.tallasMatrizActivas.length === 0) {
+        this.tallasMatrizActivas = this.tallas.slice(0, 6);
+      }
+    } else if (catNombre.includes('calzad') || catNombre.includes('zapato') || catNombre.includes('zapatill') || catNombre.includes('bota')) {
+      const shoes = ['38', '39', '40', '41', '42', '43'];
+      this.tallasMatrizActivas = this.tallas.filter(t => shoes.includes(t.nombre.trim()));
+      if (this.tallasMatrizActivas.length === 0) {
+        this.tallasMatrizActivas = this.tallas.slice(0, 6);
+      }
+    } else {
+      const std = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'];
+      this.tallasMatrizActivas = this.tallas.filter(t => std.includes(t.nombre.trim().toUpperCase()));
+      if (this.tallasMatrizActivas.length === 0) {
+        this.tallasMatrizActivas = this.tallas.slice(0, 6);
+      }
+    }
+
+    this.coloresMatrizActivos = this.colores.length > 0 ? this.colores : [];
+
+    this.matrizCantidades = {};
+    for (const col of this.coloresMatrizActivos) {
+      this.matrizCantidades[col.id] = {};
+      for (const t of this.tallasMatrizActivas) {
+        this.matrizCantidades[col.id][t.id] = 0;
+      }
+    }
+  }
+
+  getCantidadMatriz(colorId: number, tallaId: number): number {
+    return this.matrizCantidades[colorId]?.[tallaId] || 0;
+  }
+
+  setCantidadMatriz(colorId: number, tallaId: number, val: any): void {
+    if (!this.matrizCantidades[colorId]) {
+      this.matrizCantidades[colorId] = {};
+    }
+    const num = Math.max(0, parseInt(val, 10) || 0);
+    this.matrizCantidades[colorId][tallaId] = num;
+  }
+
+  incrementarCantidad(colorId: number, tallaId: number, delta: number): void {
+    const cur = this.getCantidadMatriz(colorId, tallaId);
+    this.setCantidadMatriz(colorId, tallaId, cur + delta);
+  }
+
+  llenarLoteParejo(cantidad: number): void {
+    for (const col of this.coloresMatrizActivos) {
+      if (!this.matrizCantidades[col.id]) {
+        this.matrizCantidades[col.id] = {};
+      }
+      for (const t of this.tallasMatrizActivas) {
+        this.matrizCantidades[col.id][t.id] = cantidad;
+      }
+    }
+  }
+
+  getTotalPorColor(colorId: number): number {
+    let sum = 0;
+    for (const t of this.tallasMatrizActivas) {
+      sum += this.getCantidadMatriz(colorId, t.id);
+    }
+    return sum;
+  }
+
+  getTotalPorTalla(tallaId: number): number {
+    let sum = 0;
+    for (const col of this.coloresMatrizActivos) {
+      sum += this.getCantidadMatriz(col.id, tallaId);
+    }
+    return sum;
+  }
+
+  getGranTotalMatriz(): number {
+    let total = 0;
+    for (const col of this.coloresMatrizActivos) {
+      for (const t of this.tallasMatrizActivas) {
+        total += this.getCantidadMatriz(col.id, t.id);
+      }
+    }
+    return total;
+  }
+
+  guardarEntradaMercaderiaMatriz(): void {
+    if (!this.productoMatrizId) {
+      this.toastService.warning('Selecciona una Prenda', 'Debes seleccionar una prenda para recibir la mercadería.');
+      return;
+    }
+
+    const total = this.getGranTotalMatriz();
+    if (total <= 0) {
+      this.toastService.warning('Cantidades Vacías', 'Ingresa al menos una cantidad mayor a 0 en la matriz.');
+      return;
+    }
+
+    const items: { talla_id: number; color_id: number; cantidad: number }[] = [];
+    for (const col of this.coloresMatrizActivos) {
+      for (const t of this.tallasMatrizActivas) {
+        const cant = this.getCantidadMatriz(col.id, t.id);
+        if (cant > 0) {
+          items.push({ talla_id: t.id, color_id: col.id, cantidad: cant });
+        }
+      }
+    }
+
+    this.guardandoMatriz = true;
+    this.adminService.registrarIngresoMatriz(this.productoMatrizId, {
+      sucursal_id: Number(this.sucursalMatrizId),
+      items: items,
+      observaciones: this.observacionesMatriz ? this.observacionesMatriz.trim() : undefined
+    }).subscribe({
+      next: (res) => {
+        this.guardandoMatriz = false;
+        this.toastService.success('¡Mercadería Ingresada!', res.message || `+${total} prendas registradas en el Kardex.`);
+        this.llenarLoteParejo(0);
+        this.observacionesMatriz = '';
+        this.cargarDatosGenerales();
+      },
+      error: (err) => {
+        this.guardandoMatriz = false;
+        this.toastService.error('Error al Registrar Mercadería', err.error?.detail || 'No se pudo guardar la entrada en el inventario.');
+      }
+    });
+  }
+
+  // --- Helpers de Clasificación por Categorías ---
+  getPrendasPorCategoriaCount(catId: number): number {
+    return this.productos.filter(p => p.categoria_id === catId || (p.categoria && p.categoria.id === catId)).length;
+  }
+
+  getCategoriaNombre(catId: number | null): string {
+    if (catId === null) return 'Todas las Categorías';
+    const c = this.categorias.find(x => x.id === catId);
+    return c ? c.nombre : 'Categoría';
+  }
+
+  onCategoriaSeleccionada(categoriaId: number): void {
+    this.prendaForm.categoria_id = categoriaId;
+    const cat = this.categorias.find(c => c.id === categoriaId);
+    if (!cat) return;
+    const catLower = cat.nombre.toLowerCase();
+
+    if (catLower.includes('polera') || catLower.includes('camiset') || catLower.includes('remera') || catLower.includes('t-shirt')) {
+      this.nombrePlaceholderPrenda = 'Ej: Polera Heavy Cotton Oversize de Temporada';
+      this.sugerenciaEstiloPrenda = 'Cortes oversize, cuello redondo y gramaje 240g/m²';
+      this.autoSeleccionarTallas(['S', 'M', 'L', 'XL']);
+      this.autoSeleccionarColores(['Negro', 'Blanco', 'Azul Marino', 'Gris Plomo']);
+    } else if (catLower.includes('camisa') || catLower.includes('blusa')) {
+      this.nombrePlaceholderPrenda = 'Ej: Camisa Oxford Slim Fit Cuello Italiano';
+      this.sugerenciaEstiloPrenda = 'Telas 100% algodón, corte slim fit o lino fino';
+      this.autoSeleccionarTallas(['S', 'M', 'L', 'XL']);
+      this.autoSeleccionarColores(['Blanco', 'Azul Celeste', 'Azul Marino', 'Rosa Pastel']);
+    } else if (catLower.includes('vestid')) {
+      this.nombrePlaceholderPrenda = 'Ej: Vestido Midi Satinado Escote Halter';
+      this.sugerenciaEstiloPrenda = 'Acabado satinado, corte midi o fiesta de noche';
+      this.autoSeleccionarTallas(['XS', 'S', 'M', 'L']);
+      this.autoSeleccionarColores(['Negro', 'Rojo Borgoña', 'Verde Esmeralda', 'Rosa Pastel']);
+    } else if (catLower.includes('pantal') || catLower.includes('jean') || catLower.includes('short') || catLower.includes('bermuda')) {
+      this.nombrePlaceholderPrenda = 'Ej: Pantalón Chino Stretch Slim Fit';
+      this.sugerenciaEstiloPrenda = 'Tallas de cintura numérica (28-36) y tela stretch';
+      this.autoSeleccionarTallas(['28', '30', '32', '34', '36']);
+      this.autoSeleccionarColores(['Negro', 'Azul Marino', 'Beige Arena', 'Verde Oliva']);
+    } else if (catLower.includes('abrigo') || catLower.includes('chaquet') || catLower.includes('chompa') || catLower.includes('blazer') || catLower.includes('saco')) {
+      this.nombrePlaceholderPrenda = 'Ej: Abrigo Trench Clásico de Paño y Lana';
+      this.sugerenciaEstiloPrenda = 'Forro térmico, solapa ancha y botones carey';
+      this.autoSeleccionarTallas(['S', 'M', 'L', 'XL', '2XL']);
+      this.autoSeleccionarColores(['Negro', 'Café Chocolate', 'Beige Arena', 'Gris Plomo']);
+    } else if (catLower.includes('calzad') || catLower.includes('zapato') || catLower.includes('zapatill') || catLower.includes('bota')) {
+      this.nombrePlaceholderPrenda = 'Ej: Mocasines de Cuero Genuino Suela Track';
+      this.sugerenciaEstiloPrenda = 'Tallas numéricas de calzado y cuero legítimo';
+      this.autoSeleccionarTallas(['38', '39', '40', '41', '42']);
+      this.autoSeleccionarColores(['Negro', 'Café Chocolate', 'Blanco']);
+    } else {
+      this.nombrePlaceholderPrenda = `Ej: ${cat.nombre} Edición Exclusiva`;
+      this.sugerenciaEstiloPrenda = `Prenda clasificada en categoría ${cat.nombre}`;
+      this.autoSeleccionarTallas(['S', 'M', 'L', 'XL']);
+      this.autoSeleccionarColores(['Negro', 'Blanco']);
+    }
+  }
+
+  autoSeleccionarTallas(nombresTallas: string[]): void {
+    const ids: number[] = [];
+    for (const nombre of nombresTallas) {
+      const t = this.tallas.find(x => x.nombre.trim().toUpperCase() === nombre.toUpperCase());
+      if (t) ids.push(t.id);
+    }
+    if (ids.length > 0) this.tallasSeleccionadasIds = ids;
+  }
+
+  autoSeleccionarColores(nombresColores: string[]): void {
+    const ids: number[] = [];
+    for (const nombre of nombresColores) {
+      const c = this.colores.find(x => x.nombre.trim().toLowerCase() === nombre.toLowerCase());
+      if (c) ids.push(c.id);
+    }
+    if (ids.length > 0) this.coloresSeleccionadosIds = ids;
+  }
+
+  seleccionarLoteStock(cant: number): void {
+    this.stockInicialNuevoProducto = cant;
+  }
+
+  getTotalUnidadesEntrantes(): number {
+    return this.tallasSeleccionadasIds.length * this.coloresSeleccionadosIds.length * (Number(this.stockInicialNuevoProducto) || 0);
+  }
+
+  crearCategoriaRapida(): void {
+    if (!this.nuevaCategoriaRapidaNombre.trim()) return;
+    const nombre = this.nuevaCategoriaRapidaNombre.trim();
+    this.adminService.crearCategoria({ nombre }).subscribe({
+      next: () => {
+        this.nuevaCategoriaRapidaNombre = '';
+        this.mostrarCrearCategoriaRapida = false;
+        this.productoService.getCategorias().subscribe(data => {
+          this.categorias = data || [];
+          const encontrada = this.categorias.find(c => c.nombre.toLowerCase() === nombre.toLowerCase());
+          if (encontrada) {
+            this.onCategoriaSeleccionada(encontrada.id);
+          }
+        });
+        this.toastService.success('Categoría Creada', `Categoría "${nombre}" creada y seleccionada.`);
+      },
+      error: (err) => {
+        this.toastService.error('Error al Crear Categoría', err.error?.detail || 'No se pudo crear la categoría.');
+      }
+    });
+  }
+
   // --- Modal Prenda ---
-  abrirModalPrenda(): void {
+  abrirModalPrenda(categoriaIdTarget?: number): void {
+    const targetCatId = categoriaIdTarget || (this.categoriaFiltroId !== null ? this.categoriaFiltroId : (this.categorias.length > 0 ? this.categorias[0].id : null));
     this.prendaForm = {
       nombre: '',
       descripcion: '',
       precio_base: 180,
-      categoria_id: this.categorias.length > 0 ? this.categorias[0].id : null,
+      categoria_id: targetCatId,
       proveedor_id: this.proveedores.length > 0 ? this.proveedores[0].id : 1,
       imagen_url: '',
       modelo_ar_url: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb'
@@ -1233,7 +2008,13 @@ export class AdminPanelComponent implements OnInit {
     this.coloresSeleccionadosIds = [];
     this.fotosColoresNuevoProducto = {};
     this.stockInicialNuevoProducto = 15;
+    this.mostrarCrearCategoriaRapida = false;
+    this.nuevaCategoriaRapidaNombre = '';
     this.mostrarModalPrenda = true;
+
+    if (targetCatId) {
+      this.onCategoriaSeleccionada(targetCatId);
+    }
   }
 
   toggleTalla(tallaId: number): void {

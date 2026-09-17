@@ -34,6 +34,7 @@ export interface Producto {
   imagen_url?: string;
   modelo_ar_url?: string;
   categoria?: Categoria;
+  categoria_id?: number;
   activo: boolean;
   variantes?: Variante[];
   stock_total?: number;

@@ -1,4 +1,5 @@
 from typing import List
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from app.db.session import get_db
@@ -14,7 +15,7 @@ from app.models.inventario import InventarioSucursal, MovimientoInventario
 from app.schemas.admin import (
     ProductoCreate, ProductoUpdate, CategoriaCreate, TallaCreate, ColorCreate,
     SucursalCreate, CiudadCreate, ProveedorCreate, TemporadaCreate, ColeccionCreate,
-    UsuarioCreate, UsuarioRolUpdate, StockIngresoInput, VarianteUpdateInput,
+    UsuarioCreate, UsuarioRolUpdate, StockIngresoInput, StockMatrizInput, VarianteUpdateInput,
     RolCreate, RolOut
 )
 from app.schemas.producto import ProductoDetailOut, CategoriaOut, TallaOut, ColorOut
@@ -243,6 +244,93 @@ def registrar_ingreso_stock(producto_id: int, data: StockIngresoInput, db: Sessi
     db.commit()
     return {
         "message": f"Ingreso registrado con éxito: +{data.cantidad} unidades en {sucursal.nombre} ({len(variantes_afectadas)} variantes actualizadas)."
+    }
+
+
+@router.post("/productos/{producto_id}/ingreso-matriz")
+def registrar_ingreso_matriz(producto_id: int, data: StockMatrizInput, db: Session = Depends(get_db)):
+    """Registra entrada de stock por matriz de talla y color para una prenda en una sucursal específica."""
+    producto = db.query(Producto).filter(Producto.id == producto_id).first()
+    if not producto:
+        raise HTTPException(status_code=404, detail="Prenda no encontrada.")
+
+    sucursal = db.query(Sucursal).filter(Sucursal.id == data.sucursal_id).first()
+    if not sucursal:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada.")
+
+    items_validos = [it for it in data.items if it.cantidad > 0]
+    if not items_validos:
+        raise HTTPException(status_code=400, detail="Debes ingresar al menos una cantidad mayor a 0.")
+
+    total_unidades = 0
+    variantes_actualizadas = 0
+
+    for item in items_validos:
+        variante = None
+        if item.variante_id:
+            variante = db.query(ProductoVariante).filter(
+                ProductoVariante.id == item.variante_id,
+                ProductoVariante.producto_id == producto_id
+            ).first()
+
+        if not variante:
+            variante = db.query(ProductoVariante).filter(
+                ProductoVariante.producto_id == producto_id,
+                ProductoVariante.talla_id == item.talla_id,
+                ProductoVariante.color_id == item.color_id
+            ).first()
+
+        if not variante:
+            talla = db.query(Talla).filter(Talla.id == item.talla_id).first()
+            color = db.query(Color).filter(Color.id == item.color_id).first()
+            t_nom = talla.nombre if talla else str(item.talla_id)
+            c_nom = color.nombre[:3].upper() if color else str(item.color_id)
+            sku = f"SKU-{producto.id}-{t_nom}-{c_nom}-{int(datetime.now().timestamp()) % 10000}"
+            variante = ProductoVariante(
+                producto_id=producto_id,
+                talla_id=item.talla_id,
+                color_id=item.color_id,
+                sku=sku,
+                precio_adicional=0.0,
+                activo=True
+            )
+            db.add(variante)
+            db.flush()
+
+        inv = db.query(InventarioSucursal).filter(
+            InventarioSucursal.variante_id == variante.id,
+            InventarioSucursal.sucursal_id == data.sucursal_id
+        ).first()
+
+        if inv:
+            inv.cantidad_disponible += item.cantidad
+        else:
+            inv = InventarioSucursal(
+                variante_id=variante.id,
+                sucursal_id=data.sucursal_id,
+                cantidad_disponible=item.cantidad,
+                cantidad_reservada=0,
+                stock_minimo=3
+            )
+            db.add(inv)
+
+        mov = MovimientoInventario(
+            variante_id=variante.id,
+            sucursal_id=data.sucursal_id,
+            tipo_movimiento="ingreso",
+            cantidad=item.cantidad,
+            observaciones=data.observaciones or f"Ingreso matriz por lote ({item.cantidad} Uds) para {producto.nombre}"
+        )
+        db.add(mov)
+
+        total_unidades += item.cantidad
+        variantes_actualizadas += 1
+
+    db.commit()
+    return {
+        "message": f"¡Entrada registrada con éxito! +{total_unidades} prendas ingresadas en {sucursal.nombre} ({variantes_actualizadas} combinaciones de talla y color actualizadas).",
+        "total_unidades": total_unidades,
+        "variantes_actualizadas": variantes_actualizadas
     }
 
 

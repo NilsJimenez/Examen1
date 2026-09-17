@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ReservaService } from '../../services/reserva.service';
 import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-mis-reservas',
@@ -13,22 +14,15 @@ import { AuthService } from '../../services/auth.service';
       <div class="flex items-center justify-between mb-6 pb-4" style="border-bottom: 1px solid var(--border-color);">
         <div>
           <h1 class="font-serif text-3xl font-bold flex items-center gap-3" style="color: var(--text-main);">
-            <i class="fa-solid fa-calendar-check" style="color: var(--accent);"></i> Mis Reservas para Probador
+            <i class="fa-solid fa-calendar-check" style="color: var(--accent);"></i> Mis Reservas en Vestidores
           </h1>
           <p class="text-sm mt-1" style="color: var(--text-muted);">
-            Consulta el estado de tus prendas reservadas y muestra tu Pase QR al llegar a la tienda
+            Gestiona tus turnos de probado presencial en sucursales con código QR de acceso VIP
           </p>
         </div>
         <a routerLink="/catalogo" class="btn btn-outline" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
           <i class="fa-solid fa-shirt"></i> Explorar Catálogo
         </a>
-      </div>
-
-      <div *ngIf="successMessage" class="p-4 mb-4 rounded-lg flex items-center gap-2 text-sm" style="background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.3);">
-        <i class="fa-solid fa-circle-check"></i> {{ successMessage }}
-      </div>
-      <div *ngIf="errorMessage" class="p-4 mb-4 rounded-lg flex items-center gap-2 text-sm" style="background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.3);">
-        <i class="fa-solid fa-circle-exclamation"></i> {{ errorMessage }}
       </div>
 
       <div *ngIf="loading" class="text-center py-16">
@@ -176,6 +170,7 @@ import { AuthService } from '../../services/auth.service';
 })
 export class MisReservasComponent implements OnInit {
   private reservaService = inject(ReservaService);
+  private toastService = inject(ToastService);
 
   reservas: any[] = [];
   loading: boolean = true;
@@ -199,8 +194,8 @@ export class MisReservasComponent implements OnInit {
         this.loading = false;
       },
       error: (err) => {
-        this.errorMessage = err.error?.detail || 'Error al cargar tus reservas.';
         this.loading = false;
+        this.toastService.error('Aviso de Reservas', err.error?.detail || 'Error al cargar tus reservas.');
       }
     });
   }
@@ -213,11 +208,11 @@ export class MisReservasComponent implements OnInit {
     if (!confirm('¿Estás seguro de que deseas cancelar esta reserva?')) return;
     this.reservaService.cancelarReserva(id).subscribe({
       next: (res) => {
-        this.successMessage = res.message || 'Reserva cancelada exitosamente.';
+        this.toastService.success('Reserva Cancelada', res.message || 'Reserva cancelada exitosamente.');
         this.cargarReservas();
       },
       error: (err) => {
-        this.errorMessage = err.error?.detail || 'No se pudo cancelar la reserva.';
+        this.toastService.error('Error al Cancelar', err.error?.detail || 'No se pudo cancelar la reserva.');
       }
     });
   }

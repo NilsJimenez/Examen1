@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { VentaService } from '../../services/venta.service';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-pago',
@@ -36,18 +37,19 @@ import { VentaService } from '../../services/venta.service';
               <span>Total Pagado:</span>
               <strong class="font-serif text-base" style="color: var(--accent);">Bs. {{ monto | number:'1.2-2' }}</strong>
             </div>
-            <div class="flex justify-between py-1.5 text-xs" style="color: var(--text-muted);">
-              <span>Estado:</span>
-              <span class="badge" style="background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid #22c55e; font-size: 0.7rem;">COMPLETADA</span>
-            </div>
-          </div>
-
-          <div class="flex flex-col sm:flex-row gap-4">
-            <a routerLink="/mis-compras" class="btn btn-primary" style="flex: 1; padding: 0.85rem; text-align: center;">
+          <h2 class="font-serif text-2xl font-bold mb-2" style="color: var(--text-main);">¡Pago Confirmado con Éxito!</h2>
+          <p class="text-sm mb-4" style="color: var(--text-muted);">
+            Comprobante N°: <strong style="color: var(--text-main);">{{ comprobanteNumero }}</strong>
+          </p>
+          <p class="text-xs max-w-sm mx-auto mb-8" style="color: var(--text-muted);">
+            Tu pedido está siendo preparado por nuestro equipo. Puedes revisar el estado en cualquier momento.
+          </p>
+          <div class="flex justify-center gap-4">
+            <a routerLink="/mis-compras" class="btn btn-primary" style="padding: 0.65rem 1.3rem; font-size: 0.85rem;">
               <i class="fa-solid fa-bag-shopping"></i> Ver Mis Compras
             </a>
-            <a routerLink="/catalogo" class="btn btn-outline" style="flex: 1; padding: 0.85rem; text-align: center;">
-              <i class="fa-solid fa-shirt"></i> Seguir Comprando
+            <a routerLink="/catalogo" class="btn btn-outline" style="padding: 0.65rem 1.3rem; font-size: 0.85rem;">
+              Seguir Comprando
             </a>
           </div>
         </div>
@@ -59,10 +61,6 @@ import { VentaService } from '../../services/venta.service';
             <p class="text-xs mt-1" style="color: var(--text-muted);">
               Procesa el pago de tu orden <strong style="color: var(--text-main);">#{{ ventaId }}</strong>
             </p>
-          </div>
-
-          <div *ngIf="errorMessage" class="p-4 mb-5 rounded-xl text-sm flex items-center gap-2" style="background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.3);">
-            <i class="fa-solid fa-circle-exclamation"></i> {{ errorMessage }}
           </div>
 
           <div class="mb-6">
@@ -168,6 +166,7 @@ import { VentaService } from '../../services/venta.service';
 export class PagoComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private ventaService = inject(VentaService);
+  private toastService = inject(ToastService);
 
   ventaId: number = 0;
   metodoPago: string = 'tarjeta_credito';
@@ -190,12 +189,11 @@ export class PagoComponent implements OnInit {
 
   procesarPago(): void {
     if (this.monto <= 0) {
-      this.errorMessage = 'El monto debe ser mayor a 0.';
+      this.toastService.error('Monto Inválido', 'El monto debe ser mayor a 0 Bs.');
       return;
     }
 
     this.loading = true;
-    this.errorMessage = '';
 
     this.ventaService.pagarVenta(this.ventaId, {
       metodo_pago: this.metodoPago,
@@ -205,10 +203,12 @@ export class PagoComponent implements OnInit {
         this.loading = false;
         this.pagoExitoso = true;
         this.comprobanteNumero = res.numero_comprobante || 'COMP-FS2026';
+        this.toastService.success('¡Pago Confirmado!', `Comprobante ${this.comprobanteNumero} emitido exitosamente.`, 6000);
       },
       error: (err) => {
         this.loading = false;
-        this.errorMessage = err.error?.detail || 'Error al procesar el pago.';
+        const msg = err.error?.detail || 'Error al procesar el pago.';
+        this.toastService.error('Transacción Denegada', msg);
       }
     });
   }

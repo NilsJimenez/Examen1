@@ -140,4 +140,8 @@ export class AdminService {
   registrarIngresoStock(productoId: number, data: { sucursal_id: number; cantidad: number; variante_id?: number; observaciones?: string }): Observable<any> {
     return this.http.post(`${this.apiUrl}/productos/${productoId}/ingreso-stock`, data, { headers: this.headers });
   }
+
+  registrarIngresoMatriz(productoId: number, data: { sucursal_id: number; items: { talla_id: number; color_id: number; cantidad: number; variante_id?: number }[]; observaciones?: string }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/productos/${productoId}/ingreso-matriz`, data, { headers: this.headers });
+  }
 }

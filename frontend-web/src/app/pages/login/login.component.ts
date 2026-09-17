@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-login',
@@ -583,6 +584,7 @@ import { AuthService } from '../../services/auth.service';
 export class LoginComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
+  private toastService = inject(ToastService);
 
   email: string = '';
   password: string = '';
@@ -606,7 +608,11 @@ export class LoginComponent {
   }
 
   onForgotPassword(): void {
-    alert('Para recuperar tu contraseña, por favor contacta al administrador del sistema o escribe a soporte@fashionstore.com');
+    this.toastService.info(
+      'Recuperación de Contraseña',
+      'Para recuperar tu contraseña, por favor contacta al administrador del sistema o escribe a soporte@fashionstore.com',
+      7000
+    );
   }
 
   cerrarModal(): void {
@@ -616,6 +622,7 @@ export class LoginComponent {
   onSubmit(): void {
     if (!this.email || !this.password) {
       this.errorMessage = 'Por favor ingresa tu correo electrónico y contraseña.';
+      this.toastService.error('Campos Requeridos', this.errorMessage);
       return;
     }
 
@@ -625,6 +632,7 @@ export class LoginComponent {
     this.authService.login({ email: this.email, password: this.password }).subscribe({
       next: (res) => {
         this.loading = false;
+        this.toastService.success('¡Bienvenido!', `Has iniciado sesión correctamente como ${res.role || 'cliente'}.`);
         if (res.role === 'administrador') {
           this.router.navigate(['/admin']);
         } else if (res.role === 'encargado_sucursal' || res.role === 'cajero') {
@@ -636,6 +644,7 @@ export class LoginComponent {
       error: (err) => {
         this.loading = false;
         this.errorMessage = err.error?.detail || 'Credenciales incorrectas. Verifica tu usuario y contraseña.';
+        this.toastService.error('Error de Acceso', this.errorMessage);
       }
     });
   }

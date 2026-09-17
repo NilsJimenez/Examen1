@@ -103,6 +103,19 @@ class StockIngresoInput(BaseModel):
     observaciones: Optional[str] = None
 
 
+class StockMatrizItem(BaseModel):
+    talla_id: int
+    color_id: int
+    cantidad: int
+    variante_id: Optional[int] = None
+
+
+class StockMatrizInput(BaseModel):
+    sucursal_id: int
+    items: List[StockMatrizItem]
+    observaciones: Optional[str] = None
+
+
 # --- Personal Interno (Usuarios & Roles) ---
 class RolCreate(BaseModel):
     nombre: str
