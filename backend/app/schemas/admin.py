@@ -63,6 +63,8 @@ class VarianteInput(BaseModel):
     color_id: int
     sku: str
     precio_adicional: float = 0.0
+    imagen_url: Optional[str] = None
+    stock_inicial: Optional[int] = 10
 
 
 class ProductoCreate(BaseModel):
@@ -87,6 +89,20 @@ class ProductoUpdate(BaseModel):
     activo: Optional[bool] = None
 
 
+class VarianteUpdateInput(BaseModel):
+    id: int
+    imagen_url: Optional[str] = None
+    precio_adicional: Optional[float] = None
+    activo: Optional[bool] = None
+
+
+class StockIngresoInput(BaseModel):
+    sucursal_id: int
+    cantidad: int
+    variante_id: Optional[int] = None
+    observaciones: Optional[str] = None
+
+
 # --- Personal Interno (Usuarios & Roles) ---
 class UsuarioCreate(BaseModel):
     nombres: str
@@ -96,3 +112,9 @@ class UsuarioCreate(BaseModel):
     rol_id: int
     sucursal_id: Optional[int] = None
     telefono: Optional[str] = None
+
+
+class UsuarioRolUpdate(BaseModel):
+    rol_id: int
+    sucursal_id: Optional[int] = None
+

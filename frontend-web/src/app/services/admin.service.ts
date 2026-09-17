@@ -66,6 +66,10 @@ export class AdminService {
     return this.http.post(`${this.apiUrl}/sucursales`, data, { headers: this.headers });
   }
 
+  eliminarSucursal(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/sucursales/${id}`, { headers: this.headers });
+  }
+
   // --- PROVEEDORES Y TEMPORADAS ---
   getProveedores(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/proveedores`, { headers: this.headers });
@@ -73,6 +77,10 @@ export class AdminService {
 
   crearProveedor(data: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/proveedores`, data, { headers: this.headers });
+  }
+
+  eliminarProveedor(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/proveedores/${id}`, { headers: this.headers });
   }
 
   getTemporadas(): Observable<any[]> {
@@ -83,12 +91,20 @@ export class AdminService {
     return this.http.post(`${this.apiUrl}/temporadas`, data, { headers: this.headers });
   }
 
+  eliminarTemporada(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/temporadas/${id}`, { headers: this.headers });
+  }
+
   getColecciones(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/colecciones`, { headers: this.headers });
   }
 
   crearColeccion(data: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/colecciones`, data, { headers: this.headers });
+  }
+
+  eliminarColeccion(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/colecciones/${id}`, { headers: this.headers });
   }
 
   // --- PERSONAL Y ROLES ---
@@ -102,5 +118,26 @@ export class AdminService {
 
   crearUsuario(data: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/usuarios`, data, { headers: this.headers });
+  }
+
+  cambiarRolUsuario(usuarioId: number, data: { rol_id: number; sucursal_id?: number }): Observable<any> {
+    return this.http.put(`${this.apiUrl}/usuarios/${usuarioId}/rol`, data, { headers: this.headers });
+  }
+
+  eliminarUsuario(usuarioId: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/usuarios/${usuarioId}`, { headers: this.headers });
+  }
+
+  // --- VARIANTES DE COLOR, FOTOS Y ENTRADA DE STOCK ---
+  getVariantesDetalle(productoId: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/productos/${productoId}/variantes-detalle`, { headers: this.headers });
+  }
+
+  actualizarVariantes(productoId: number, data: any[]): Observable<any> {
+    return this.http.put(`${this.apiUrl}/productos/${productoId}/variantes`, data, { headers: this.headers });
+  }
+
+  registrarIngresoStock(productoId: number, data: { sucursal_id: number; cantidad: number; variante_id?: number; observaciones?: string }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/productos/${productoId}/ingreso-stock`, data, { headers: this.headers });
   }
 }

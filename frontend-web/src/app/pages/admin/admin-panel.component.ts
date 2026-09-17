@@ -16,13 +16,13 @@ import { Sucursal } from '../../models/sucursal.models';
     <div class="container py-10">
       
       <!-- Encabezado del Panel -->
-      <div class="flex items-center justify-between mb-8 pb-6 border-b border-gray-200" style="flex-wrap: wrap; gap: 1rem;">
+      <div class="flex items-center justify-between mb-8 pb-6 border-b border-gray-200" style="flex-wrap: wrap; gap: 1rem; border-color: var(--border-color);">
         <div>
           <span class="badge badge-admin mb-2">
             <i class="fa-solid fa-shield-halved"></i> Administración FashionStore
           </span>
           <h1 class="font-serif text-3xl font-bold" style="color: var(--text-main);">Panel de Control Comercial</h1>
-          <p class="text-sm mt-1" style="color: var(--text-muted);">Gestión centralizada del catálogo, sucursales, atributos, proveedores y personal de tienda</p>
+          <p class="text-sm mt-1" style="color: var(--text-muted);">Gestión centralizada del catálogo, fotos por color, cantidades que entran, sucursales, personal y roles</p>
         </div>
 
         <div class="flex items-center gap-3">
@@ -32,7 +32,7 @@ import { Sucursal } from '../../models/sucursal.models';
         </div>
       </div>
 
-      <!-- Navegación por Pestañas (Tabs Limpias sin códigos de materia) -->
+      <!-- Navegación por Pestañas -->
       <div class="flex items-center gap-4 mb-10 overflow-x-auto pb-3">
         <button 
           (click)="activeTab = 'prendas'" 
@@ -47,7 +47,7 @@ import { Sucursal } from '../../models/sucursal.models';
           [class.tab-btn-active]="activeTab === 'atributos'" 
           class="admin-tab-btn"
         >
-          <i class="fa-solid fa-tags"></i> Categorías, Tallas & Colores
+          <i class="fa-solid fa-tags"></i> Categorías, Tallas &amp; Colores
         </button>
 
         <button 
@@ -55,7 +55,7 @@ import { Sucursal } from '../../models/sucursal.models';
           [class.tab-btn-active]="activeTab === 'sucursales'" 
           class="admin-tab-btn"
         >
-          <i class="fa-solid fa-shop"></i> Sucursales & Ciudades
+          <i class="fa-solid fa-shop"></i> Sucursales &amp; Ciudades
         </button>
 
         <button 
@@ -63,7 +63,7 @@ import { Sucursal } from '../../models/sucursal.models';
           [class.tab-btn-active]="activeTab === 'proveedores'" 
           class="admin-tab-btn"
         >
-          <i class="fa-solid fa-truck-ramp-box"></i> Proveedores & Temporadas
+          <i class="fa-solid fa-truck-ramp-box"></i> Proveedores &amp; Temporadas
         </button>
 
         <button 
@@ -71,17 +71,17 @@ import { Sucursal } from '../../models/sucursal.models';
           [class.tab-btn-active]="activeTab === 'usuarios'" 
           class="admin-tab-btn"
         >
-          <i class="fa-solid fa-users-gear"></i> Personal & Roles
+          <i class="fa-solid fa-users-gear"></i> Personal &amp; Roles
         </button>
       </div>
 
       <!-- Alertas de Éxito / Error -->
-      <div *ngIf="successMessage" class="p-4 mb-6 rounded-lg text-sm bg-green-50 text-green-800 border border-green-200 flex items-center justify-between" style="background-color: rgba(16, 185, 129, 0.12); color: #10b981; border-color: rgba(16, 185, 129, 0.3);">
+      <div *ngIf="successMessage" class="p-4 mb-6 rounded-lg text-sm flex items-center justify-between" style="background-color: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35);">
         <span><i class="fa-solid fa-circle-check mr-2"></i> {{ successMessage }}</span>
         <button (click)="successMessage = ''" style="border:none; background:none; cursor:pointer; color: inherit;"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <div *ngIf="errorMessage" class="p-4 mb-6 rounded-lg text-sm bg-red-50 text-red-800 border border-red-200 flex items-center justify-between" style="background-color: rgba(239, 68, 68, 0.12); color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">
+      <div *ngIf="errorMessage" class="p-4 mb-6 rounded-lg text-sm flex items-center justify-between" style="background-color: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35);">
         <span><i class="fa-solid fa-triangle-exclamation mr-2"></i> {{ errorMessage }}</span>
         <button (click)="errorMessage = ''" style="border:none; background:none; cursor:pointer; color: inherit;"><i class="fa-solid fa-xmark"></i></button>
       </div>
@@ -94,7 +94,7 @@ import { Sucursal } from '../../models/sucursal.models';
         <div class="flex items-center justify-between">
           <div>
             <h2 class="font-serif text-2xl font-bold" style="color: var(--text-main);">Catálogo Maestro de Prendas</h2>
-            <p class="text-xs" style="color: var(--text-muted);">Gestiona las prendas, sus variantes, fotos y modelos de realidad aumentada</p>
+            <p class="text-xs" style="color: var(--text-muted);">Configura fotos por color, registra cantidades de stock que entran y administra modelos 3D</p>
           </div>
           <button (click)="abrirModalPrenda()" class="btn btn-accent">
             <i class="fa-solid fa-plus"></i> Nueva Prenda
@@ -111,13 +111,13 @@ import { Sucursal } from '../../models/sucursal.models';
                 <th>Precio Base</th>
                 <th>Modelo 3D / AR</th>
                 <th>Estado</th>
-                <th>Acciones</th>
+                <th style="text-align: right;">Acciones</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let p of productos">
                 <td>
-                  <img [src]="p.imagen_url || 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=100'" [alt]="p.nombre" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px;" />
+                  <img [src]="p.imagen_url || 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=100'" [alt]="p.nombre" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);" />
                 </td>
                 <td style="font-weight: 700; color: var(--text-main);">{{ p.nombre }}</td>
                 <td><span class="badge" style="background: var(--table-th-bg); color: var(--text-muted); border: 1px solid var(--border-color);">{{ p.categoria?.nombre || 'General' }}</span></td>
@@ -130,10 +130,25 @@ import { Sucursal } from '../../models/sucursal.models';
                   <span *ngIf="p.activo" class="badge badge-stock"><i class="fa-solid fa-check"></i> Activo</span>
                   <span *ngIf="!p.activo" class="badge" style="background:#fee2e2; color:#991b1b;">Inactivo</span>
                 </td>
-                <td>
-                  <button (click)="desactivarPrenda(p.id)" class="btn btn-outline" style="padding: 0.35rem 0.7rem; font-size: 0.8rem; color:#ef4444;" title="Desactivar prenda">
-                    <i class="fa-solid fa-trash-can"></i> Desactivar
-                  </button>
+                <td style="text-align: right; white-space: nowrap;">
+                  <div class="flex items-center justify-end gap-2">
+                    <button 
+                      (click)="abrirModalGestionPrenda(p)" 
+                      class="btn btn-primary" 
+                      style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" 
+                      title="Gestionar fotos de cada color y registrar entrada de stock"
+                    >
+                      <i class="fa-solid fa-palette mr-1"></i> Fotos &amp; Stock
+                    </button>
+                    <button 
+                      (click)="desactivarPrenda(p.id)" 
+                      class="btn btn-outline" 
+                      style="padding: 0.35rem 0.65rem; font-size: 0.8rem; color:#ef4444; border-color: rgba(239, 68, 68, 0.3);" 
+                      title="Desactivar prenda"
+                    >
+                      <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -147,7 +162,6 @@ import { Sucursal } from '../../models/sucursal.models';
       <!-- =================================================================== -->
       <div *ngIf="activeTab === 'atributos'" class="flex flex-col gap-6">
         
-        <!-- Barra Guiada de Flujo Ordenado -->
         <div class="flow-step-bar">
           <div class="flow-step-item active">
             <span class="flow-step-number">1</span>
@@ -161,7 +175,7 @@ import { Sucursal } from '../../models/sucursal.models';
           <i class="fa-solid fa-arrow-right" style="color: var(--text-muted);"></i>
           <div class="flow-step-item active">
             <span class="flow-step-number">3</span>
-            <span>3. Colores & Paleta</span>
+            <span>3. Colores &amp; Paleta</span>
           </div>
         </div>
 
@@ -180,62 +194,35 @@ import { Sucursal } from '../../models/sucursal.models';
               
               <div class="mb-4">
                 <div class="flex gap-2">
-                  <input type="text" [(ngModel)]="nuevaCategoriaNombre" placeholder="Ej: Ropa Deportiva" class="form-input" style="padding: 0.5rem;" />
+                  <input type="text" [(ngModel)]="nuevaCategoriaNombre" placeholder="Nueva Categoría (ej: Abrigos)" class="form-input" style="padding: 0.5rem;" />
                   <button (click)="crearCategoria()" class="btn btn-primary" style="padding: 0.5rem 1rem;" title="Crear Categoría">
                     <i class="fa-solid fa-plus"></i>
                   </button>
                 </div>
               </div>
 
-              <ul class="flex flex-col gap-3" style="max-height: 280px; overflow-y: auto;">
+              <ul class="flex flex-col gap-2" style="max-height: 280px; overflow-y: auto; padding-right: 4px;">
                 <li *ngFor="let c of categorias" style="
-                  background: var(--table-th-bg);
-                  border: 1px solid var(--border-color);
-                  border-radius: 0.5rem;
-                  padding: 0.6rem 0.85rem;
                   display: flex;
                   align-items: center;
                   justify-content: space-between;
-                  gap: 0.75rem;
+                  background: var(--table-th-bg);
+                  border: 1px solid var(--border-color);
+                  border-radius: 8px;
+                  padding: 0.45rem 0.75rem;
                   font-size: 0.875rem;
                   color: var(--text-main);
-                  min-width: 0;
                 ">
-                  <span style="display:flex; align-items:center; gap:0.5rem; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                    <i class="fa-regular fa-folder" style="color: var(--accent); flex-shrink:0;"></i>
-                    {{ c.nombre }}
-                  </span>
-                  <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
-                    <span style="
-                      background: var(--border-color);
-                      color: var(--text-muted);
-                      border-radius: 9999px;
-                      padding: 0.15rem 0.55rem;
-                      font-size: 0.72rem;
-                      font-weight: 700;
-                      white-space: nowrap;
-                    ">#{{ c.id }}</span>
-                    <button 
-                      type="button"
-                      (click)="eliminarCategoria(c)" 
-                      style="
-                        background: rgba(239, 68, 68, 0.12);
-                        color: #ef4444;
-                        border: 1px solid rgba(239, 68, 68, 0.25);
-                        border-radius: 6px;
-                        padding: 0.25rem 0.55rem;
-                        font-size: 0.75rem;
-                        cursor: pointer;
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 0.3rem;
-                        transition: all 0.2s ease;
-                      "
-                      title="Eliminar categoría '{{ c.nombre }}'"
-                    >
-                      <i class="fa-solid fa-trash-can"></i>
-                    </button>
-                  </div>
+                  <span>{{ c.nombre }}</span>
+                  <button 
+                    type="button"
+                    (click)="eliminarCategoria(c)" 
+                    class="btn btn-outline"
+                    style="padding: 0.2rem 0.5rem; font-size: 0.75rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);"
+                    title="Eliminar categoría"
+                  >
+                    <i class="fa-solid fa-trash-can"></i>
+                  </button>
                 </li>
               </ul>
             </div>
@@ -250,11 +237,9 @@ import { Sucursal } from '../../models/sucursal.models';
               <span class="badge" style="background: var(--table-th-bg); color: var(--text-muted);">{{ tallas.length }}</span>
             </div>
             <p class="text-xs" style="color: var(--text-muted);">
-              <i class="fa-solid fa-circle-info mr-1" style="color: var(--accent);"></i>
               Clic en cualquier talla para <strong style="color:var(--accent);">marcarla</strong> o <strong style="color:var(--text-muted);">desmarcarla</strong>
             </p>
 
-            <!-- Chips de tallas con clic directo para marcar/desmarcar -->
             <div class="flex flex-wrap gap-3">
               <button
                 *ngFor="let pt of presetTallas"
@@ -262,35 +247,29 @@ import { Sucursal } from '../../models/sucursal.models';
                 (click)="toggleTallaPreset(pt)"
                 class="size-chip"
                 [class.selected]="tallaRegistrada(pt)"
-                style="padding: 0.45rem 0.85rem; font-size: 0.82rem; cursor: pointer; transition: all 0.2s ease;"
-                [title]="tallaRegistrada(pt) ? 'Clic para desmarcar ' + pt : 'Clic para marcar ' + pt"
+                style="padding: 0.45rem 0.85rem; font-size: 0.82rem; cursor: pointer;"
               >
                 <i class="fa-solid" [class.fa-check]="tallaRegistrada(pt)" [class.fa-plus]="!tallaRegistrada(pt)" style="font-size: 0.7rem; margin-right: 2px;"></i>
                 {{ pt }}
               </button>
 
-              <!-- Tallas personalizadas -->
               <button
                 *ngFor="let t of tallasPersonalizadas"
                 type="button"
                 (click)="eliminarTallaDB(t.id)"
                 class="size-chip selected"
                 style="padding: 0.45rem 0.85rem; font-size: 0.82rem; cursor: pointer;"
-                title="Clic para desmarcar {{ t.nombre }}"
               >
                 <i class="fa-solid fa-check" style="font-size: 0.7rem; margin-right: 2px;"></i>
                 {{ t.nombre }}
               </button>
             </div>
 
-            <!-- Input para Talla personalizada no común -->
             <div style="padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
-              <label class="text-xs font-semibold block mb-1" style="color: var(--text-muted);">
-                <i class="fa-solid fa-pen mr-1"></i> Otra talla no común:
-              </label>
+              <label class="text-xs font-semibold block mb-1" style="color: var(--text-muted);">Otra talla:</label>
               <div class="flex gap-2">
-                <input type="text" [(ngModel)]="nuevaTallaNombre" placeholder="Ej: 4XL, Especial, 14-Años" class="form-input" style="padding: 0.5rem;" />
-                <button (click)="crearTalla()" class="btn btn-primary" style="padding: 0.5rem 1rem;" title="Crear Talla">
+                <input type="text" [(ngModel)]="nuevaTallaNombre" placeholder="Ej: 4XL, Especial" class="form-input" style="padding: 0.5rem;" />
+                <button (click)="crearTalla()" class="btn btn-primary" style="padding: 0.5rem 1rem;">
                   <i class="fa-solid fa-plus"></i>
                 </button>
               </div>
@@ -306,11 +285,9 @@ import { Sucursal } from '../../models/sucursal.models';
               <span class="badge" style="background: var(--table-th-bg); color: var(--text-muted);">{{ colores.length }}</span>
             </div>
             <p class="text-xs" style="color: var(--text-muted);">
-              <i class="fa-solid fa-circle-info mr-1" style="color: var(--accent);"></i>
               Clic en cualquier color para <strong style="color:var(--accent);">marcarlo</strong> o <strong style="color:var(--text-muted);">desmarcarlo</strong>
             </p>
 
-            <!-- Chips de colores con clic directo para marcar/desmarcar -->
             <div class="flex flex-wrap gap-3">
               <button
                 *ngFor="let pc of presetColores"
@@ -318,22 +295,19 @@ import { Sucursal } from '../../models/sucursal.models';
                 (click)="toggleColorPreset(pc)"
                 class="color-chip"
                 [class.selected]="colorRegistrado(pc.nombre)"
-                style="font-size: 0.82rem; padding: 0.4rem 0.85rem; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 0.4rem;"
-                [title]="colorRegistrado(pc.nombre) ? 'Clic para desmarcar ' + pc.nombre : 'Clic para marcar ' + pc.nombre"
+                style="font-size: 0.82rem; padding: 0.4rem 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;"
               >
                 <span class="color-dot-indicator" [style.background-color]="pc.hex" style="width:13px; height:13px; min-width:13px; border-radius: 50%; display: inline-block;"></span>
                 <i class="fa-solid" [class.fa-check]="colorRegistrado(pc.nombre)" [class.fa-plus]="!colorRegistrado(pc.nombre)" style="font-size:0.65rem;"></i>
                 {{ pc.nombre }}
               </button>
 
-              <!-- Colores personalizados -->
               <button
                 *ngFor="let c of coloresPersonalizados"
                 type="button"
                 (click)="eliminarColorDB(c.id)"
                 class="color-chip selected"
                 style="font-size: 0.82rem; padding: 0.4rem 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;"
-                title="Clic para desmarcar {{ c.nombre }}"
               >
                 <span class="color-dot-indicator" [style.background-color]="c.codigo_hex || '#888'" style="width:13px; height:13px; min-width:13px; border-radius: 50%; display: inline-block;"></span>
                 <i class="fa-solid fa-check" style="font-size:0.65rem;"></i>
@@ -341,15 +315,12 @@ import { Sucursal } from '../../models/sucursal.models';
               </button>
             </div>
 
-            <!-- Color personalizado libre -->
             <div style="padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
-              <label class="text-xs font-semibold block mb-1" style="color: var(--text-muted);">
-                <i class="fa-solid fa-pen mr-1"></i> Color libre o personalizado:
-              </label>
+              <label class="text-xs font-semibold block mb-1" style="color: var(--text-muted);">Color libre:</label>
               <div class="flex gap-2">
                 <input type="text" [(ngModel)]="nuevoColorNombre" placeholder="Ej: Verde Militar" class="form-input" style="padding: 0.5rem;" />
-                <input type="color" [(ngModel)]="nuevoColorHex" style="width: 44px; height: 42px; border:none; border-radius: 6px; cursor:pointer; background: transparent;" title="Elegir Tono Exacto" />
-                <button (click)="crearColor()" class="btn btn-primary" style="padding: 0.5rem 1rem;" title="Guardar Color">
+                <input type="color" [(ngModel)]="nuevoColorHex" style="width: 44px; height: 42px; border:none; border-radius: 6px; cursor:pointer; background: transparent;" />
+                <button (click)="crearColor()" class="btn btn-primary" style="padding: 0.5rem 1rem;">
                   <i class="fa-solid fa-plus"></i>
                 </button>
               </div>
@@ -368,25 +339,37 @@ import { Sucursal } from '../../models/sucursal.models';
         <div class="flex items-center justify-between">
           <div>
             <h2 class="font-serif text-2xl font-bold" style="color: var(--text-main);">Sucursales Físicas Habilitadas</h2>
-            <p class="text-xs" style="color: var(--text-muted);">Puntos físicos para vestidores con prueba de ropa y cobro presencial</p>
+            <p class="text-xs" style="color: var(--text-muted);">Puntos físicos para vestidores con prueba de ropa, reservas y cobro presencial</p>
           </div>
           <button (click)="mostrarModalSucursal = true" class="btn btn-accent">
             <i class="fa-solid fa-plus"></i> Registrar Nueva Sucursal
           </button>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div *ngFor="let s of sucursales" class="card p-6 flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between mb-3">
                 <h3 class="font-serif text-xl font-bold" style="color: var(--text-main);">{{ s.nombre }}</h3>
-                <span class="badge" style="background:#dbeafe; color:#1e40af;">{{ s.ciudad.nombre }}</span>
+                <span class="badge" style="background:#dbeafe; color:#1e40af;">{{ s.ciudad.nombre || 'Bolivia' }}</span>
               </div>
               <p class="text-sm mb-2" style="color: var(--text-muted);"><i class="fa-solid fa-map-pin text-amber-600 mr-2"></i> {{ s.direccion }}</p>
               <p *ngIf="s.telefono" class="text-sm" style="color: var(--text-muted);"><i class="fa-solid fa-phone text-amber-600 mr-2"></i> {{ s.telefono }}</p>
             </div>
-            <div class="mt-4 pt-3 border-t border-gray-100 text-xs text-green-700 font-bold" style="border-color: var(--border-color);">
-              <i class="fa-solid fa-door-open"></i> Vestidores Físicos Activos para Reservas
+            
+            <div class="mt-5 pt-3 border-t flex items-center justify-between" style="border-color: var(--border-color);">
+              <span class="text-xs text-green-600 font-bold">
+                <i class="fa-solid fa-door-open mr-1"></i> Vestidores Activos
+              </span>
+              <button 
+                type="button" 
+                (click)="eliminarSucursal(s)" 
+                class="btn btn-outline" 
+                style="padding: 0.35rem 0.7rem; font-size: 0.75rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.35);"
+                title="Desactivar sucursal '{{ s.nombre }}'"
+              >
+                <i class="fa-solid fa-trash-can mr-1"></i> Eliminar
+              </button>
             </div>
           </div>
         </div>
@@ -400,48 +383,85 @@ import { Sucursal } from '../../models/sucursal.models';
         
         <!-- Proveedores -->
         <div class="card p-6">
-          <h3 class="font-serif text-xl font-bold mb-4 flex items-center gap-2" style="color: var(--text-main);">
-            <i class="fa-solid fa-truck-fast text-amber-600"></i> Empresas Proveedoras
-          </h3>
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-serif text-xl font-bold flex items-center gap-2" style="color: var(--text-main);">
+              <i class="fa-solid fa-truck-fast text-amber-600"></i> Empresas Proveedoras
+            </h3>
+            <span class="badge" style="background: var(--table-th-bg); color: var(--text-muted);">{{ proveedores.length }}</span>
+          </div>
 
           <div class="mb-5 flex flex-col gap-3 p-5 rounded-xl" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
             <h4 class="text-xs font-bold uppercase" style="color: var(--text-muted);">Registrar Proveedor</h4>
-            <input type="text" [(ngModel)]="nuevoProvNombre" placeholder="Razón Social / Empresa" class="form-input" style="padding: 0.5rem;" />
-            <div class="flex gap-2">
+            <input type="text" [(ngModel)]="nuevoProvNombre" placeholder="Razón Social / Empresa *" class="form-input" style="padding: 0.5rem;" />
+            <div class="grid grid-cols-2 gap-2">
               <input type="text" [(ngModel)]="nuevoProvContacto" placeholder="Nombre Contacto" class="form-input" style="padding: 0.5rem;" />
               <input type="text" [(ngModel)]="nuevoProvTelefono" placeholder="Teléfono" class="form-input" style="padding: 0.5rem;" />
             </div>
             <button (click)="crearProveedor()" class="btn btn-primary" style="padding: 0.5rem;"><i class="fa-solid fa-plus"></i> Guardar Proveedor</button>
           </div>
 
-          <div class="flex flex-col gap-3">
-            <div *ngFor="let pr of proveedores" class="p-3.5 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border-color);">
-              <h4 class="font-bold" style="color: var(--text-main);">{{ pr.nombre }}</h4>
-              <p class="text-xs" style="color: var(--text-muted);">Contacto: {{ pr.contacto_nombre || 'N/A' }} | Tel: {{ pr.telefono || 'N/A' }}</p>
+          <div class="flex flex-col gap-3" style="max-height: 380px; overflow-y: auto;">
+            <div *ngFor="let pr of proveedores" class="p-3.5 rounded-xl flex items-center justify-between" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+              <div>
+                <h4 class="font-bold text-sm" style="color: var(--text-main);">{{ pr.nombre }}</h4>
+                <p class="text-xs mt-0.5" style="color: var(--text-muted);">
+                  <i class="fa-solid fa-user mr-1"></i> {{ pr.contacto_nombre || 'Sin contacto' }} • 
+                  <i class="fa-solid fa-phone mr-1 ml-1"></i> {{ pr.telefono || 'Sin tel.' }}
+                </p>
+                <p *ngIf="pr.direccion" class="text-xs mt-0.5" style="color: var(--text-muted);">
+                  <i class="fa-solid fa-location-dot mr-1"></i> {{ pr.direccion }}
+                </p>
+              </div>
+              <button 
+                type="button" 
+                (click)="eliminarProveedor(pr)" 
+                class="btn btn-outline" 
+                style="padding: 0.3rem 0.55rem; font-size: 0.75rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);"
+                title="Eliminar proveedor"
+              >
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
             </div>
           </div>
         </div>
 
         <!-- Temporadas y Colecciones -->
         <div class="card p-6">
-          <h3 class="font-serif text-xl font-bold mb-4 flex items-center gap-2" style="color: var(--text-main);">
-            <i class="fa-solid fa-calendar-week text-amber-600"></i> Campañas & Colecciones
-          </h3>
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-serif text-xl font-bold flex items-center gap-2" style="color: var(--text-main);">
+              <i class="fa-solid fa-calendar-week text-amber-600"></i> Campañas &amp; Colecciones
+            </h3>
+            <span class="badge" style="background: var(--table-th-bg); color: var(--text-muted);">{{ temporadas.length }}</span>
+          </div>
 
           <div class="mb-5 flex flex-col gap-3 p-5 rounded-xl" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
             <h4 class="text-xs font-bold uppercase" style="color: var(--text-muted);">Crear Temporada de Moda</h4>
-            <input type="text" [(ngModel)]="nuevaTempNombre" placeholder="Ej: Primavera-Verano 2026" class="form-input" style="padding: 0.5rem;" />
-            <input type="text" [(ngModel)]="nuevaTempTipo" placeholder="Tipo (Casual, Gala, Escolar)" class="form-input" style="padding: 0.5rem;" />
+            <input type="text" [(ngModel)]="nuevaTempNombre" placeholder="Ej: Invierno Festivo 2026 *" class="form-input" style="padding: 0.5rem;" />
+            <input type="text" [(ngModel)]="nuevaTempTipo" placeholder="Tipo (Casual, Gala, Deporte)" class="form-input" style="padding: 0.5rem;" />
             <button (click)="crearTemporada()" class="btn btn-primary" style="padding: 0.5rem;"><i class="fa-solid fa-plus"></i> Crear Temporada</button>
           </div>
 
-          <div class="flex flex-col gap-3">
+          <div class="flex flex-col gap-3" style="max-height: 380px; overflow-y: auto;">
             <div *ngFor="let t of temporadas" class="p-3.5 rounded-xl flex items-center justify-between" style="background: var(--card-bg); border: 1px solid var(--border-color);">
               <div>
-                <h4 class="font-bold" style="color: var(--text-main);">{{ t.nombre }}</h4>
-                <p class="text-xs" style="color: var(--text-muted);">Tipo: {{ t.tipo || 'General' }}</p>
+                <h4 class="font-bold text-sm" style="color: var(--text-main);">{{ t.nombre }}</h4>
+                <p class="text-xs mt-0.5" style="color: var(--text-muted);">Tipo: {{ t.tipo || 'General' }}</p>
+                <span *ngIf="t.fecha_inicio" class="text-xs" style="color: var(--accent);">
+                  {{ t.fecha_inicio }} al {{ t.fecha_fin || 'Presente' }}
+                </span>
               </div>
-              <span class="badge badge-stock">Vigente</span>
+              <div class="flex items-center gap-2">
+                <span class="badge badge-stock">Vigente</span>
+                <button 
+                  type="button" 
+                  (click)="eliminarTemporada(t)" 
+                  class="btn btn-outline" 
+                  style="padding: 0.3rem 0.55rem; font-size: 0.75rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);"
+                  title="Eliminar temporada"
+                >
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -449,14 +469,14 @@ import { Sucursal } from '../../models/sucursal.models';
       </div>
 
       <!-- =================================================================== -->
-      <!-- PESTAÑA 5: PERSONAL Y USUARIOS INTERNOS                             -->
+      <!-- PESTAÑA 5: PERSONAL Y USUARIOS INTERNOS (ROLES EDITABLES)           -->
       <!-- =================================================================== -->
       <div *ngIf="activeTab === 'usuarios'" class="flex flex-col gap-6">
         
         <div class="flex items-center justify-between">
           <div>
             <h2 class="font-serif text-2xl font-bold" style="color: var(--text-main);">Personal Interno de Tienda</h2>
-            <p class="text-xs" style="color: var(--text-muted);">Cajeros y encargados de sucursal con accesos operativos</p>
+            <p class="text-xs" style="color: var(--text-muted);">Puedes cambiar el rol directamente desde el selector de la tabla o dar de baja cuentas de empleados</p>
           </div>
           <button (click)="mostrarModalUsuario = true" class="btn btn-accent">
             <i class="fa-solid fa-user-plus"></i> Registrar Empleado
@@ -469,10 +489,11 @@ import { Sucursal } from '../../models/sucursal.models';
               <tr>
                 <th>Nombre Completo</th>
                 <th>Correo Electrónico</th>
-                <th>Rol Asignado</th>
+                <th>Rol de Acceso (Editable)</th>
                 <th>Sucursal Asignada</th>
                 <th>Teléfono</th>
                 <th>Estado</th>
+                <th style="text-align: right;">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -480,13 +501,46 @@ import { Sucursal } from '../../models/sucursal.models';
                 <td style="font-weight: 700; color: var(--text-main);">{{ u.nombres }} {{ u.apellidos }}</td>
                 <td>{{ u.email }}</td>
                 <td>
-                  <span class="badge" [style.background]="u.rol === 'administrador' ? '#fef3c7' : '#e0e7ff'" [style.color]="u.rol === 'administrador' ? '#92400e' : '#3730a3'">
-                    {{ u.rol }}
+                  <!-- Selector para Cambiar Rol Inmediatamente -->
+                  <select 
+                    [ngModel]="u.rol_id" 
+                    (ngModelChange)="cambiarRolUsuario(u, $event)"
+                    class="form-select text-xs font-bold"
+                    style="padding: 0.35rem 0.65rem; min-width: 155px; border-radius: 8px;"
+                    [style.color]="u.rol_id === 1 ? '#d97706' : (u.rol_id === 2 ? '#6366f1' : '#10b981')"
+                  >
+                    <option *ngFor="let r of roles" [value]="r.id">{{ r.nombre }}</option>
+                  </select>
+                </td>
+                <td>
+                  <!-- Selector de Sucursal si aplica -->
+                  <select 
+                    *ngIf="u.rol_id !== 1"
+                    [ngModel]="u.sucursal_id" 
+                    (ngModelChange)="cambiarSucursalUsuario(u, $event)"
+                    class="form-select text-xs"
+                    style="padding: 0.35rem 0.65rem;"
+                  >
+                    <option [ngValue]="null">-- Central / Global --</option>
+                    <option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</option>
+                  </select>
+                  <span *ngIf="u.rol_id === 1" class="badge" style="background: rgba(217, 119, 6, 0.15); color: #d97706;">
+                    <i class="fa-solid fa-crown mr-1"></i> Acceso Global
                   </span>
                 </td>
-                <td>{{ u.sucursal }}</td>
                 <td>{{ u.telefono || 'N/A' }}</td>
                 <td><span class="badge badge-stock"><i class="fa-solid fa-check"></i> Activo</span></td>
+                <td style="text-align: right;">
+                  <button 
+                    type="button" 
+                    (click)="eliminarUsuario(u)" 
+                    class="btn btn-outline" 
+                    style="padding: 0.35rem 0.7rem; font-size: 0.8rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.35);"
+                    title="Desactivar usuario '{{ u.nombres }}'"
+                  >
+                    <i class="fa-solid fa-trash-can mr-1"></i> Eliminar
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -497,57 +551,25 @@ import { Sucursal } from '../../models/sucursal.models';
     </div>
 
     <!-- =================================================================== -->
-    <!-- MODAL: REGISTRAR NUEVA PRENDA (FLUJO ORDENADO CATEGORÍA ➡️ TALLAS ➡️ COLORES) -->
+    <!-- MODAL NUEVA PRENDA: REGISTRAR CON FOTOS POR COLOR Y CANTIDAD INICIAL-->
     <!-- =================================================================== -->
     <div *ngIf="mostrarModalPrenda" class="modal-overlay">
-      <div class="modal-content" style="max-width: 760px;">
+      <div class="modal-content" style="max-width: 780px; max-height: 90vh; overflow-y: auto;">
         
-        <!-- Header del Modal -->
-        <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-100" style="border-color: var(--border-color);">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b" style="border-color: var(--border-color);">
           <div>
             <h3 class="font-serif text-2xl font-bold" style="color: var(--text-main);">
               <i class="fa-solid fa-shirt text-amber-600 mr-2"></i> Registrar Nueva Prenda
             </h3>
-            <p class="text-xs" style="color: var(--text-muted);">Flujo guiado: Datos & Categoría ➡️ Tallas ➡️ Colores ➡️ Publicación</p>
+            <p class="text-xs" style="color: var(--text-muted);">Información general, fotos por cada color y cantidades de entrada</p>
           </div>
           <button (click)="mostrarModalPrenda = false" class="btn btn-outline" style="padding: 0.3rem 0.6rem;"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-
-        <!-- Checklist de Validación en Tiempo Real -->
-        <div class="flow-step-bar mb-6">
-          <div class="flow-step-item" [class.completed]="prendaForm.categoria_id" [class.active]="!prendaForm.categoria_id">
-            <span class="flow-step-number">
-              <i *ngIf="prendaForm.categoria_id" class="fa-solid fa-check"></i>
-              <span *ngIf="!prendaForm.categoria_id">1</span>
-            </span>
-            <span>1. Categoría {{ prendaForm.categoria_id ? '✓' : '*' }}</span>
-          </div>
-
-          <i class="fa-solid fa-arrow-right" style="color: var(--text-muted);"></i>
-
-          <div class="flow-step-item" [class.completed]="tallasSeleccionadasIds.length > 0" [class.active]="tallasSeleccionadasIds.length === 0">
-            <span class="flow-step-number">
-              <i *ngIf="tallasSeleccionadasIds.length > 0" class="fa-solid fa-check"></i>
-              <span *ngIf="tallasSeleccionadasIds.length === 0">2</span>
-            </span>
-            <span>2. Tallas ({{ tallasSeleccionadasIds.length }}) {{ tallasSeleccionadasIds.length > 0 ? '✓' : '*' }}</span>
-          </div>
-
-          <i class="fa-solid fa-arrow-right" style="color: var(--text-muted);"></i>
-
-          <div class="flow-step-item" [class.completed]="coloresSeleccionadosIds.length > 0" [class.active]="coloresSeleccionadosIds.length === 0">
-            <span class="flow-step-number">
-              <i *ngIf="coloresSeleccionadosIds.length > 0" class="fa-solid fa-check"></i>
-              <span *ngIf="coloresSeleccionadosIds.length === 0">3</span>
-            </span>
-            <span>3. Colores ({{ coloresSeleccionadosIds.length }}) {{ coloresSeleccionadosIds.length > 0 ? '✓' : '*' }}</span>
-          </div>
         </div>
 
         <form (ngSubmit)="guardarPrenda()">
           
           <!-- SECCIÓN 1: DATOS BÁSICOS & CATEGORÍA -->
-          <div class="p-4 rounded-xl mb-5" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+          <div class="p-4 rounded-xl mb-4" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
             <h4 class="text-xs font-bold uppercase mb-3" style="color: var(--accent);">
               <i class="fa-solid fa-circle-info mr-1"></i> 1. Información General y Categoría
             </h4>
@@ -560,19 +582,10 @@ import { Sucursal } from '../../models/sucursal.models';
             <div class="grid grid-cols-2 gap-4 mb-3">
               <div class="form-group mb-0">
                 <label class="form-label text-xs">Categoría Obligatoria *</label>
-                <select 
-                  [(ngModel)]="prendaForm.categoria_id" 
-                  name="categoria_id" 
-                  required 
-                  class="form-select"
-                  [style.border-color]="!prendaForm.categoria_id ? '#ef4444' : 'var(--border-color)'"
-                >
+                <select [(ngModel)]="prendaForm.categoria_id" name="categoria_id" required class="form-select">
                   <option [ngValue]="null" disabled>-- Selecciona una Categoría --</option>
                   <option *ngFor="let c of categorias" [ngValue]="c.id">{{ c.nombre }}</option>
                 </select>
-                <span *ngIf="!prendaForm.categoria_id" class="text-xs text-red-500 mt-1 block">
-                  <i class="fa-solid fa-triangle-exclamation"></i> Debes seleccionar una categoría
-                </span>
               </div>
 
               <div class="form-group mb-0">
@@ -581,43 +594,38 @@ import { Sucursal } from '../../models/sucursal.models';
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 gap-4 mb-3">
               <div class="form-group mb-0">
-                <label class="form-label text-xs">Proveedor</label>
+                <label class="form-label text-xs">Empresa Proveedora</label>
                 <select [(ngModel)]="prendaForm.proveedor_id" name="proveedor_id" class="form-select">
                   <option *ngFor="let pr of proveedores" [value]="pr.id">{{ pr.nombre }}</option>
                 </select>
               </div>
 
               <div class="form-group mb-0">
-                <label class="form-label text-xs">URL Imagen Oficial</label>
+                <label class="form-label text-xs">Foto Oficial de Portada (URL)</label>
                 <input type="url" [(ngModel)]="prendaForm.imagen_url" name="imagen_url" placeholder="https://images.unsplash.com/..." class="form-input" />
               </div>
             </div>
 
-            <div class="form-group mt-3 mb-0">
+            <div class="form-group mb-0">
               <label class="form-label text-xs">URL Modelo 3D / Realidad Aumentada (.glb)</label>
               <input type="url" [(ngModel)]="prendaForm.modelo_ar_url" name="modelo_ar_url" placeholder="https://modelviewer.dev/shared-assets/models/Astronaut.glb" class="form-input" />
             </div>
           </div>
 
-          <!-- SECCIÓN 2: SELECCIÓN DIRECTA DE TALLAS -->
-          <div class="p-4 rounded-xl mb-5" style="background: var(--table-th-bg); border: 1.5px solid" [style.border-color]="tallasSeleccionadasIds.length === 0 ? '#ef4444' : 'var(--border-color)'">
+          <!-- SECCIÓN 2: SELECCIÓN DE TALLAS -->
+          <div class="p-4 rounded-xl mb-4" style="background: var(--table-th-bg); border: 1.5px solid" [style.border-color]="tallasSeleccionadasIds.length === 0 ? '#ef4444' : 'var(--border-color)'">
             <div class="flex items-center justify-between mb-2">
               <h4 class="text-xs font-bold uppercase" [style.color]="tallasSeleccionadasIds.length === 0 ? '#ef4444' : 'var(--accent)'">
-                <i class="fa-solid fa-ruler-combined mr-1"></i> 2. Tallas que aplican a esta prenda *
+                <i class="fa-solid fa-ruler-combined mr-1"></i> 2. Tallas disponibles para esta prenda *
               </h4>
               <span class="text-xs font-bold" [style.color]="tallasSeleccionadasIds.length > 0 ? '#10b981' : '#ef4444'">
                 {{ tallasSeleccionadasIds.length }} seleccionadas
               </span>
             </div>
-            
-            <p class="text-xs mb-3" style="color: var(--text-muted);">
-              Haz clic directamente sobre las tallas que estarán disponibles para esta prenda:
-            </p>
 
-            <!-- Chips Interactivos de Tallas -->
-            <div class="flex flex-wrap gap-2 mb-3">
+            <div class="flex flex-wrap gap-2 mb-2">
               <button 
                 type="button"
                 *ngFor="let t of tallas"
@@ -629,40 +637,20 @@ import { Sucursal } from '../../models/sucursal.models';
                 {{ t.nombre }}
               </button>
             </div>
-
-            <!-- Alerta si no hay ninguna seleccionada -->
-            <div *ngIf="tallasSeleccionadasIds.length === 0" class="p-2 rounded text-xs bg-red-50 text-red-700 flex items-center gap-2 mb-3" style="background-color: rgba(239, 68, 68, 0.1); color: #ef4444;">
-              <i class="fa-solid fa-triangle-exclamation"></i>
-              <span>Falta seleccionar al menos una talla para la prenda.</span>
-            </div>
-
-            <!-- Añadir Talla Rápida al Vuelo -->
-            <div class="flex items-center gap-2 pt-2 border-t" style="border-color: var(--border-color);">
-              <span class="text-xs" style="color: var(--text-muted);">¿No encuentras la talla?</span>
-              <input type="text" [(ngModel)]="nuevaTallaModal" [ngModelOptions]="{standalone: true}" placeholder="Ej: 38, 4XL, Especial" class="form-input" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; width: 170px;" />
-              <button type="button" (click)="crearTallaModal()" class="btn btn-outline" style="padding: 0.35rem 0.7rem; font-size: 0.8rem;">
-                <i class="fa-solid fa-plus"></i> Añadir Talla
-              </button>
-            </div>
           </div>
 
-          <!-- SECCIÓN 3: SELECCIÓN DIRECTA DE COLORES -->
-          <div class="p-4 rounded-xl mb-5" style="background: var(--table-th-bg); border: 1.5px solid" [style.border-color]="coloresSeleccionadosIds.length === 0 ? '#ef4444' : 'var(--border-color)'">
+          <!-- SECCIÓN 3: SELECCIÓN DE COLORES -->
+          <div class="p-4 rounded-xl mb-4" style="background: var(--table-th-bg); border: 1.5px solid" [style.border-color]="coloresSeleccionadosIds.length === 0 ? '#ef4444' : 'var(--border-color)'">
             <div class="flex items-center justify-between mb-2">
               <h4 class="text-xs font-bold uppercase" [style.color]="coloresSeleccionadosIds.length === 0 ? '#ef4444' : 'var(--accent)'">
-                <i class="fa-solid fa-palette mr-1"></i> 3. Colores que aplican a esta prenda *
+                <i class="fa-solid fa-palette mr-1"></i> 3. Colores disponibles para esta prenda *
               </h4>
               <span class="text-xs font-bold" [style.color]="coloresSeleccionadosIds.length > 0 ? '#10b981' : '#ef4444'">
                 {{ coloresSeleccionadosIds.length }} seleccionados
               </span>
             </div>
 
-            <p class="text-xs mb-3" style="color: var(--text-muted);">
-              Haz clic directamente sobre los colores disponibles para esta prenda:
-            </p>
-
-            <!-- Chips Interactivos de Colores -->
-            <div class="flex flex-wrap gap-2 mb-3">
+            <div class="flex flex-wrap gap-2 mb-2">
               <button 
                 type="button"
                 *ngFor="let c of colores"
@@ -675,57 +663,59 @@ import { Sucursal } from '../../models/sucursal.models';
                 <i *ngIf="isColorSelected(c.id)" class="fa-solid fa-check text-xs ml-1" style="color: var(--accent);"></i>
               </button>
             </div>
+          </div>
 
-            <!-- Alerta si no hay ningún color seleccionado -->
-            <div *ngIf="coloresSeleccionadosIds.length === 0" class="p-2 rounded text-xs bg-red-50 text-red-700 flex items-center gap-2 mb-3" style="background-color: rgba(239, 68, 68, 0.1); color: #ef4444;">
-              <i class="fa-solid fa-triangle-exclamation"></i>
-              <span>Falta seleccionar al menos un color para la prenda.</span>
+          <!-- SECCIÓN 4: FOTOS POR COLOR Y CANTIDAD INICIAL QUE ENTRA -->
+          <div *ngIf="coloresSeleccionadosIds.length > 0" class="p-4 rounded-xl mb-4" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-xs font-bold uppercase" style="color: var(--accent);">
+                <i class="fa-solid fa-camera mr-1"></i> 4. Fotos Dedicadas por Color &amp; Cantidad que Entra
+              </h4>
+              <div class="flex items-center gap-2">
+                <span class="text-xs" style="color: var(--text-muted);">Cantidad inicial que entra por tienda:</span>
+                <input type="number" [(ngModel)]="stockInicialNuevoProducto" [ngModelOptions]="{standalone: true}" min="1" class="form-input text-xs font-bold" style="width: 80px; padding: 0.3rem 0.5rem; color: #10b981;" />
+              </div>
             </div>
 
-            <!-- Añadir Color Rápido al Vuelo -->
-            <div class="flex items-center gap-2 pt-2 border-t" style="border-color: var(--border-color);">
-              <span class="text-xs" style="color: var(--text-muted);">¿Falta un color?</span>
-              <input type="text" [(ngModel)]="nuevoColorModalNombre" [ngModelOptions]="{standalone: true}" placeholder="Nombre (ej: Borgoña)" class="form-input" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; width: 150px;" />
-              <input type="color" [(ngModel)]="nuevoColorModalHex" [ngModelOptions]="{standalone: true}" style="width: 32px; height: 32px; border:none; border-radius: 4px; cursor:pointer;" />
-              <button type="button" (click)="crearColorModal()" class="btn btn-outline" style="padding: 0.35rem 0.7rem; font-size: 0.8rem;">
-                <i class="fa-solid fa-plus"></i> Añadir Color
-              </button>
+            <p class="text-xs mb-3" style="color: var(--text-muted);">
+              Pega la URL de la foto de la prenda para cada color (el cliente verá cambiar la prenda de inmediato a ese color):
+            </p>
+
+            <div class="flex flex-col gap-2">
+              <div *ngFor="let cId of coloresSeleccionadosIds" class="flex items-center gap-3 p-2 rounded-lg" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+                <span class="color-dot-indicator" [style.background-color]="getColorById(cId)?.codigo_hex || '#000'" style="width: 18px; height: 18px; min-width: 18px; border-radius: 50%;"></span>
+                <span class="text-xs font-bold" style="min-width: 110px; color: var(--text-main);">{{ getColorById(cId)?.nombre }}:</span>
+                <input 
+                  type="url" 
+                  [(ngModel)]="fotosColoresNuevoProducto[cId]" 
+                  [ngModelOptions]="{standalone: true}" 
+                  placeholder="URL foto para prenda en color {{ getColorById(cId)?.nombre }}..." 
+                  class="form-input" 
+                  style="padding: 0.35rem 0.6rem; font-size: 0.8rem;" 
+                />
+              </div>
             </div>
           </div>
 
           <!-- RESUMEN AUTOMÁTICO DE VARIANTES A GENERAR -->
-          <div *ngIf="esPrendaValida()" class="p-4 rounded-xl mb-5" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--text-main);">
+          <div *ngIf="esPrendaValida()" class="p-4 rounded-xl mb-4" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3);">
             <div class="flex items-center justify-between mb-2">
               <span class="font-bold text-xs" style="color: #10b981;">
-                <i class="fa-solid fa-circle-check mr-1"></i> Todo listo: {{ getVariantesGeneradasCount() }} variantes se crearán automáticamente
+                <i class="fa-solid fa-circle-check mr-1"></i> {{ getVariantesGeneradasCount() }} variantes se crearán automáticamente
               </span>
               <span class="badge badge-stock">{{ tallasSeleccionadasIds.length }} tallas × {{ coloresSeleccionadosIds.length }} colores</span>
             </div>
-            <p class="text-xs mb-2" style="color: var(--text-muted);">
-              Cada variante se registrará con su SKU correspondiente y recibirá un stock inicial de 10 unidades en cada sucursal:
+            <p class="text-xs" style="color: var(--text-muted);">
+              Cada variante entrará con {{ stockInicialNuevoProducto || 10 }} unidades iniciales en cada sucursal física.
             </p>
-            <div class="flex flex-wrap gap-1.5" style="max-height: 80px; overflow-y: auto;">
-              <span *ngFor="let combo of getCombinacionesPreview()" class="badge" style="background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.75rem;">
-                {{ combo }}
-              </span>
-            </div>
-          </div>
-
-          <!-- ALERTA DE CAMPOS FALTANTES SI EL FORMULARIO NO ES VÁLIDO -->
-          <div *ngIf="!esPrendaValida()" class="p-3 rounded-lg mb-4 text-xs flex flex-col gap-1" style="background: rgba(217, 119, 6, 0.12); color: #d97706; border: 1px solid rgba(217, 119, 6, 0.3);">
-            <span class="font-bold"><i class="fa-solid fa-circle-exclamation mr-1"></i> Completa los requisitos para publicar la prenda:</span>
-            <span *ngIf="!prendaForm.nombre">• Escribe el nombre de la prenda</span>
-            <span *ngIf="!prendaForm.categoria_id">• Selecciona una Categoría</span>
-            <span *ngIf="tallasSeleccionadasIds.length === 0">• Selecciona al menos una Talla</span>
-            <span *ngIf="coloresSeleccionadosIds.length === 0">• Selecciona al menos un Color</span>
           </div>
 
           <!-- Botones de Acción -->
-          <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100" style="border-color: var(--border-color);">
+          <div class="flex items-center justify-end gap-3 pt-4 border-t" style="border-color: var(--border-color);">
             <button type="button" (click)="mostrarModalPrenda = false" class="btn btn-outline">Cancelar</button>
             <button type="submit" [disabled]="guardando || !esPrendaValida()" class="btn btn-primary">
-              <span *ngIf="guardando"><i class="fa-solid fa-circle-notch fa-spin"></i> Guardando y generando inventario...</span>
-              <span *ngIf="!guardando"><i class="fa-solid fa-check"></i> Guardar y Publicar Prenda ({{ getVariantesGeneradasCount() }} variantes)</span>
+              <span *ngIf="guardando"><i class="fa-solid fa-circle-notch fa-spin"></i> Guardando y registrando stock...</span>
+              <span *ngIf="!guardando"><i class="fa-solid fa-check"></i> Publicar Prenda y Generar Stock</span>
             </button>
           </div>
 
@@ -734,11 +724,173 @@ import { Sucursal } from '../../models/sucursal.models';
     </div>
 
     <!-- =================================================================== -->
-    <!-- MODAL: REGISTRAR EMPLEADO                                           -->
+    <!-- MODAL: GESTIÓN DE FOTOS POR COLOR Y CANTIDADES DE STOCK (PRENDA)    -->
     <!-- =================================================================== -->
+    <div *ngIf="mostrarModalGestionPrenda && prendaGestion" class="modal-overlay">
+      <div class="modal-content" style="max-width: 860px; max-height: 90vh; overflow-y: auto;">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-5 pb-4 border-b" style="border-color: var(--border-color);">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="badge" style="background: var(--table-th-bg); color: var(--accent); border: 1px solid var(--border-color);">ID: #{{ prendaGestion.id }}</span>
+              <span class="badge badge-stock">Prenda Activa</span>
+            </div>
+            <h3 class="font-serif text-2xl font-bold" style="color: var(--text-main);">
+              <i class="fa-solid fa-shirt text-amber-600 mr-2"></i> {{ prendaGestion.nombre }}
+            </h3>
+            <p class="text-xs" style="color: var(--text-muted);">Administra la foto principal, la foto por cada color y registra cantidades de stock que entran</p>
+          </div>
+          <button (click)="cerrarModalGestionPrenda()" class="btn btn-outline" style="padding: 0.4rem 0.7rem;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- SECCIÓN 1: FOTO GENERAL DE LA PRENDA -->
+        <div class="p-5 rounded-xl mb-6" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+          <h4 class="text-xs font-bold uppercase mb-3" style="color: var(--accent);">
+            <i class="fa-solid fa-image mr-1.5"></i> 1. Fotografía de Portada General
+          </h4>
+          <div class="flex gap-4 items-center">
+            <img [src]="prendaGestion.imagen_url || 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=200'" [alt]="prendaGestion.nombre" style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px; border: 1.5px solid var(--border-color);" />
+            <div class="flex-1">
+              <label class="form-label text-xs">URL de la Imagen General (Catálogo / Portada)</label>
+              <div class="flex gap-2">
+                <input type="url" [(ngModel)]="prendaGestion.imagen_url" placeholder="https://images.unsplash.com/..." class="form-input" style="padding: 0.45rem 0.75rem;" />
+                <button type="button" (click)="guardarFotoGeneral()" class="btn btn-primary" style="padding: 0.45rem 0.9rem; font-size: 0.8rem; white-space: nowrap;">
+                  <i class="fa-solid fa-floppy-disk mr-1"></i> Guardar Foto
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 2: FOTOGRAFÍAS DEDICADAS POR CADA COLOR -->
+        <div class="p-5 rounded-xl mb-6" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h4 class="text-xs font-bold uppercase" style="color: var(--accent);">
+                <i class="fa-solid fa-palette mr-1.5"></i> 2. Fotografías por Variante de Color
+              </h4>
+              <p class="text-xs mt-0.5" style="color: var(--text-muted);">
+                Pega la URL de la prenda en cada color para que el usuario la vea cambiar de inmediato en la tienda al pulsar ese color.
+              </p>
+            </div>
+            <button type="button" (click)="guardarFotosColores()" class="btn btn-primary" style="padding: 0.4rem 0.9rem; font-size: 0.8rem;">
+              <i class="fa-solid fa-check mr-1"></i> Guardar Fotos de Colores
+            </button>
+          </div>
+
+          <div *ngIf="cargandoVariantes" class="text-center py-6">
+            <i class="fa-solid fa-circle-notch fa-spin text-xl" style="color: var(--accent);"></i>
+            <p class="text-xs mt-2" style="color: var(--text-muted);">Cargando colores y fotos asociadas...</p>
+          </div>
+
+          <div *ngIf="!cargandoVariantes" class="flex flex-col gap-3">
+            <div *ngFor="let col of coloresPrendaGestion" class="p-3.5 rounded-xl flex items-center gap-4" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+              <div class="flex items-center gap-3" style="min-width: 170px;">
+                <span class="color-dot-indicator" [style.background-color]="col.color_hex" style="width: 22px; height: 22px; min-width: 22px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.25);"></span>
+                <div>
+                  <h5 class="font-bold text-sm" style="color: var(--text-main); margin: 0;">{{ col.color_nombre }}</h5>
+                  <span class="text-xs" style="color: var(--text-muted);">Tallas: {{ col.tallas_disponibles.join(', ') }}</span>
+                </div>
+              </div>
+
+              <img [src]="col.imagen_url || 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=100'" [alt]="col.color_nombre" style="width: 48px; height: 48px; min-width: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);" />
+
+              <div class="flex-1">
+                <input 
+                  type="url" 
+                  [(ngModel)]="col.imagen_url" 
+                  placeholder="URL imagen de la prenda en color {{ col.color_nombre }} (https://...)" 
+                  class="form-input" 
+                  style="padding: 0.45rem 0.75rem; font-size: 0.82rem;" 
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 3: REGISTRAR ENTRADA DE STOCK ("LAS CANTIDADES QUE ENTRAN") -->
+        <div class="p-5 rounded-xl mb-6" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+          <h4 class="text-xs font-bold uppercase mb-2" style="color: var(--accent);">
+            <i class="fa-solid fa-boxes-stacked mr-1.5"></i> 3. Registrar Entrada de Stock ("Cantidades que Entran")
+          </h4>
+          <p class="text-xs mb-4" style="color: var(--text-muted);">
+            Registra el ingreso de nuevas unidades de esta prenda recibidas de fábrica o proveedor a una tienda física.
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+            <div>
+              <label class="form-label text-xs">Tienda que Recibe *</label>
+              <select [(ngModel)]="stockIngresoForm.sucursal_id" class="form-select text-xs" style="padding: 0.5rem;">
+                <option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="form-label text-xs">Aplica a Variante *</label>
+              <select [(ngModel)]="stockIngresoForm.variante_id" class="form-select text-xs" style="padding: 0.5rem;">
+                <option [ngValue]="null">-- Todas las Variantes (Lote General) --</option>
+                <option *ngFor="let v of variantesPrendaGestion" [value]="v.id">
+                  Talla {{ v.talla_nombre }} - Color {{ v.color_nombre }} ({{ v.sku }})
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="form-label text-xs">Cantidad que Entra (+ Uds) *</label>
+              <input type="number" [(ngModel)]="stockIngresoForm.cantidad" min="1" placeholder="Ej: 20" class="form-input text-xs font-bold" style="padding: 0.5rem; color: #10b981;" />
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label text-xs">Observación / Nota de Entrada (Opcional)</label>
+            <input type="text" [(ngModel)]="stockIngresoForm.observaciones" placeholder="Ej: Recepción de lote #402 - Telas y Confecciones Andinas" class="form-input text-xs" style="padding: 0.45rem 0.75rem;" />
+          </div>
+
+          <div class="flex items-center justify-between pt-3 border-t" style="border-color: var(--border-color);">
+            <span class="text-xs font-bold" style="color: #10b981;">
+              <i class="fa-solid fa-plus-circle mr-1"></i> Se incrementará el stock disponible en la tienda seleccionada
+            </span>
+            <button 
+              type="button" 
+              (click)="ejecutarIngresoStock()" 
+              [disabled]="guardandoStock || stockIngresoForm.cantidad <= 0" 
+              class="btn btn-primary"
+              style="padding: 0.5rem 1.2rem; font-size: 0.85rem;"
+            >
+              <i *ngIf="!guardandoStock" class="fa-solid fa-box-open mr-1.5"></i>
+              <i *ngIf="guardandoStock" class="fa-solid fa-circle-notch fa-spin mr-1.5"></i>
+              <span>{{ guardandoStock ? 'Registrando ingreso...' : 'Ingresar ' + (stockIngresoForm.cantidad || 0) + ' Unidades' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 4: RESUMEN DEL INVENTARIO ACTUAL DE LA PRENDA EN TODAS LAS TIENDAS -->
+        <div class="p-5 rounded-xl" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+          <h4 class="text-xs font-bold uppercase mb-3" style="color: var(--text-main);">
+            <i class="fa-solid fa-warehouse mr-1.5"></i> 4. Existencias Actuales en Tiendas Físicas
+          </h4>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div *ngFor="let s of sucursales" class="p-3 rounded-lg" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+              <span class="text-xs text-muted block mb-1">{{ s.nombre }}</span>
+              <div class="flex items-center justify-between">
+                <span class="text-base font-bold" style="color: var(--accent);">
+                  {{ getStockPrendaPorSucursal(s.id) }} uds. disponibles
+                </span>
+                <span class="badge badge-stock text-xs">En Tienda</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MODAL: REGISTRAR EMPLEADO -->
     <div *ngIf="mostrarModalUsuario" class="modal-overlay">
       <div class="modal-content">
-        <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-100" style="border-color: var(--border-color);">
+        <div class="flex items-center justify-between mb-6 pb-4 border-b" style="border-color: var(--border-color);">
           <h3 class="font-serif text-2xl font-bold" style="color: var(--text-main);"><i class="fa-solid fa-user-plus text-amber-600 mr-2"></i> Crear Empleado Interno</h3>
           <button (click)="mostrarModalUsuario = false" class="btn btn-outline" style="padding: 0.3rem 0.6rem;"><i class="fa-solid fa-xmark"></i></button>
         </div>
@@ -756,12 +908,12 @@ import { Sucursal } from '../../models/sucursal.models';
           </div>
 
           <div class="form-group">
-            <label class="form-label">Correo Institucional *</label>
+            <label class="form-label">Correo Electrónico *</label>
             <input type="email" [(ngModel)]="usuarioForm.email" name="email" required placeholder="mario@fashionstore.com" class="form-input" />
           </div>
 
           <div class="form-group">
-            <label class="form-label">Contraseña Inicial *</label>
+            <label class="form-label">Contraseña de Acceso *</label>
             <input type="password" [(ngModel)]="usuarioForm.password" name="password" required placeholder="••••••••" class="form-input" />
           </div>
 
@@ -774,15 +926,20 @@ import { Sucursal } from '../../models/sucursal.models';
             </div>
 
             <div class="form-group">
-              <label class="form-label">Sucursal</label>
+              <label class="form-label">Sucursal de Trabajo</label>
               <select [(ngModel)]="usuarioForm.sucursal_id" name="sucursal_id" class="form-select">
-                <option [ngValue]="null">Central / Global</option>
+                <option [ngValue]="null">-- Central / Todas --</option>
                 <option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</option>
               </select>
             </div>
           </div>
 
-          <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100" style="border-color: var(--border-color);">
+          <div class="form-group">
+            <label class="form-label">Teléfono Móvil</label>
+            <input type="text" [(ngModel)]="usuarioForm.telefono" name="telefono" placeholder="77889900" class="form-input" />
+          </div>
+
+          <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t" style="border-color: var(--border-color);">
             <button type="button" (click)="mostrarModalUsuario = false" class="btn btn-outline">Cancelar</button>
             <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Registrar Empleado</button>
           </div>
@@ -790,13 +947,11 @@ import { Sucursal } from '../../models/sucursal.models';
       </div>
     </div>
 
-    <!-- =================================================================== -->
-    <!-- MODAL: REGISTRAR SUCURSAL                                           -->
-    <!-- =================================================================== -->
+    <!-- MODAL: REGISTRAR SUCURSAL -->
     <div *ngIf="mostrarModalSucursal" class="modal-overlay">
       <div class="modal-content">
-        <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-100" style="border-color: var(--border-color);">
-          <h3 class="font-serif text-2xl font-bold" style="color: var(--text-main);"><i class="fa-solid fa-shop text-amber-600 mr-2"></i> Registrar Nueva Sucursal</h3>
+        <div class="flex items-center justify-between mb-6 pb-4 border-b" style="border-color: var(--border-color);">
+          <h3 class="font-serif text-2xl font-bold" style="color: var(--text-main);"><i class="fa-solid fa-shop text-amber-600 mr-2"></i> Nueva Sucursal Física</h3>
           <button (click)="mostrarModalSucursal = false" class="btn btn-outline" style="padding: 0.3rem 0.6rem;"><i class="fa-solid fa-xmark"></i></button>
         </div>
 
@@ -827,7 +982,7 @@ import { Sucursal } from '../../models/sucursal.models';
             <input type="text" [(ngModel)]="sucursalForm.direccion" name="direccion" required placeholder="Av. América #789" class="form-input" />
           </div>
 
-          <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100" style="border-color: var(--border-color);">
+          <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t" style="border-color: var(--border-color);">
             <button type="button" (click)="mostrarModalSucursal = false" class="btn btn-outline">Cancelar</button>
             <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Guardar Sucursal</button>
           </div>
@@ -881,7 +1036,7 @@ export class AdminPanelComponent implements OnInit {
   roles: any[] = [];
   usuarios: any[] = [];
 
-  // Tallas y Colores predeterminados para selección en 1 clic
+  // Tallas y Colores predeterminados para selección rápida
   presetTallas: string[] = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '28', '30', '32', '34', '36', '38', 'Única'];
   presetColores = [
     { nombre: 'Negro', hex: '#000000' },
@@ -898,25 +1053,25 @@ export class AdminPanelComponent implements OnInit {
     { nombre: 'Verde Esmeralda', hex: '#059669' }
   ];
 
-  // Selección directa en modal de Prenda
+  // Selección en modal de Prenda
   tallasSeleccionadasIds: number[] = [];
   coloresSeleccionadosIds: number[] = [];
-
-  // Campos de creación rápida dentro del modal
-  nuevaTallaModal: string = '';
-  nuevoColorModalNombre: string = '';
-  nuevoColorModalHex: string = '#18181b';
+  fotosColoresNuevoProducto: { [colorId: number]: string } = {};
+  stockInicialNuevoProducto: number = 15;
 
   // Estados de Modales
   mostrarModalPrenda: boolean = false;
   mostrarModalUsuario: boolean = false;
   mostrarModalSucursal: boolean = false;
+  mostrarModalGestionPrenda: boolean = false;
   guardando: boolean = false;
+  guardandoStock: boolean = false;
+  cargandoVariantes: boolean = false;
 
   successMessage: string = '';
   errorMessage: string = '';
 
-  // Formulario Prenda
+  // Formulario de Prenda
   prendaForm = {
     nombre: '',
     descripcion: '',
@@ -927,13 +1082,32 @@ export class AdminPanelComponent implements OnInit {
     modelo_ar_url: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb'
   };
 
+  // Prenda actualmente en Gestión de Fotos y Stock
+  prendaGestion: any = null;
+  variantesPrendaGestion: any[] = [];
+  coloresPrendaGestion: {
+    color_id: number;
+    color_nombre: string;
+    color_hex: string;
+    imagen_url: string;
+    tallas_disponibles: string[];
+    variante_ids: number[];
+  }[] = [];
+
+  stockIngresoForm = {
+    sucursal_id: 1,
+    variante_id: null as number | null,
+    cantidad: 20,
+    observaciones: ''
+  };
+
   usuarioForm = {
     nombres: '',
     apellidos: '',
     email: '',
     password: '',
     rol_id: 2,
-    sucursal_id: null,
+    sucursal_id: null as number | null,
     telefono: ''
   };
 
@@ -966,29 +1140,29 @@ export class AdminPanelComponent implements OnInit {
   }
 
   cargarDatosGenerales(): void {
-    this.productoService.getProductos().subscribe({ next: data => this.productos = data });
+    this.productoService.getProductos().subscribe({ next: data => this.productos = data || [] });
     this.productoService.getCategorias().subscribe({ 
       next: data => {
-        this.categorias = data;
+        this.categorias = data || [];
         if (this.categorias.length > 0 && !this.prendaForm.categoria_id) {
           this.prendaForm.categoria_id = this.categorias[0].id;
         }
       }
     });
-    this.productoService.getTallas().subscribe({ next: data => this.tallas = data });
-    this.productoService.getColores().subscribe({ next: data => this.colores = data });
-    this.productoService.getSucursales().subscribe({ next: data => this.sucursales = data });
+    this.productoService.getTallas().subscribe({ next: data => this.tallas = data || [] });
+    this.productoService.getColores().subscribe({ next: data => this.colores = data || [] });
+    this.productoService.getSucursales().subscribe({ next: data => this.sucursales = data || [] });
     this.adminService.getProveedores().subscribe({ 
       next: data => {
-        this.proveedores = data;
+        this.proveedores = data || [];
         if (this.proveedores.length > 0) {
           this.prendaForm.proveedor_id = this.proveedores[0].id;
         }
       }
     });
-    this.adminService.getTemporadas().subscribe({ next: data => this.temporadas = data });
-    this.adminService.getRoles().subscribe({ next: data => this.roles = data });
-    this.adminService.getUsuarios().subscribe({ next: data => this.usuarios = data });
+    this.adminService.getTemporadas().subscribe({ next: data => this.temporadas = data || [] });
+    this.adminService.getRoles().subscribe({ next: data => this.roles = data || [] });
+    this.adminService.getUsuarios().subscribe({ next: data => this.usuarios = data || [] });
   }
 
   // --- Verificaciones de Atributos ---
@@ -1000,115 +1174,51 @@ export class AdminPanelComponent implements OnInit {
     return this.colores.some(c => c.nombre.trim().toLowerCase() === nombre.trim().toLowerCase());
   }
 
-  esTallaPreset(nombre: string): boolean {
-    return this.presetTallas.some(pt => pt.trim().toUpperCase() === nombre.trim().toUpperCase());
-  }
-
-  esColorPreset(nombre: string): boolean {
-    return this.presetColores.some(pc => pc.nombre.trim().toLowerCase() === nombre.trim().toLowerCase());
-  }
-
   get tallasPersonalizadas(): Talla[] {
-    return this.tallas.filter(t => !this.esTallaPreset(t.nombre));
+    const set = new Set(this.presetTallas.map(x => x.toUpperCase()));
+    return this.tallas.filter(t => !set.has(t.nombre.trim().toUpperCase()));
   }
 
   get coloresPersonalizados(): Color[] {
-    return this.colores.filter(c => !this.esColorPreset(c.nombre));
+    const set = new Set(this.presetColores.map(x => x.nombre.toLowerCase()));
+    return this.colores.filter(c => !set.has(c.nombre.trim().toLowerCase()));
   }
 
   toggleTallaPreset(nombre: string): void {
-    if (this.tallaRegistrada(nombre)) {
-      this.quitarTallaRegistrada(nombre);
+    const exist = this.tallas.find(t => t.nombre.trim().toUpperCase() === nombre.trim().toUpperCase());
+    if (exist) {
+      this.eliminarTallaDB(exist.id);
     } else {
-      this.agregarTallaRapida(nombre);
-    }
-  }
-
-  toggleColorPreset(pc: { nombre: string, hex: string }): void {
-    if (this.colorRegistrado(pc.nombre)) {
-      this.quitarColorRegistrado(pc.nombre);
-    } else {
-      this.agregarColorPreset(pc);
-    }
-  }
-
-  eliminarCategoria(cat: Categoria): void {
-    if (confirm(`¿Estás seguro de eliminar la categoría "${cat.nombre}"?`)) {
-      this.adminService.eliminarCategoria(cat.id).subscribe({
-        next: (res: any) => {
-          this.successMessage = res.message || `Categoría "${cat.nombre}" eliminada.`;
-          this.productoService.getCategorias().subscribe(data => this.categorias = data);
-        },
-        error: (err) => {
-          this.errorMessage = err.error?.detail || 'No se pudo eliminar la categoría.';
-        }
+      this.adminService.crearTalla({ nombre, orden: this.tallas.length + 1 }).subscribe({
+        next: () => this.productoService.getTallas().subscribe(data => this.tallas = data || [])
       });
     }
   }
 
-  // Quitar talla preset ya registrada (busca su ID y la desmarca o elimina en DB)
-  quitarTallaRegistrada(nombre: string): void {
-    const talla = this.tallas.find(t => t.nombre.trim().toUpperCase() === nombre.trim().toUpperCase());
-    if (!talla) return;
-    this.eliminarTallaDB(talla.id);
-  }
-
   eliminarTallaDB(id: number): void {
     this.adminService.eliminarTalla(id).subscribe({
-      next: (res) => {
-        this.successMessage = res.message || 'Talla desmarcada.';
-        this.productoService.getTallas().subscribe(data => this.tallas = data);
-      },
-      error: (err) => this.errorMessage = err.error?.detail || 'No se pudo desmarcar la talla.'
+      next: () => this.productoService.getTallas().subscribe(data => this.tallas = data || [])
     });
   }
 
-  // Quitar color preset ya registrado
-  quitarColorRegistrado(nombre: string): void {
-    const color = this.colores.find(c => c.nombre.trim().toLowerCase() === nombre.trim().toLowerCase());
-    if (!color) return;
-    this.eliminarColorDB(color.id);
+  toggleColorPreset(pc: { nombre: string; hex: string }): void {
+    const exist = this.colores.find(c => c.nombre.trim().toLowerCase() === pc.nombre.trim().toLowerCase());
+    if (exist) {
+      this.eliminarColorDB(exist.id);
+    } else {
+      this.adminService.crearColor({ nombre: pc.nombre, codigo_hex: pc.hex }).subscribe({
+        next: () => this.productoService.getColores().subscribe(data => this.colores = data || [])
+      });
+    }
   }
 
   eliminarColorDB(id: number): void {
     this.adminService.eliminarColor(id).subscribe({
-      next: (res) => {
-        this.successMessage = res.message || 'Color desmarcado.';
-        this.productoService.getColores().subscribe(data => this.colores = data);
-      },
-      error: (err) => this.errorMessage = err.error?.detail || 'No se pudo desmarcar el color.'
+      next: () => this.productoService.getColores().subscribe(data => this.colores = data || [])
     });
   }
 
-  agregarTallaRapida(nombre: string): void {
-    if (this.tallaRegistrada(nombre)) {
-      this.successMessage = `La talla "${nombre}" ya está registrada en el catálogo.`;
-      return;
-    }
-    this.adminService.crearTalla({ nombre, orden: this.tallas.length + 1 }).subscribe({
-      next: () => {
-        this.successMessage = `Talla "${nombre}" creada y lista para asignarse.`;
-        this.productoService.getTallas().subscribe(data => this.tallas = data);
-      },
-      error: (err) => this.errorMessage = err.error?.detail || 'Error creando talla.'
-    });
-  }
-
-  agregarColorPreset(pc: { nombre: string, hex: string }): void {
-    if (this.colorRegistrado(pc.nombre)) {
-      this.successMessage = `El color "${pc.nombre}" ya está registrado en el catálogo.`;
-      return;
-    }
-    this.adminService.crearColor({ nombre: pc.nombre, codigo_hex: pc.hex }).subscribe({
-      next: () => {
-        this.successMessage = `Color "${pc.nombre}" agregado con éxito.`;
-        this.productoService.getColores().subscribe(data => this.colores = data);
-      },
-      error: (err) => this.errorMessage = err.error?.detail || 'Error creando color.'
-    });
-  }
-
-  // --- Gestión de Selección en Modal Prenda ---
+  // --- Modal Prenda ---
   abrirModalPrenda(): void {
     this.prendaForm = {
       nombre: '',
@@ -1116,78 +1226,50 @@ export class AdminPanelComponent implements OnInit {
       precio_base: 180,
       categoria_id: this.categorias.length > 0 ? this.categorias[0].id : null,
       proveedor_id: this.proveedores.length > 0 ? this.proveedores[0].id : 1,
-      imagen_url: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600',
+      imagen_url: '',
       modelo_ar_url: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb'
     };
-
-    // Preseleccionar por defecto las tallas iniciales (ej: S y M) si existen
-    this.tallasSeleccionadasIds = this.tallas.slice(0, 2).map(t => t.id);
-    // Preseleccionar los colores iniciales si existen
-    this.coloresSeleccionadosIds = this.colores.slice(0, 2).map(c => c.id);
-
+    this.tallasSeleccionadasIds = [];
+    this.coloresSeleccionadosIds = [];
+    this.fotosColoresNuevoProducto = {};
+    this.stockInicialNuevoProducto = 15;
     this.mostrarModalPrenda = true;
   }
 
-  toggleTalla(id: number): void {
-    const idx = this.tallasSeleccionadasIds.indexOf(id);
-    if (idx > -1) {
+  toggleTalla(tallaId: number): void {
+    const idx = this.tallasSeleccionadasIds.indexOf(tallaId);
+    if (idx >= 0) {
       this.tallasSeleccionadasIds.splice(idx, 1);
     } else {
-      this.tallasSeleccionadasIds.push(id);
+      this.tallasSeleccionadasIds.push(tallaId);
     }
   }
 
-  isTallaSelected(id: number): boolean {
-    return this.tallasSeleccionadasIds.includes(id);
+  isTallaSelected(tallaId: number): boolean {
+    return this.tallasSeleccionadasIds.includes(tallaId);
   }
 
-  toggleColor(id: number): void {
-    const idx = this.coloresSeleccionadosIds.indexOf(id);
-    if (idx > -1) {
+  toggleColor(colorId: number): void {
+    const idx = this.coloresSeleccionadosIds.indexOf(colorId);
+    if (idx >= 0) {
       this.coloresSeleccionadosIds.splice(idx, 1);
     } else {
-      this.coloresSeleccionadosIds.push(id);
+      this.coloresSeleccionadosIds.push(colorId);
     }
   }
 
-  isColorSelected(id: number): boolean {
-    return this.coloresSeleccionadosIds.includes(id);
+  isColorSelected(colorId: number): boolean {
+    return this.coloresSeleccionadosIds.includes(colorId);
   }
 
-  crearTallaModal(): void {
-    if (!this.nuevaTallaModal.trim()) return;
-    const nombre = this.nuevaTallaModal.trim();
-    this.adminService.crearTalla({ nombre, orden: this.tallas.length + 1 }).subscribe({
-      next: (t) => {
-        this.tallas.push(t);
-        this.tallasSeleccionadasIds.push(t.id);
-        this.nuevaTallaModal = '';
-        this.successMessage = `Talla "${nombre}" agregada y seleccionada para esta prenda.`;
-      },
-      error: (err) => this.errorMessage = err.error?.detail || 'Error creando talla.'
-    });
-  }
-
-  crearColorModal(): void {
-    if (!this.nuevoColorModalNombre.trim()) return;
-    const nombre = this.nuevoColorModalNombre.trim();
-    this.adminService.crearColor({ nombre, codigo_hex: this.nuevoColorModalHex }).subscribe({
-      next: (c) => {
-        this.colores.push(c);
-        this.coloresSeleccionadosIds.push(c.id);
-        this.nuevoColorModalNombre = '';
-        this.successMessage = `Color "${nombre}" agregado y seleccionado para esta prenda.`;
-      },
-      error: (err) => this.errorMessage = err.error?.detail || 'Error creando color.'
-    });
+  getColorById(id: number): Color | undefined {
+    return this.colores.find(c => c.id === id);
   }
 
   esPrendaValida(): boolean {
-    return Boolean(
-      this.prendaForm.nombre &&
-      this.prendaForm.nombre.trim().length >= 3 &&
-      this.prendaForm.categoria_id &&
-      this.prendaForm.precio_base > 0 &&
+    return (
+      !!this.prendaForm.nombre.trim() &&
+      this.prendaForm.categoria_id !== null &&
       this.tallasSeleccionadasIds.length > 0 &&
       this.coloresSeleccionadosIds.length > 0
     );
@@ -1195,18 +1277,6 @@ export class AdminPanelComponent implements OnInit {
 
   getVariantesGeneradasCount(): number {
     return this.tallasSeleccionadasIds.length * this.coloresSeleccionadosIds.length;
-  }
-
-  getCombinacionesPreview(): string[] {
-    const previews: string[] = [];
-    for (const tid of this.tallasSeleccionadasIds) {
-      const t = this.tallas.find(x => x.id === tid);
-      for (const cid of this.coloresSeleccionadosIds) {
-        const c = this.colores.find(x => x.id === cid);
-        previews.push(`${t?.nombre || 'T'} - ${c?.nombre || 'C'}`);
-      }
-    }
-    return previews;
   }
 
   guardarPrenda(): void {
@@ -1218,7 +1288,6 @@ export class AdminPanelComponent implements OnInit {
     this.guardando = true;
     this.errorMessage = '';
 
-    // Generar variantes automáticamente para cada par (Talla x Color)
     const variantesPayload: any[] = [];
     const baseCode = this.prendaForm.nombre
       .trim()
@@ -1231,11 +1300,14 @@ export class AdminPanelComponent implements OnInit {
       for (const cid of this.coloresSeleccionadosIds) {
         const c = this.colores.find(x => x.id === cid);
         const sku = `SKU-${baseCode}-${t?.nombre || tid}-${c?.nombre.substring(0, 3).toUpperCase() || cid}-${Math.floor(100 + Math.random() * 900)}`;
+        const fotoColor = this.fotosColoresNuevoProducto[cid] || this.prendaForm.imagen_url || null;
         variantesPayload.push({
           talla_id: tid,
           color_id: cid,
           sku: sku,
-          precio_adicional: 0
+          precio_adicional: 0,
+          imagen_url: fotoColor,
+          stock_inicial: Number(this.stockInicialNuevoProducto) || 15
         });
       }
     }
@@ -1249,7 +1321,7 @@ export class AdminPanelComponent implements OnInit {
       next: () => {
         this.guardando = false;
         this.mostrarModalPrenda = false;
-        this.successMessage = `¡Prenda "${this.prendaForm.nombre}" publicada con éxito con sus ${variantesPayload.length} variantes!`;
+        this.successMessage = `¡Prenda "${this.prendaForm.nombre}" publicada con éxito con sus ${variantesPayload.length} variantes e inventario inicial!`;
         this.cargarDatosGenerales();
       },
       error: (err) => {
@@ -1270,17 +1342,158 @@ export class AdminPanelComponent implements OnInit {
     }
   }
 
-  // --- Creación de Atributos Básicos ---
+  // --- Modal Gestión de Fotos por Color y Entrada de Stock ---
+  abrirModalGestionPrenda(p: Producto): void {
+    this.prendaGestion = { ...p };
+    this.mostrarModalGestionPrenda = true;
+    this.cargandoVariantes = true;
+    this.coloresPrendaGestion = [];
+    this.variantesPrendaGestion = [];
+
+    this.stockIngresoForm = {
+      sucursal_id: this.sucursales.length > 0 ? this.sucursales[0].id : 1,
+      variante_id: null,
+      cantidad: 20,
+      observaciones: ''
+    };
+
+    this.adminService.getVariantesDetalle(p.id).subscribe({
+      next: (res) => {
+        this.cargandoVariantes = false;
+        this.variantesPrendaGestion = res.variantes || [];
+        
+        // Agrupar variantes por color único
+        const colorMap = new Map<number, any>();
+        for (const v of this.variantesPrendaGestion) {
+          if (!colorMap.has(v.color_id)) {
+            colorMap.set(v.color_id, {
+              color_id: v.color_id,
+              color_nombre: v.color_nombre,
+              color_hex: v.color_hex,
+              imagen_url: v.imagen_url || '',
+              tallas_disponibles: [v.talla_nombre],
+              variante_ids: [v.id]
+            });
+          } else {
+            const entry = colorMap.get(v.color_id);
+            if (!entry.tallas_disponibles.includes(v.talla_nombre)) {
+              entry.tallas_disponibles.push(v.talla_nombre);
+            }
+            entry.variante_ids.push(v.id);
+            if (!entry.imagen_url && v.imagen_url) {
+              entry.imagen_url = v.imagen_url;
+            }
+          }
+        }
+        this.coloresPrendaGestion = Array.from(colorMap.values());
+      },
+      error: () => {
+        this.cargandoVariantes = false;
+      }
+    });
+  }
+
+  cerrarModalGestionPrenda(): void {
+    this.mostrarModalGestionPrenda = false;
+    this.prendaGestion = null;
+  }
+
+  guardarFotoGeneral(): void {
+    if (!this.prendaGestion) return;
+    this.adminService.actualizarProducto(this.prendaGestion.id, {
+      imagen_url: this.prendaGestion.imagen_url
+    }).subscribe({
+      next: () => {
+        this.successMessage = 'Foto de portada general guardada exitosamente.';
+        this.cargarDatosGenerales();
+      },
+      error: (err) => this.errorMessage = err.error?.detail || 'Error al guardar foto general.'
+    });
+  }
+
+  guardarFotosColores(): void {
+    if (!this.prendaGestion) return;
+    
+    // Preparar lista de actualizaciones para cada variante según el color
+    const updates: any[] = [];
+    for (const col of this.coloresPrendaGestion) {
+      for (const vid of col.variante_ids) {
+        updates.push({
+          id: vid,
+          imagen_url: col.imagen_url ? col.imagen_url.trim() : null
+        });
+      }
+    }
+
+    this.adminService.actualizarVariantes(this.prendaGestion.id, updates).subscribe({
+      next: () => {
+        this.successMessage = `¡Fotos por variante de color guardadas correctamente para "${this.prendaGestion.nombre}"!`;
+        this.cargarDatosGenerales();
+      },
+      error: (err) => this.errorMessage = err.error?.detail || 'Error actualizando fotos de colores.'
+    });
+  }
+
+  ejecutarIngresoStock(): void {
+    if (!this.prendaGestion || this.stockIngresoForm.cantidad <= 0) return;
+
+    this.guardandoStock = true;
+    this.adminService.registrarIngresoStock(this.prendaGestion.id, {
+      sucursal_id: Number(this.stockIngresoForm.sucursal_id),
+      cantidad: Number(this.stockIngresoForm.cantidad),
+      variante_id: this.stockIngresoForm.variante_id ? Number(this.stockIngresoForm.variante_id) : undefined,
+      observaciones: this.stockIngresoForm.observaciones
+    }).subscribe({
+      next: (res) => {
+        this.guardandoStock = false;
+        this.successMessage = res.message || 'Ingreso de stock registrado exitosamente.';
+        // Recargar detalle de inventario
+        this.abrirModalGestionPrenda(this.prendaGestion);
+        this.cargarDatosGenerales();
+      },
+      error: (err) => {
+        this.guardandoStock = false;
+        this.errorMessage = err.error?.detail || 'Error al registrar entrada de stock.';
+      }
+    });
+  }
+
+  getStockPrendaPorSucursal(sucursalId: number): number {
+    let total = 0;
+    for (const v of this.variantesPrendaGestion) {
+      if (v.stock_por_sucursal) {
+        const item = v.stock_por_sucursal.find((s: any) => s.sucursal_id === sucursalId);
+        if (item) {
+          total += item.stock_libre || 0;
+        }
+      }
+    }
+    return total;
+  }
+
+  // --- Gestión de Atributos Básicos ---
   crearCategoria(): void {
     if (!this.nuevaCategoriaNombre.trim()) return;
     this.adminService.crearCategoria({ nombre: this.nuevaCategoriaNombre.trim() }).subscribe({
       next: () => {
         this.nuevaCategoriaNombre = '';
         this.successMessage = 'Categoría creada con éxito.';
-        this.productoService.getCategorias().subscribe(data => this.categorias = data);
+        this.productoService.getCategorias().subscribe(data => this.categorias = data || []);
       },
       error: (err) => this.errorMessage = err.error?.detail || 'Error creando categoría.'
     });
+  }
+
+  eliminarCategoria(c: Categoria): void {
+    if (confirm(`¿Estás seguro de eliminar la categoría "${c.nombre}"?`)) {
+      this.adminService.eliminarCategoria(c.id).subscribe({
+        next: (res) => {
+          this.successMessage = res.message || 'Categoría eliminada.';
+          this.productoService.getCategorias().subscribe(data => this.categorias = data || []);
+        },
+        error: (err) => this.errorMessage = err.error?.detail || 'Error al eliminar categoría.'
+      });
+    }
   }
 
   crearTalla(): void {
@@ -1289,7 +1502,7 @@ export class AdminPanelComponent implements OnInit {
       next: () => {
         this.nuevaTallaNombre = '';
         this.successMessage = 'Talla creada con éxito.';
-        this.productoService.getTallas().subscribe(data => this.tallas = data);
+        this.productoService.getTallas().subscribe(data => this.tallas = data || []);
       },
       error: (err) => this.errorMessage = err.error?.detail || 'Error creando talla.'
     });
@@ -1301,12 +1514,38 @@ export class AdminPanelComponent implements OnInit {
       next: () => {
         this.nuevoColorNombre = '';
         this.successMessage = 'Color creado con éxito.';
-        this.productoService.getColores().subscribe(data => this.colores = data);
+        this.productoService.getColores().subscribe(data => this.colores = data || []);
       },
       error: (err) => this.errorMessage = err.error?.detail || 'Error creando color.'
     });
   }
 
+  // --- Sucursales ---
+  guardarSucursal(): void {
+    this.adminService.crearSucursal(this.sucursalForm).subscribe({
+      next: () => {
+        this.mostrarModalSucursal = false;
+        this.successMessage = 'Sucursal física registrada exitosamente.';
+        this.sucursalForm = { nombre: '', ciudad_id: 1, direccion: '', telefono: '' };
+        this.productoService.getSucursales().subscribe(data => this.sucursales = data || []);
+      },
+      error: (err) => this.errorMessage = err.error?.detail || 'Error creando sucursal.'
+    });
+  }
+
+  eliminarSucursal(s: Sucursal): void {
+    if (confirm(`¿Estás seguro de desactivar la sucursal "${s.nombre}"?`)) {
+      this.adminService.eliminarSucursal(s.id).subscribe({
+        next: () => {
+          this.successMessage = `Sucursal "${s.nombre}" desactivada exitosamente.`;
+          this.productoService.getSucursales().subscribe(data => this.sucursales = data || []);
+        },
+        error: (err) => this.errorMessage = err.error?.detail || 'Error al desactivar sucursal.'
+      });
+    }
+  }
+
+  // --- Proveedores & Temporadas ---
   crearProveedor(): void {
     if (!this.nuevoProvNombre.trim()) return;
     this.adminService.crearProveedor({
@@ -1319,10 +1558,22 @@ export class AdminPanelComponent implements OnInit {
         this.nuevoProvContacto = '';
         this.nuevoProvTelefono = '';
         this.successMessage = 'Proveedor registrado exitosamente.';
-        this.adminService.getProveedores().subscribe(data => this.proveedores = data);
+        this.adminService.getProveedores().subscribe(data => this.proveedores = data || []);
       },
       error: (err) => this.errorMessage = err.error?.detail || 'Error registrando proveedor.'
     });
+  }
+
+  eliminarProveedor(pr: any): void {
+    if (confirm(`¿Estás seguro de desactivar al proveedor "${pr.nombre}"?`)) {
+      this.adminService.eliminarProveedor(pr.id).subscribe({
+        next: () => {
+          this.successMessage = `Proveedor "${pr.nombre}" desactivado exitosamente.`;
+          this.adminService.getProveedores().subscribe(data => this.proveedores = data || []);
+        },
+        error: (err) => this.errorMessage = err.error?.detail || 'Error desactivando proveedor.'
+      });
+    }
   }
 
   crearTemporada(): void {
@@ -1335,34 +1586,80 @@ export class AdminPanelComponent implements OnInit {
         this.nuevaTempNombre = '';
         this.nuevaTempTipo = '';
         this.successMessage = 'Temporada creada exitosamente.';
-        this.adminService.getTemporadas().subscribe(data => this.temporadas = data);
+        this.adminService.getTemporadas().subscribe(data => this.temporadas = data || []);
       },
       error: (err) => this.errorMessage = err.error?.detail || 'Error creando temporada.'
     });
   }
 
+  eliminarTemporada(t: any): void {
+    if (confirm(`¿Estás seguro de desactivar la temporada "${t.nombre}"?`)) {
+      this.adminService.eliminarTemporada(t.id).subscribe({
+        next: () => {
+          this.successMessage = `Temporada "${t.nombre}" desactivada exitosamente.`;
+          this.adminService.getTemporadas().subscribe(data => this.temporadas = data || []);
+        },
+        error: (err) => this.errorMessage = err.error?.detail || 'Error desactivando temporada.'
+      });
+    }
+  }
+
+  // --- Personal & Roles ---
   guardarUsuario(): void {
     this.adminService.crearUsuario(this.usuarioForm).subscribe({
       next: () => {
         this.mostrarModalUsuario = false;
         this.successMessage = 'Empleado interno registrado exitosamente.';
         this.usuarioForm = { nombres: '', apellidos: '', email: '', password: '', rol_id: 2, sucursal_id: null, telefono: '' };
-        this.adminService.getUsuarios().subscribe(data => this.usuarios = data);
+        this.adminService.getUsuarios().subscribe(data => this.usuarios = data || []);
       },
       error: (err) => this.errorMessage = err.error?.detail || 'Error creando usuario.'
     });
   }
 
-  guardarSucursal(): void {
-    this.adminService.crearSucursal(this.sucursalForm).subscribe({
-      next: () => {
-        this.mostrarModalSucursal = false;
-        this.successMessage = 'Sucursal física registrada exitosamente.';
-        this.sucursalForm = { nombre: '', ciudad_id: 1, direccion: '', telefono: '' };
-        this.productoService.getSucursales().subscribe(data => this.sucursales = data);
+  cambiarRolUsuario(u: any, nuevoRolId: number): void {
+    if (!nuevoRolId || nuevoRolId === u.rol_id) return;
+    this.adminService.cambiarRolUsuario(u.id, {
+      rol_id: Number(nuevoRolId),
+      sucursal_id: u.sucursal_id
+    }).subscribe({
+      next: (res) => {
+        u.rol_id = Number(nuevoRolId);
+        const rObj = this.roles.find(r => r.id === Number(nuevoRolId));
+        if (rObj) u.rol = rObj.nombre;
+        this.successMessage = res.message || `Rol de ${u.nombres} modificado exitosamente.`;
       },
-      error: (err) => this.errorMessage = err.error?.detail || 'Error creando sucursal.'
+      error: (err) => this.errorMessage = err.error?.detail || 'Error al cambiar rol del usuario.'
     });
   }
-}
 
+  cambiarSucursalUsuario(u: any, nuevaSucursalId: any): void {
+    const sId = nuevaSucursalId ? Number(nuevaSucursalId) : undefined;
+    this.adminService.cambiarRolUsuario(u.id, {
+      rol_id: Number(u.rol_id),
+      sucursal_id: sId
+    }).subscribe({
+      next: () => {
+        u.sucursal_id = sId;
+        this.successMessage = `Sucursal asignada a ${u.nombres} actualizada.`;
+      },
+      error: (err) => this.errorMessage = err.error?.detail || 'Error al asignar sucursal.'
+    });
+  }
+
+  eliminarUsuario(u: any): void {
+    if (u.email === 'admin@fashionstore.com') {
+      alert('No es posible eliminar la cuenta principal del administrador.');
+      return;
+    }
+    if (confirm(`¿Estás seguro de desactivar a ${u.nombres} ${u.apellidos}? Ya no podrá iniciar sesión en la tienda.`)) {
+      this.adminService.eliminarUsuario(u.id).subscribe({
+        next: () => {
+          this.successMessage = `Usuario "${u.nombres} ${u.apellidos}" desactivado exitosamente.`;
+          this.adminService.getUsuarios().subscribe(data => this.usuarios = data || []);
+        },
+        error: (err) => this.errorMessage = err.error?.detail || 'Error desactivando usuario.'
+      });
+    }
+  }
+}
