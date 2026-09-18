@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 horas
     
+    # Inteligencia Artificial
+    GEMINI_API_KEY: str = ""
+    
     # CORS (Permitir peticiones desde Angular / Flutter)
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:4200", "http://localhost:3000", "*"]
 

@@ -2,6 +2,7 @@ import { Component, OnInit, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, ActivatedRoute } from '@angular/router';
+import { RecomendacionService, RecomendacionIA } from '../../services/recomendacion.service';
 import { ProductoService } from '../../services/producto.service';
 import { Producto, Categoria } from '../../models/producto.models';
 import { Sucursal } from '../../models/sucursal.models';
@@ -246,6 +247,61 @@ import { Sucursal } from '../../models/sucursal.models';
             </button>
           </div>
 
+        </div>
+      </section>
+
+
+      <!-- =================================================================== -->
+      <!-- NUEVA SECCION: IA RECOMENDADO PARA TI (CU-22)                       -->
+      <!-- =================================================================== -->
+      <section class="container mb-12" *ngIf="recomendaciones.length > 0">
+        <div style="background: linear-gradient(to right, #18181b, #27272a); border: 1px solid #3f3f46; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+          
+          <!-- Header -->
+          <div style="display: flex; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #3f3f46; padding-bottom: 15px;">
+            <div style="background: linear-gradient(135deg, #d4af37, #f3e5ab); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-right: 12px;">
+              <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 1.5rem;"></i>
+            </div>
+            <div>
+              <h2 style="margin: 0; font-size: 1.25rem; font-family: serif; color: #f4f4f5; font-weight: bold; letter-spacing: 1px;">
+                PERSONAL SHOPPER IA
+              </h2>
+              <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #a1a1aa;">
+                Selección exclusiva basada en tu historial y preferencias.
+              </p>
+            </div>
+          </div>
+
+          <!-- Cards -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+            
+            <div *ngFor="let rec of recomendaciones" (click)="registrarClicRec(rec)" 
+                 style="background: #121214; border: 1px solid #3f3f46; border-radius: 8px; overflow: hidden; cursor: pointer; display: flex; flex-direction: column;">
+              
+              <div style="position: relative; height: 220px; width: 100%; flex-shrink: 0;">
+                <img [src]="getProductoImagen(rec.producto_id)" alt="Prenda" 
+                     style="width: 100%; height: 100%; object-fit: cover;">
+                <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.8); color: #d4af37; border: 1px solid #d4af37; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold;">
+                  {{ (rec.score * 100).toFixed(0) }}% MATCH
+                </div>
+              </div>
+              
+              <div style="padding: 15px; display: flex; flex-direction: column; flex-grow: 1;">
+                <h3 style="margin: 0 0 8px 0; font-size: 0.95rem; color: #fff; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  {{ getProductoNombre(rec.producto_id) }}
+                </h3>
+                <p style="margin: 0 0 15px 0; font-size: 0.75rem; color: #a1a1aa; font-style: italic; flex-grow: 1;">
+                  "{{ rec.motivo }}"
+                </p>
+                <a [routerLink]="['/producto', rec.producto_id]" 
+                   style="display: block; text-align: center; width: 100%; background: #d4af37; color: #000; font-weight: bold; padding: 8px 0; border-radius: 4px; text-decoration: none; font-size: 0.8rem;">
+                  Ver Detalles
+                </a>
+              </div>
+              
+            </div>
+
+          </div>
         </div>
       </section>
 
@@ -1651,6 +1707,35 @@ import { Sucursal } from '../../models/sucursal.models';
 })
 export class CatalogoComponent implements OnInit {
   private productoService = inject(ProductoService);
+  private recomendacionService = inject(RecomendacionService);
+  recomendaciones: RecomendacionIA[] = [];
+
+  cargarRecomendacionesIA(): void {
+    const token = localStorage.getItem('token');
+    if(token) {
+      this.recomendacionService.getRecomendacionesParaMi().subscribe({
+        next: (res) => {
+          this.recomendaciones = res.recomendaciones;
+        },
+        error: (err) => console.error("Error al cargar IA:", err)
+      });
+    }
+  }
+
+  getProductoImagen(prodId: number): string {
+    const p = this.productos.find(x => x.id === prodId);
+    return (p && p.imagen_url) ? p.imagen_url : 'assets/placeholder.png';
+  }
+
+  getProductoNombre(prodId: number): string {
+    const p = this.productos.find(x => x.id === prodId);
+    return (p && p.nombre) ? p.nombre : 'Prenda Exclusiva';
+  }
+
+  registrarClicRec(rec: RecomendacionIA): void {
+    this.recomendacionService.registrarClic(rec.id, rec.producto_id).subscribe();
+  }
+
   private route = inject(ActivatedRoute);
 
   productos: Producto[] = [];
@@ -1673,6 +1758,7 @@ export class CatalogoComponent implements OnInit {
   ngOnInit(): void {
     this.cargarCategorias();
     this.cargarSucursales();
+    this.cargarRecomendacionesIA();
 
     this.route.queryParams.subscribe(params => {
       if (params['sucursal']) {
