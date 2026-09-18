@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, productos, sucursales, admin, inventario, reservas, carrito, ventas, recomendaciones
+from app.api.v1.endpoints import auth, productos, sucursales, admin, inventario, reservas, carrito, ventas, recomendaciones, chatbot, alertas, reportes
 
 api_router = APIRouter()
 
@@ -15,3 +15,6 @@ api_router.include_router(carrito.router, prefix="/carrito", tags=["Carrito"])
 api_router.include_router(ventas.router, prefix="/ventas", tags=["Ventas"])
 # Ciclo 3
 api_router.include_router(recomendaciones.router, prefix="/recomendaciones", tags=["Recomendaciones IA y BI"])
+api_router.include_router(chatbot.router, prefix="/chatbot", tags=["Asistente Virtual IA"])
+api_router.include_router(alertas.router, prefix="/alertas", tags=["Alertas de Stock"])
+api_router.include_router(reportes.router, prefix="/reportes", tags=["Reportes y BI"])

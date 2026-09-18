@@ -61,7 +61,7 @@ def generar_recomendaciones(db: Session, cliente_id: int):
     """
 
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-flash-latest')
         response = model.generate_content(prompt)
         raw_text = response.text.replace("```json", "").replace("```", "").strip()
         

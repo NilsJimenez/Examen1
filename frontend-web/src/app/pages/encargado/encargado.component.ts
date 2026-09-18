@@ -2,18 +2,20 @@ import { Component, OnInit, OnDestroy, inject, HostListener } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ReservaService } from '../../services/reserva.service';
+import { AlertaService, AlertaReabastecimiento } from '../../services/alerta.service';
 import { InventarioService } from '../../services/inventario.service';
 import { ProductoService } from '../../services/producto.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { Sucursal } from '../../models/sucursal.models';
+import { ReportesComponent } from '../../components/reportes/reportes.component';
 
 declare const Html5Qrcode: any;
 
 @Component({
   selector: 'app-encargado',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ReportesComponent],
   template: `
     <div class="encargado-container">
       
@@ -207,6 +209,19 @@ declare const Html5Qrcode: any;
       <div class="tabs-bar-wrapper">
         <div class="tabs-bar">
           <button 
+            (click)="tabActiva = 'reportes'" 
+            [class.tab-btn-active]="tabActiva === 'reportes'" 
+            class="tab-btn">
+            <i class="fa-solid fa-chart-pie"></i> Reportes & BI
+          </button>
+          <button 
+            (click)="tabActiva = 'alertas'" 
+            [class.tab-btn-active]="tabActiva === 'alertas'" 
+            class="tab-btn">
+            <i class="fa-solid fa-triangle-exclamation"></i> Alertas Stock (IA)
+            <span class="tab-badge" [class.tab-badge-active]="tabActiva === 'alertas'">{{ alertas.length }}</span>
+          </button>
+          <button 
             (click)="tabActiva = 'reservas'" 
             [class.tab-btn-active]="tabActiva === 'reservas'"
             class="tab-btn"
@@ -240,7 +255,81 @@ declare const Html5Qrcode: any;
       <!-- =================================================================== -->
       <!-- PESTAÑA 1: RESERVAS DE SUCURSAL (CON TARJETAS TIPO TICKET VIP)      -->
       <!-- =================================================================== -->
-      <div *ngIf="tabActiva === 'reservas'" class="animate-fade-in" style="width: 100%;">
+      
+        <!-- PESTAÑA: ALERTAS -->
+        <div *ngIf="tabActiva === 'alertas'" class="animate-fade-in" style="width: 100%;">
+          <div class="card p-6" style="border-left: 4px solid #ef4444; background: linear-gradient(145deg, #18181b, #27272a);">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="rounded-full flex items-center justify-center" style="background-color: rgba(239, 68, 68, 0.2); width: 40px; height: 40px;">
+                <i class="fa-solid fa-triangle-exclamation text-red-500"></i>
+              </div>
+              <div>
+                <h2 class="text-xl font-bold text-white m-0">Alertas de Reabastecimiento</h2>
+                <p class="text-xs text-zinc-400 m-0 mt-1">Variantes con inventario crítico. Las cantidades sugeridas usan promedio IA de ventas.</p>
+              </div>
+              <button (click)="cargarAlertas()" class="ml-auto btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrows-rotate" [class.fa-spin]="alertasLoading"></i> Actualizar
+              </button>
+            </div>
+
+            <div *ngIf="alertasLoading" class="text-center py-10">
+              <i class="fa-solid fa-circle-notch fa-spin text-3xl text-accent mb-3"></i>
+              <p class="text-zinc-400">Evaluando stock crítico...</p>
+            </div>
+
+            <div *ngIf="!alertasLoading && alertas.length === 0" class="text-center py-12 bg-zinc-900/50 rounded-lg border border-zinc-800">
+              <div class="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-check text-2xl text-green-500"></i>
+              </div>
+              <h3 class="text-lg font-bold text-white mb-2">Todo en Orden</h3>
+              <p class="text-zinc-400 text-sm max-w-md mx-auto">Tu inventario está sano.</p>
+            </div>
+
+            <div *ngIf="!alertasLoading && alertas.length > 0" class="overflow-x-auto">
+              <table class="table w-full text-left">
+                <thead>
+                  <tr>
+                    <th>Prenda</th>
+                    <th>Sucursal</th>
+                    <th class="text-center">Stock Actual</th>
+                    <th class="text-center">Mínimo</th>
+                    <th class="text-center">A Pedir (IA)</th>
+                    <th class="text-right">Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let a of alertas">
+                    <td>
+                      <div class="font-bold text-white">{{a.variante.producto_nombre}}</div>
+                      <div class="text-xs text-zinc-400">Talla: {{a.variante.talla}} | Color: {{a.variante.color}}</div>
+                    </td>
+                    <td class="text-sm text-zinc-300">{{a.sucursal.nombre}}</td>
+                    <td class="text-center">
+                      <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">{{a.cantidad_actual}}</span>
+                    </td>
+                    <td class="text-center text-sm text-zinc-400">{{a.stock_minimo_usado}}</td>
+                    <td class="text-center">
+                      <span class="badge" style="background: var(--accent-light); color: var(--accent); border: 1px solid var(--accent);">+{{a.cantidad_sugerida}} uds.</span>
+                    </td>
+                    <td class="text-right">
+                      <button (click)="atenderAlerta(a)" class="btn btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+                        <i class="fa-solid fa-truck-ramp-box mr-1"></i> Pedir
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        
+        <!-- PESTAÑA: REPORTES -->
+        <div *ngIf="tabActiva === 'reportes'" class="animate-fade-in" style="width: 100%;">
+          <app-reportes [esAdmin]="false"></app-reportes>
+        </div>
+
+        <div *ngIf="tabActiva === 'reservas'" class="animate-fade-in" style="width: 100%;">
         <div class="card p-6" style="width: 100%;">
           <div class="flex flex-wrap items-center justify-between gap-4 mb-6 pb-4" style="border-bottom: 1px solid var(--border-color);">
             <div>
@@ -966,6 +1055,9 @@ export class EncargadoComponent implements OnInit, OnDestroy {
   menuSucursalesAbierto: boolean = false;
 
   tabActiva: string = 'reservas';
+  private alertaService = inject(AlertaService);
+  alertas: AlertaReabastecimiento[] = [];
+  alertasLoading = false;
 
   reservas: any[] = [];
   loadingReservas: boolean = false;
@@ -1011,6 +1103,33 @@ export class EncargadoComponent implements OnInit, OnDestroy {
   @HostListener('document:click')
   onDocumentClick(): void {
     this.menuSucursalesAbierto = false;
+  }
+
+  
+  cargarAlertas(): void {
+    this.alertasLoading = true;
+    this.alertaService.getAlertas().subscribe({
+      next: (data) => {
+        this.alertas = data;
+        this.alertasLoading = false;
+      },
+      error: (err) => {
+        console.error("Error cargando alertas", err);
+        this.alertasLoading = false;
+      }
+    });
+  }
+
+  atenderAlerta(a: AlertaReabastecimiento): void {
+    if(confirm(`¿Confirmas el ingreso de ${a.cantidad_sugerida} unidades de ${a.variante.producto_nombre}?`)) {
+      this.alertaService.atenderAlerta(a.id, a.cantidad_sugerida).subscribe({
+        next: () => {
+          this.toastService.success('Éxito', 'Inventario reabastecido correctamente');
+          this.cargarAlertas(); // Recargar
+        },
+        error: () => this.toastService.error('Error', 'Error al atender alerta')
+      });
+    }
   }
 
   ngOnInit(): void {

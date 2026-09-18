@@ -6,13 +6,15 @@ import { AdminService } from '../../services/admin.service';
 import { ProductoService } from '../../services/producto.service';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
+import { AlertaService, AlertaReabastecimiento } from '../../services/alerta.service';
 import { Producto, Categoria, Talla, Color } from '../../models/producto.models';
 import { Sucursal } from '../../models/sucursal.models';
+import { ReportesComponent } from '../../components/reportes/reportes.component';
 
 @Component({
   selector: 'app-admin-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ReportesComponent],
   template: `
     <div class="container py-10">
       
@@ -34,11 +36,11 @@ import { Sucursal } from '../../models/sucursal.models';
       </div>
 
       <!-- Navegación por Pestañas -->
-      <div class="flex items-center gap-4 mb-10 overflow-x-auto pb-3">
+      <div class="flex items-center gap-4 mb-10 overflow-x-auto pb-4" style="flex-wrap: nowrap; overflow-x: auto;">
         <button 
           (click)="activeTab = 'prendas'" 
           [class.tab-btn-active]="activeTab === 'prendas'" 
-          class="admin-tab-btn"
+          class="admin-tab-btn shrink-0" style="flex-shrink: 0; min-width: max-content;"
         >
           <i class="fa-solid fa-shirt"></i> Prendas de Ropa
         </button>
@@ -46,7 +48,7 @@ import { Sucursal } from '../../models/sucursal.models';
         <button 
           (click)="activeTab = 'atributos'" 
           [class.tab-btn-active]="activeTab === 'atributos'" 
-          class="admin-tab-btn"
+          class="admin-tab-btn shrink-0" style="flex-shrink: 0; min-width: max-content;"
         >
           <i class="fa-solid fa-boxes-packing"></i> Mercadería por Categoría
         </button>
@@ -54,7 +56,7 @@ import { Sucursal } from '../../models/sucursal.models';
         <button 
           (click)="activeTab = 'sucursales'" 
           [class.tab-btn-active]="activeTab === 'sucursales'" 
-          class="admin-tab-btn"
+          class="admin-tab-btn shrink-0" style="flex-shrink: 0; min-width: max-content;"
         >
           <i class="fa-solid fa-shop"></i> Sucursales &amp; Ciudades
         </button>
@@ -62,7 +64,7 @@ import { Sucursal } from '../../models/sucursal.models';
         <button 
           (click)="activeTab = 'proveedores'" 
           [class.tab-btn-active]="activeTab === 'proveedores'" 
-          class="admin-tab-btn"
+          class="admin-tab-btn shrink-0" style="flex-shrink: 0; min-width: max-content;"
         >
           <i class="fa-solid fa-truck-ramp-box"></i> Proveedores &amp; Temporadas
         </button>
@@ -70,15 +72,41 @@ import { Sucursal } from '../../models/sucursal.models';
         <button 
           (click)="activeTab = 'usuarios'" 
           [class.tab-btn-active]="activeTab === 'usuarios'" 
-          class="admin-tab-btn"
+          class="admin-tab-btn shrink-0" style="flex-shrink: 0; min-width: max-content;"
         >
           <i class="fa-solid fa-users-gear"></i> Personal &amp; Roles
         </button>
+
+        <button 
+          (click)="activeTab = 'alertas'" 
+          [class.tab-btn-active]="activeTab === 'alertas'" 
+          class="admin-tab-btn shrink-0" style="flex-shrink: 0; min-width: max-content;"
+          style="position: relative;"
+        >
+          <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i> Alertas Stock
+          <span *ngIf="alertas.length > 0" class="badge" style="position: absolute; top: -5px; right: -5px; background: #ef4444; color: white;">{{ alertas.length }}</span>
+        </button>
+
+        <button 
+          (click)="activeTab = 'reportes'" 
+          [class.tab-btn-active]="activeTab === 'reportes'" 
+          class="admin-tab-btn shrink-0" style="flex-shrink: 0; min-width: max-content;"
+        >
+          <i class="fa-solid fa-chart-pie" style="color: #60a5fa;"></i> Reportes & BI
+        </button>
       </div>
+
+
 
       <!-- =================================================================== -->
       <!-- PESTAÑA 1: PRENDAS DE ROPA                                          -->
       <!-- =================================================================== -->
+      
+      <!-- PESTAÑA: REPORTES -->
+      <div *ngIf="activeTab === 'reportes'" class="animate-fade-in" style="width: 100%;">
+         <app-reportes [esAdmin]="true"></app-reportes>
+      </div>
+
       <div *ngIf="activeTab === 'prendas'" class="flex flex-col gap-6">
         
         <div class="flex items-center justify-between">
@@ -681,7 +709,73 @@ import { Sucursal } from '../../models/sucursal.models';
       <!-- =================================================================== -->
       <!-- PESTAÑA 5: PERSONAL Y USUARIOS INTERNOS (ROLES EDITABLES)           -->
       <!-- =================================================================== -->
-      <div *ngIf="activeTab === 'usuarios'" class="flex flex-col gap-6">
+      
+        <!-- PESTAÑA: ALERTAS -->
+        <div *ngIf="activeTab === 'alertas'" class="animate-fade-in" style="width: 100%;">
+          <div class="card p-6" style="border-left: 4px solid #ef4444; background: linear-gradient(145deg, #18181b, #27272a);">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="rounded-full flex items-center justify-center" style="background-color: rgba(239, 68, 68, 0.2); width: 40px; height: 40px;">
+                <i class="fa-solid fa-triangle-exclamation text-red-500"></i>
+              </div>
+              <div>
+                <h2 class="text-xl font-bold text-white m-0">Supervisión Global de Inventario Crítico</h2>
+                <p class="text-xs text-zinc-400 m-0 mt-1">Monitorea variantes con stock crítico en TODAS las sucursales.</p>
+              </div>
+              <button (click)="cargarAlertas()" class="ml-auto btn btn-outline flex items-center gap-2">
+                <i class="fa-solid fa-arrows-rotate" [class.fa-spin]="alertasLoading"></i> Actualizar
+              </button>
+            </div>
+
+            <div *ngIf="alertasLoading" class="text-center py-10">
+              <i class="fa-solid fa-circle-notch fa-spin text-3xl text-accent mb-3"></i>
+              <p class="text-zinc-400">Evaluando stock crítico...</p>
+            </div>
+
+            <div *ngIf="!alertasLoading && alertas.length === 0" class="text-center py-12 bg-zinc-900/50 rounded-lg border border-zinc-800">
+              <div class="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
+                <i class="fa-solid fa-check text-2xl text-green-500"></i>
+              </div>
+              <h3 class="text-lg font-bold text-white mb-2">Todo en Orden</h3>
+              <p class="text-zinc-400 text-sm max-w-md mx-auto">No hay alertas activas en ninguna sucursal.</p>
+            </div>
+
+            <div *ngIf="!alertasLoading && alertas.length > 0" class="overflow-x-auto">
+              <table class="table w-full text-left">
+                <thead>
+                  <tr>
+                    <th>Prenda</th>
+                    <th>Sucursal</th>
+                    <th class="text-center">Stock Actual</th>
+                    <th class="text-center">Mínimo</th>
+                    <th class="text-center">Sugerido (IA)</th>
+                    <th class="text-right">Proveedor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let a of alertas">
+                    <td>
+                      <div class="font-bold text-white">{{a.variante.producto_nombre}}</div>
+                      <div class="text-xs text-zinc-400">Talla: {{a.variante.talla}} | Color: {{a.variante.color}}</div>
+                    </td>
+                    <td class="text-sm text-zinc-300 font-bold">{{a.sucursal.nombre}}</td>
+                    <td class="text-center">
+                      <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">{{a.cantidad_actual}}</span>
+                    </td>
+                    <td class="text-center text-sm text-zinc-400">{{a.stock_minimo_usado}}</td>
+                    <td class="text-center">
+                      <span class="badge" style="background: var(--accent-light); color: var(--accent); border: 1px solid var(--accent);">+{{a.cantidad_sugerida}} uds.</span>
+                    </td>
+                    <td class="text-right text-xs text-zinc-400">
+                      {{a.proveedor_sugerido}}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="activeTab === 'usuarios'" class="flex flex-col gap-6">
         
         <div class="flex items-center justify-between">
           <div>
@@ -1453,7 +1547,10 @@ export class AdminPanelComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
 
-  activeTab: 'prendas' | 'atributos' | 'sucursales' | 'proveedores' | 'usuarios' = 'prendas';
+  activeTab: 'prendas' | 'atributos' | 'sucursales' | 'proveedores' | 'usuarios' | 'alertas' | 'reportes' = 'prendas';
+  private alertaService = inject(AlertaService);
+  alertas: AlertaReabastecimiento[] = [];
+  alertasLoading = false;
   categoriaFiltroId: number | null = null;
   mostrarCrearCategoriaRapida: boolean = false;
   nuevaCategoriaRapidaNombre: string = '';
@@ -1598,6 +1695,21 @@ export class AdminPanelComponent implements OnInit {
 
   nuevaTempNombre: string = '';
   nuevaTempTipo: string = '';
+
+  
+  cargarAlertas(): void {
+    this.alertasLoading = true;
+    this.alertaService.getAlertas().subscribe({
+      next: (data) => {
+        this.alertas = data;
+        this.alertasLoading = false;
+      },
+      error: (err) => {
+        console.error("Error alertas", err);
+        this.alertasLoading = false;
+      }
+    });
+  }
 
   ngOnInit(): void {
     if (!this.authService.isLoggedIn || !this.authService.isAdmin) {
