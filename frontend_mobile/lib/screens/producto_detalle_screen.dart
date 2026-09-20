@@ -134,6 +134,23 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
     );
   }
 
+  String? _getImagenMostrada() {
+    if (_producto == null) return null;
+    
+    // Si hay un color seleccionado, intentar buscar si esa variante tiene imagen propia
+    if (_selectedColorHex != null) {
+      final variantes = _producto!['variantes'] as List<dynamic>? ?? [];
+      for (var v in variantes) {
+        if (v['color']['codigo_hex'] == _selectedColorHex && v['imagen_url'] != null && v['imagen_url'].toString().isNotEmpty) {
+          return v['imagen_url'];
+        }
+      }
+    }
+    
+    // Fallback a la imagen general del producto
+    return _producto!['imagen_url'];
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -146,8 +163,8 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
     if (_producto == null) {
       return Scaffold(
         backgroundColor: const Color(0xFF0D0D10),
-        appBar: AppBar(backgroundColor: const Color(0xFF1A1A1F)),
-        body: const Center(child: Text('Producto no encontrado.', style: TextStyle(color: Colors.white))),
+        appBar: AppBar(title: const Text('Producto No Encontrado')),
+        body: const Center(child: Text('Error al cargar detalle', style: TextStyle(color: Colors.white))),
       );
     }
 
@@ -156,6 +173,8 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
     // Extraer tallas y colores únicos de las variantes
     final tallas = variantes.map((v) => v['talla']['nombre']).toSet().toList();
     final colores = variantes.map((v) => v['color']['codigo_hex']).toSet().toList();
+    
+    final imagenMostrada = _getImagenMostrada();
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D10),
@@ -185,10 +204,10 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
               ),
               if (_producto!['modelo_ar_url'] != null)
                 Container(
-                  margin: const EdgeInsets.all(8),
+                  margin: const EdgeInsets.all(8.0),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0xFF1A1A1F).withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: IconButton(
                     icon: const Icon(Icons.view_in_ar, color: Color(0xFF8B5CF6)),
@@ -215,9 +234,9 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
                 ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              background: _producto!['imagen_url'] != null
+              background: imagenMostrada != null
                   ? Image.network(
-                      _producto!['imagen_url'], 
+                      imagenMostrada, 
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => Container(
                         color: const Color(0xFF2A2A35), 

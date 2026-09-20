@@ -1312,6 +1312,7 @@ export class ProductoDetalleComponent implements OnInit {
   producto: Producto | null = null;
   todosLosProductos: Producto[] = [];
   selectedVariante: Variante | null = null;
+  haSeleccionadoColor: boolean = false;
   vistaActiva: 'foto' | 'ar' = 'foto';
   animatingSwitch: boolean = false;
 
@@ -1386,9 +1387,12 @@ export class ProductoDetalleComponent implements OnInit {
     return 'rgba(245, 158, 11, 0.32)';
   }
 
-  // Imagen activa de la prenda (prioriza la variante de color seleccionada para cambio en 0ms)
+  // Imagen activa de la prenda (prioriza la del producto inicialmente, luego cambia si eligen color)
   get imagenPrendaActual(): string {
-    return this.selectedVariante?.imagen_url || this.producto?.imagen_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800';
+    if (this.haSeleccionadoColor && this.selectedVariante?.imagen_url) {
+      return this.selectedVariante.imagen_url;
+    }
+    return this.producto?.imagen_url || this.selectedVariante?.imagen_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800';
   }
 
   get sucursalActualNombre(): string {
@@ -1461,6 +1465,7 @@ export class ProductoDetalleComponent implements OnInit {
 
   seleccionarColor(colorNombre: string): void {
     if (!this.producto?.variantes) return;
+    this.haSeleccionadoColor = true;
     const variante = this.producto.variantes.find(v => 
       v.color?.nombre?.toLowerCase() === colorNombre.toLowerCase() && 
       (!this.selectedVariante?.talla || v.talla?.nombre === this.selectedVariante.talla.nombre)
