@@ -21,6 +21,7 @@ import 'catalogo_screen.dart';
 import 'inventario_screen.dart';
 import 'carrito_screen.dart';
 import 'mis_reservas_screen.dart';
+import 'lookbook_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String nombre;
@@ -131,11 +132,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: const Text('Sucursales', style: TextStyle(color: Colors.white)),
                 onTap: () => Navigator.pop(context),
               ),
-              ListTile(
-                leading: const Icon(Icons.auto_awesome, color: Colors.white70),
-                title: const Text('Arma tu Outfit', style: TextStyle(color: Colors.white)),
-                onTap: () => Navigator.pop(context),
-              ),
+              if (widget.rol == 'cliente')
+                ListTile(
+                  leading: const Icon(Icons.auto_fix_high, color: Color(0xFF8B5CF6)),
+                  title: const Text('Arma tu Outfit (IA)', style: TextStyle(color: Color(0xFF8B5CF6), fontWeight: FontWeight.bold)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const LookbookScreen()));
+                  },
+                ),
               ListTile(
                 leading: const Icon(Icons.calendar_today, color: Colors.white70),
                 title: const Text('Mis Reservas', style: TextStyle(color: Colors.white)),
