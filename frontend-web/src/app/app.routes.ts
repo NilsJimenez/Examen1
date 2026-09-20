@@ -10,10 +10,12 @@ import { MisReservasComponent } from './pages/mis-reservas/mis-reservas.componen
 import { PagoComponent } from './pages/pago/pago.component';
 import { MisComprasComponent } from './pages/mis-compras/mis-compras.component';
 import { EncargadoComponent } from './pages/encargado/encargado.component';
+import { LookbookComponent } from './components/lookbook/lookbook.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'catalogo', pathMatch: 'full' },
   { path: 'catalogo', component: CatalogoComponent },
+  { path: 'lookbook', component: LookbookComponent },
   { path: 'producto/:id', component: ProductoDetalleComponent },
   { path: 'sucursales', component: SucursalesComponent },
   { path: 'login', component: LoginComponent },

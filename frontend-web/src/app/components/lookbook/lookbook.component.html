@@ -1,0 +1,205 @@
+<div class="container fade-in" style="padding: 2rem; max-width: 1200px; margin: 0 auto;">
+  <div style="text-align: center; margin-bottom: 3rem;">
+    <h2 style="color: var(--text-main); font-size: 2.5rem; font-weight: bold; margin-bottom: 0.5rem;">Lookbook IA</h2>
+    <p style="color: var(--text-muted); font-size: 1.1rem;">Tu Estilista Personal Inteligente</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 350px 1fr; gap: 2rem; align-items: start;">
+    
+    <!-- Controles -->
+    <div class="card" style="padding: 2rem; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color);">
+      <h3 style="color: var(--text-main); margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+        <i class="fa-solid fa-wand-magic-sparkles" style="color: #a78bfa; margin-right: 0.5rem;"></i> Diseña tu estilo
+      </h3>
+      
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <label style="color: var(--text-muted); font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">¿Cuál es la ocasión?</label>
+        <input type="text" [(ngModel)]="ocasion" class="form-control" placeholder="Ej: Entrevista de trabajo, Boda, Casual..." style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-main);">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <label style="color: var(--text-mauted); font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Presupuesto Máximo (Bs.)</label>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <input type="range" [(ngModel)]="presupuestoMax" min="100" max="3000" step="50" style="flex: 1; accent-color: #a78bfa;">
+          <span style="color: var(--accent); font-weight: bold; min-width: 60px;">Bs. {{presupuestoMax}}</span>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <label style="color: var(--text-muted); font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Talla Preferida (Opcional)</label>
+        <select [(ngModel)]="talla" class="form-control" style="width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-main);">
+          <option value="">Cualquier Talla</option>
+          <option *ngFor="let t of tallasDisponibles" [value]="t">{{t}}</option>
+        </select>
+      </div>
+
+      <!-- Sucursal -->
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Sucursal (Opcional)</label>
+        <select [(ngModel)]="sucursalId" class="form-control" style="width: 100%; background: var(--bg-dark); color: var(--text-main); border: 1px solid #333; padding: 0.8rem; border-radius: 8px;">
+          <option value="">Buscar en todo el país</option>
+          <option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</option>
+        </select>
+      </div>
+
+      <!-- Género -->
+      <div class="form-group" style="margin-bottom: 2rem;">
+        <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Género (Opcional)</label>
+        <select [(ngModel)]="genero" class="form-control" style="width: 100%; background: var(--bg-dark); color: var(--text-main); border: 1px solid #333; padding: 0.8rem; border-radius: 8px;">
+          <option value="Cualquier Género">Cualquier Género</option>
+          <option value="Hombre">Hombre</option>
+          <option value="Mujer">Mujer</option>
+        </select>
+      </div>
+
+      <button (click)="armarOutfit()" [disabled]="cargando" style="width: 100%; padding: 1rem; border-radius: 8px; background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%); color: white; border: none; font-weight: bold; font-size: 1rem; cursor: pointer; transition: transform 0.2s;">
+        <i class="fa-solid" [ngClass]="cargando ? 'fa-circle-notch fa-spin' : 'fa-bolt'" style="margin-right: 0.5rem;"></i>
+        {{ cargando ? 'Inspirando...' : 'Generar Lookbook' }}
+      </button>
+    </div>
+
+    <!-- Resultados: Vestidor Virtual -->
+    <div>
+      <div *ngIf="cargando" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 400px;">
+        <div class="spinner" style="width: 50px; height: 50px; border: 4px solid rgba(167, 139, 250, 0.3); border-top-color: #a78bfa; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="color: var(--text-muted); margin-top: 1rem;">Escaneando colecciones y armando tu vestidor...</p>
+      </div>
+
+      <div *ngIf="!cargando && !resultado" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 400px; border: 2px dashed var(--border-color); border-radius: 12px; text-align: center; padding: 2rem;">
+        <i class="fa-solid fa-person-booth" style="font-size: 4rem; color: var(--border-color); margin-bottom: 1rem;"></i>
+        <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 300px;">Completa tu perfil de estilo a la izquierda para entrar al Vestidor Virtual IA.</p>
+      </div>
+
+      <div *ngIf="!cargando && resultado" class="fade-in">
+        
+        <div *ngIf="resultado.mensaje" style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; padding: 1rem; margin-bottom: 1.5rem; color: #ef4444; border-radius: 4px;">
+          <i class="fa-solid fa-circle-exclamation" style="margin-right: 0.5rem;"></i> {{ resultado.mensaje }}
+        </div>
+
+        <div class="card" style="padding: 1.5rem; margin-bottom: 2rem; background: linear-gradient(145deg, rgba(167, 139, 250, 0.1), transparent); border: 1px solid #a78bfa; border-radius: 12px;">
+          <h4 style="margin: 0 0 0.5rem 0; color: #a78bfa; font-family: serif; font-size: 1.1rem;">
+            <i class="fa-solid fa-pen-nib"></i> El veredicto de tu Estilista IA:
+          </h4>
+          <p style="color: var(--text-main); line-height: 1.6; margin: 0; font-style: italic;">"{{ resultado.justificacion }}"</p>
+        </div>
+
+        <!-- EL VESTIDOR VIRTUAL -->
+        <h3 style="color: var(--text-main); margin-bottom: 1.5rem; text-align: center;">
+          <i class="fa-solid fa-street-view" style="color: #a78bfa;"></i> Vestidor Virtual IA
+        </h3>
+
+        <div style="display: grid; grid-template-columns: 1fr 300px; gap: 2rem;">
+          
+          <!-- Espejo / Maniquí 3D -->
+          <div class="espejo-virtual" style="position: relative; background: linear-gradient(180deg, #1f1f23 0%, #000000 100%); border-radius: 20px; border: 2px solid #333; min-height: 550px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; box-shadow: inset 0 0 50px rgba(167, 139, 250, 0.1);">
+             
+             <!-- Visor 3D Principal -->
+             <div *ngIf="prendaSeleccionada3D?.producto?.modelo_ar_url" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;">
+                <model-viewer
+                  [src]="prendaSeleccionada3D?.producto?.modelo_ar_url"
+                  auto-rotate
+                  camera-controls
+                  shadow-intensity="1"
+                  style="width: 100%; height: 100%;"
+                  background-color="transparent">
+                </model-viewer>
+                
+                <div style="position: absolute; bottom: 20px; width: 100%; text-align: center; color: var(--text-muted); font-size: 0.85rem; z-index: 2;">
+                  <i class="fa-solid fa-arrows-rotate"></i> Arrastra para girar en 360°
+                </div>
+             </div>
+             
+             <div *ngIf="!prendaSeleccionada3D?.producto?.modelo_ar_url" style="position: absolute; opacity: 0.1; font-size: 35rem; color: white; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
+                <i class="fa-solid fa-child-reaching"></i>
+             </div>
+
+             <!-- Selector de Prendas Flotante -->
+             <div style="position: absolute; left: 20px; top: 20px; display: flex; flex-direction: column; gap: 15px; z-index: 20;">
+                
+                <div *ngFor="let item of conjuntoActual" 
+                     (click)="seleccionarPrenda3D(item)"
+                     class="prenda-maniqui hover-glow" 
+                     [style.border]="prendaSeleccionada3D === item ? '2px solid #a78bfa' : '2px solid transparent'"
+                     style="width: 80px; height: 80px; border-radius: 12px; cursor: pointer; transition: 0.3s; background: white; padding: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                   <span class="tag-rol" style="font-size: 0.55rem; padding: 2px 6px; left: -10px; top: -5px;">{{item.rol}}</span>
+                   <img [src]="item.producto.imagen_url || 'assets/placeholder.jpg'" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                </div>
+
+             </div>
+          </div>
+
+          <!-- Detalles de prendas al lado derecho -->
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+             <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); text-align: center;">
+                <h2 style="color: var(--accent); margin: 0; font-size: 2rem;">Bs. {{ resultado.total_bs | number:'1.2-2' }}</h2>
+                <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">Total del Outfit</p>
+                <button (click)="agregarTodoAlCarrito()" class="btn" style="width: 100%; margin-top: 1rem; background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%); color: white; font-weight: bold; padding: 0.8rem; border-radius: 8px; border: none; cursor: pointer;">
+                  <i class="fa-solid fa-cart-shopping"></i> Llevar Todo
+                </button>
+             </div>
+
+             <!-- Lista detallada -->
+             <div style="overflow-y: auto; max-height: 450px; display: flex; flex-direction: column; gap: 1rem; padding-right: 0.5rem;">
+                <div *ngFor="let item of conjuntoActual" style="background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color); padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                   <div style="font-size: 0.75rem; color: #a78bfa; text-transform: uppercase; font-weight: bold;">{{ item.rol }}</div>
+                   <div style="color: var(--text-main); font-weight: bold; font-size: 0.95rem;">{{ item.producto.nombre }}</div>
+                   <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                     <span style="color: var(--text-muted);">Bs. {{ item.producto.precio_base }}</span>
+                     <button (click)="agregarAlCarrito(item)" class="btn btn-icon" style="background: transparent; border: none; color: #a78bfa; cursor: pointer;">
+                       <i class="fa-solid fa-plus"></i>
+                     </button>
+                   </div>
+                </div>
+             </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes spin { 100% { transform: rotate(360deg); } }
+.fade-in { animation: fadeIn 0.5s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Vestidor Virtual Styles */
+
+  100% { top: 110%; }
+}
+
+.prenda-maniqui {
+  position: relative;
+  transition: transform 0.3s;
+  cursor: pointer;
+}
+.prenda-maniqui:hover {
+  transform: scale(1.05);
+}
+
+.tag-rol {
+  position: absolute;
+  top: 10px;
+  left: -20px;
+  background: var(--accent);
+  color: #000;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  z-index: 30;
+  text-transform: uppercase;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+select option {
+  background-color: #18181b;
+  color: #ffffff;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+</style>

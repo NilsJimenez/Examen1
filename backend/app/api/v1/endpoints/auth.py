@@ -133,6 +133,30 @@ def forgot_password(email_data: dict, db: Session = Depends(get_db)):
         "status": "success"
     }
 
+@router.post("/reset-password")
+def reset_password(data: dict, db: Session = Depends(get_db)):
+    """
+    CU-03: Restablecimiento de la contraseña en la BD.
+    """
+    email = data.get("email")
+    new_password = data.get("new_password")
+    
+    if not email or not new_password:
+        raise HTTPException(status_code=400, detail="Faltan datos (email o new_password).")
+
+    user = db.query(Usuario).filter(Usuario.email == email).first()
+    if user:
+        user.password_hash = get_password_hash(new_password)
+        db.commit()
+        return {"message": "Contraseña actualizada con éxito."}
+        
+    cliente = db.query(Cliente).filter(Cliente.email == email).first()
+    if cliente:
+        cliente.password_hash = get_password_hash(new_password)
+        db.commit()
+        return {"message": "Contraseña actualizada con éxito."}
+
+    raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
 @router.get("/me", response_model=UserProfileResponse)
 def get_current_user_profile(current: dict = Depends(get_current_user)):

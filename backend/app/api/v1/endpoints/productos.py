@@ -15,13 +15,17 @@ from app.models.inventario import InventarioSucursal
 @router.get("/", response_model=List[ProductoOut])
 def listar_productos(
     categoria_id: Optional[int] = Query(None, description="Filtrar por categoría"),
+    talla_id: Optional[int] = Query(None, description="Filtrar por talla"),
+    color_id: Optional[int] = Query(None, description="Filtrar por color"),
+    coleccion_id: Optional[int] = Query(None, description="Filtrar por temporada/colección"),
+    precio_min: Optional[float] = Query(None, description="Precio mínimo"),
+    precio_max: Optional[float] = Query(None, description="Precio máximo"),
     search: Optional[str] = Query(None, description="Buscar por nombre o descripción"),
     sucursal_id: Optional[int] = Query(None, description="Filtrar por sucursal con stock disponible"),
     db: Session = Depends(get_db)
 ):
     """
-    RF07 / CU-11: Consultar catálogo de prendas con filtros por categoría, búsqueda y sucursal.
-    Si se especifica sucursal_id, se excluyen prendas sin stock disponible en esa sucursal.
+    RF07 / CU-10 / CU-11: Consultar catálogo de prendas con múltiples filtros.
     """
     query = db.query(Producto).options(
         joinedload(Producto.categoria),
@@ -31,8 +35,18 @@ def listar_productos(
 
     if categoria_id:
         query = query.filter(Producto.categoria_id == categoria_id)
+    if coleccion_id:
+        query = query.filter(Producto.coleccion_id == coleccion_id)
+    if precio_min is not None:
+        query = query.filter(Producto.precio_base >= precio_min)
+    if precio_max is not None:
+        query = query.filter(Producto.precio_base <= precio_max)
     if search:
         query = query.filter(Producto.nombre.ilike(f"%{search}%"))
+    if talla_id:
+        query = query.filter(Producto.variantes.any(ProductoVariante.talla_id == talla_id))
+    if color_id:
+        query = query.filter(Producto.variantes.any(ProductoVariante.color_id == color_id))
 
     productos = query.all()
 

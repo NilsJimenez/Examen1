@@ -88,9 +88,14 @@ declare var webkitSpeechRecognition: any;
 
       <!-- Resumen IA -->
       <div *ngIf="!cargando && data?.resumen_ia" class="card" style="padding: 1.5rem; margin-bottom: 2rem; background: linear-gradient(145deg, rgba(167, 139, 250, 0.1), var(--card-bg)); border: 1px solid #a78bfa; border-left: 4px solid #a78bfa;">
-        <h3 style="font-size: 1.1rem; font-family: serif; color: #a78bfa; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-          <i class="fa-solid fa-wand-magic-sparkles"></i> Resumen Ejecutivo de IA
-        </h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <h3 style="font-size: 1.1rem; font-family: serif; color: #a78bfa; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Resumen Ejecutivo de IA
+          </h3>
+          <button (click)="toggleVoz()" class="btn btn-outline" style="border-color: #a78bfa; color: #a78bfa; padding: 0.3rem 0.6rem; font-size: 0.8rem; border-radius: 50px;">
+            <i class="fa-solid" [ngClass]="hablando ? 'fa-volume-xmark' : 'fa-volume-high'"></i> {{ hablando ? 'Detener Voz' : 'Escuchar' }}
+          </button>
+        </div>
         <p style="color: var(--text-main); line-height: 1.6; font-size: 0.95rem; white-space: pre-wrap; margin: 0;">{{ data?.resumen_ia }}</p>
       </div>
 
@@ -185,6 +190,7 @@ export class ReportesComponent implements OnInit {
   cargando = false;
   escuchando = false;
   textoEscuchado = '';
+  hablando = false;
   sucursales: Sucursal[] = [];
 
   ngOnInit() {
@@ -203,6 +209,7 @@ export class ReportesComponent implements OnInit {
 
   cargarDashboard() {
     this.cargando = true;
+    if (this.hablando) this.detenerVoz(); // Detener voz si se carga otro reporte
     this.reportesService.getDashboard(this.filtros).subscribe({
       next: (res) => {
         this.data = res;
@@ -228,6 +235,7 @@ export class ReportesComponent implements OnInit {
     recognition.onstart = () => {
       this.escuchando = true;
       this.textoEscuchado = 'Escuchando...';
+      this.detenerVoz(); // Callar a la IA si empieza a escuchar al usuario
     };
 
     recognition.onresult = (event: any) => {
@@ -252,19 +260,71 @@ export class ReportesComponent implements OnInit {
 
   procesarComandoIA(prompt: string) {
     this.cargando = true;
-    this.reportesService.generarReporteIA(prompt, this.sucursales).subscribe({
-      next: (res) => {
-        this.data = res;
-        this.cargando = false;
-        // La IA actualiza la pantalla y además borramos el texto temporal tras 5s
-        setTimeout(() => this.textoEscuchado = '', 5000);
-      },
-      error: (err) => {
-        alert(err.error?.detail || "Error en el servicio de IA. Se restablecerán los filtros manuales.");
+    
+    // Configuramos un temporizador de seguridad en caso de que el backend o la IA no respondan en 15s
+    const timeoutError = setTimeout(() => {
+      if (this.cargando) {
         this.cargando = false;
         this.textoEscuchado = '';
+        alert("Los servidores de Inteligencia Artificial (Google Gemini) están congestionados y no respondieron a tiempo. Por favor, usa los filtros manuales.");
+      }
+    }, 15000);
+
+    this.reportesService.generarReporteIA(prompt, this.sucursales).subscribe({
+      next: (res) => {
+        clearTimeout(timeoutError);
+        if (this.cargando) {
+          this.data = res;
+          this.cargando = false;
+          setTimeout(() => this.textoEscuchado = '', 5000);
+          
+          // --- TEXT TO SPEECH (NUEVO) ---
+          if (this.data?.resumen_ia && !this.data.resumen_ia.includes("saturada")) {
+            this.reproducirVoz(this.data.resumen_ia);
+          }
+        }
+      },
+      error: (err) => {
+        clearTimeout(timeoutError);
+        if (this.cargando) {
+          alert(err.error?.detail || "Los servidores de Inteligencia Artificial están saturados hoy. Por favor, intenta de nuevo más tarde o usa los filtros manuales.");
+          this.cargando = false;
+          this.textoEscuchado = '';
+        }
       }
     });
+  }
+
+  // --- MÉTODOS DE SÍNTESIS DE VOZ ---
+  reproducirVoz(texto: string) {
+    if (!('speechSynthesis' in window)) return;
+    
+    this.detenerVoz(); // Limpiar cualquier voz previa
+    
+    const utterance = new SpeechSynthesisUtterance(texto);
+    utterance.lang = 'es-ES';
+    utterance.rate = 1.0;
+    
+    utterance.onstart = () => this.hablando = true;
+    utterance.onend = () => this.hablando = false;
+    utterance.onerror = () => this.hablando = false;
+
+    window.speechSynthesis.speak(utterance);
+  }
+
+  detenerVoz() {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    this.hablando = false;
+  }
+
+  toggleVoz() {
+    if (this.hablando) {
+      this.detenerVoz();
+    } else if (this.data?.resumen_ia) {
+      this.reproducirVoz(this.data.resumen_ia);
+    }
   }
 
   descargar(formato: 'pdf' | 'xlsx') {

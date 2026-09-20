@@ -66,7 +66,7 @@ def populate_initial_data():
                     "descripcion": "Camisa 100% algodón de corte entallado, ideal para ocasiones formales y casuales.",
                     "categoria_id": cat_camisas.id,
                     "precio_base": 180.00,
-                    "imagen_url": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800&auto=format&fit=crop",
+                    "imagen_url": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&auto=format&fit=crop",
                     "modelo_ar_url": "https://modelviewer.dev/shared-assets/models/Astronaut.glb"
                 },
                 {

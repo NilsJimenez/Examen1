@@ -13,9 +13,9 @@ from app.models.producto import (
 )
 from app.models.inventario import InventarioSucursal, MovimientoInventario
 from app.schemas.admin import (
-    ProductoCreate, ProductoUpdate, CategoriaCreate, TallaCreate, ColorCreate,
+    ProductoCreate, ProductoUpdate, CategoriaCreate, CategoriaUpdate, TallaCreate, TallaUpdate, ColorCreate, ColorUpdate,
     SucursalCreate, CiudadCreate, ProveedorCreate, TemporadaCreate, ColeccionCreate,
-    UsuarioCreate, UsuarioRolUpdate, StockIngresoInput, StockMatrizInput, VarianteUpdateInput,
+    UsuarioCreate, UsuarioUpdate, StockIngresoInput, StockMatrizInput, VarianteUpdateInput,
     RolCreate, RolOut
 )
 from app.schemas.producto import ProductoDetailOut, CategoriaOut, TallaOut, ColorOut
@@ -48,12 +48,12 @@ def crear_producto(data: ProductoCreate, db: Session = Depends(get_db)):
     sucursales = db.query(Sucursal).filter(Sucursal.activo == True).all()
 
     for v_data in data.variantes:
-        # Verificar que el SKU no exista
+        # Verificar que el SKU no exista (Excepción 1 de CU-06)
         existing_sku = db.query(ProductoVariante).filter(ProductoVariante.sku == v_data.sku).first()
         if existing_sku:
-            v_sku = f"{v_data.sku}-{nuevo_producto.id}"
-        else:
-            v_sku = v_data.sku
+            raise HTTPException(status_code=400, detail=f"El código de producto SKU '{v_data.sku}' ya existe.")
+        
+        v_sku = v_data.sku
 
         nueva_variante = ProductoVariante(
             producto_id=nuevo_producto.id,
@@ -362,12 +362,29 @@ def eliminar_categoria(categoria_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Categoría no encontrada.")
     productos_en_cat = db.query(Producto).filter(Producto.categoria_id == categoria_id, Producto.activo == True).count()
     if productos_en_cat > 0:
-        cat.activo = False
-        db.commit()
-        return {"message": f"Categoría '{cat.nombre}' desactivada del catálogo (tiene {productos_en_cat} prendas asociadas)."}
+        raise HTTPException(status_code=400, detail="No se puede eliminar la categoría porque está asociada a productos registrados.")
     db.delete(cat)
     db.commit()
     return {"message": f"Categoría '{cat.nombre}' eliminada exitosamente."}
+
+@router.put("/categorias/{categoria_id}", response_model=CategoriaOut)
+def actualizar_categoria(categoria_id: int, data: CategoriaUpdate, db: Session = Depends(get_db)):
+    cat = db.query(Categoria).filter(Categoria.id == categoria_id).first()
+    if not cat:
+        raise HTTPException(status_code=404, detail="Categoría no encontrada.")
+    
+    if data.nombre:
+        existing = db.query(Categoria).filter(Categoria.nombre == data.nombre, Categoria.id != categoria_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Ya existe otra categoría con este nombre.")
+        cat.nombre = data.nombre
+    
+    if data.descripcion is not None:
+        cat.descripcion = data.descripcion
+
+    db.commit()
+    db.refresh(cat)
+    return cat
 
 
 @router.post("/tallas", response_model=TallaOut)
@@ -393,12 +410,31 @@ def eliminar_talla(talla_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Talla no encontrada.")
     en_uso = db.query(ProductoVariante).filter(ProductoVariante.talla_id == talla_id).first()
     if en_uso:
-        talla.activo = False
-        db.commit()
-        return {"message": f"Talla '{talla.nombre}' desmarcada exitosamente."}
+        raise HTTPException(status_code=400, detail="No se puede eliminar la talla porque está asociada a productos registrados.")
     db.delete(talla)
     db.commit()
     return {"message": f"Talla '{talla.nombre}' eliminada exitosamente."}
+
+@router.put("/tallas/{talla_id}", response_model=TallaOut)
+def actualizar_talla(talla_id: int, data: TallaUpdate, db: Session = Depends(get_db)):
+    talla = db.query(Talla).filter(Talla.id == talla_id).first()
+    if not talla:
+        raise HTTPException(status_code=404, detail="Talla no encontrada.")
+    
+    if data.nombre:
+        existing = db.query(Talla).filter(Talla.nombre.ilike(data.nombre.strip()), Talla.id != talla_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Ya existe otra talla con este nombre.")
+        talla.nombre = data.nombre.strip()
+    
+    if data.orden is not None:
+        talla.orden = data.orden
+    if data.guia_medidas is not None:
+        talla.guia_medidas = data.guia_medidas
+
+    db.commit()
+    db.refresh(talla)
+    return talla
 
 
 @router.post("/colores", response_model=ColorOut)
@@ -426,17 +462,39 @@ def eliminar_color(color_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Color no encontrado.")
     en_uso = db.query(ProductoVariante).filter(ProductoVariante.color_id == color_id).first()
     if en_uso:
-        color.activo = False
-        db.commit()
-        return {"message": f"Color '{color.nombre}' desmarcado exitosamente."}
+        raise HTTPException(status_code=400, detail="No se puede eliminar el color porque está asociado a productos registrados.")
     db.delete(color)
     db.commit()
     return {"message": f"Color '{color.nombre}' eliminado exitosamente."}
+
+@router.put("/colores/{color_id}", response_model=ColorOut)
+def actualizar_color(color_id: int, data: ColorUpdate, db: Session = Depends(get_db)):
+    color = db.query(Color).filter(Color.id == color_id).first()
+    if not color:
+        raise HTTPException(status_code=404, detail="Color no encontrado.")
+    
+    if data.nombre:
+        existing = db.query(Color).filter(Color.nombre.ilike(data.nombre.strip()), Color.id != color_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Ya existe otro color con este nombre.")
+        color.nombre = data.nombre.strip()
+    
+    if data.codigo_hex is not None:
+        color.codigo_hex = data.codigo_hex
+
+    db.commit()
+    db.refresh(color)
+    return color
 
 
 # =============================================================================
 # CIUDADES Y SUCURSALES (RF03, CU-05)
 # =============================================================================
+@router.get("/ciudades")
+def listar_ciudades(db: Session = Depends(get_db)):
+    """Lista todas las ciudades."""
+    return db.query(Ciudad).all()
+
 @router.post("/ciudades")
 def crear_ciudad(data: CiudadCreate, db: Session = Depends(get_db)):
     existing = db.query(Ciudad).filter(Ciudad.nombre == data.nombre).first()
@@ -448,6 +506,28 @@ def crear_ciudad(data: CiudadCreate, db: Session = Depends(get_db)):
     db.refresh(ciudad)
     return ciudad
 
+
+@router.get("/sucursales")
+def listar_sucursales_admin(db: Session = Depends(get_db)):
+    """Lista todas las sucursales, incluyendo estado activo, para el panel admin."""
+    sucursales = db.query(Sucursal).options(joinedload(Sucursal.ciudad)).all()
+    return [
+        {
+            "id": s.id,
+            "nombre": s.nombre,
+            "direccion": s.direccion,
+            "telefono": s.telefono,
+            "latitud": s.latitud,
+            "longitud": s.longitud,
+            "activo": s.activo,
+            "ciudad": {
+                "id": s.ciudad.id,
+                "nombre": s.ciudad.nombre,
+                "pais": s.ciudad.pais,
+            } if s.ciudad else None
+        }
+        for s in sucursales
+    ]
 
 @router.post("/sucursales")
 def crear_sucursal(data: SucursalCreate, db: Session = Depends(get_db)):
@@ -487,8 +567,23 @@ def listar_proveedores(db: Session = Depends(get_db)):
 
 @router.post("/proveedores")
 def crear_proveedor(data: ProveedorCreate, db: Session = Depends(get_db)):
+    if data.ruc_nit:
+        existing_nit = db.query(Proveedor).filter(Proveedor.ruc_nit == data.ruc_nit).first()
+        if existing_nit:
+            raise HTTPException(status_code=400, detail="El RUC/NIT ya está registrado.")
+
+    if data.email:
+        existing_email = db.query(Proveedor).filter(Proveedor.email == data.email).first()
+        if existing_email:
+            raise HTTPException(status_code=400, detail="El correo electrónico de la empresa proveedora ya está registrado.")
+        
+        user_email = db.query(Usuario).filter(Usuario.email == data.email).first()
+        if user_email:
+            raise HTTPException(status_code=400, detail="El correo electrónico ya está en uso por otro usuario.")
+
     prov = Proveedor(
         nombre=data.nombre,
+        ruc_nit=data.ruc_nit,
         contacto_nombre=data.contacto_nombre,
         telefono=data.telefono,
         email=data.email,
@@ -498,6 +593,28 @@ def crear_proveedor(data: ProveedorCreate, db: Session = Depends(get_db)):
     db.add(prov)
     db.commit()
     db.refresh(prov)
+
+    # Crear cuenta de usuario para el proveedor
+    if data.email:
+        rol_prov = db.query(Rol).filter(Rol.nombre.ilike("PROVEEDOR")).first()
+        if not rol_prov:
+            rol_prov = Rol(nombre="PROVEEDOR", descripcion="Usuario Proveedor (A5)")
+            db.add(rol_prov)
+            db.commit()
+            db.refresh(rol_prov)
+
+        nuevo_usuario = Usuario(
+            nombres=data.contacto_nombre or data.nombre,
+            apellidos="[Proveedor]",
+            email=data.email,
+            telefono=data.telefono,
+            password_hash=get_password_hash(data.ruc_nit or "Proveedor123!"),
+            rol_id=rol_prov.id,
+            activo=True
+        )
+        db.add(nuevo_usuario)
+        db.commit()
+
     return prov
 
 
@@ -508,6 +625,10 @@ def listar_temporadas(db: Session = Depends(get_db)):
 
 @router.post("/temporadas")
 def crear_temporada(data: TemporadaCreate, db: Session = Depends(get_db)):
+    if data.fecha_inicio and data.fecha_fin:
+        if data.fecha_fin < data.fecha_inicio:
+            raise HTTPException(status_code=400, detail="La fecha de fin de la temporada no puede ser anterior a la fecha de inicio.")
+
     temp = Temporada(
         nombre=data.nombre,
         tipo=data.tipo,
@@ -622,24 +743,37 @@ def crear_usuario_interno(data: UsuarioCreate, db: Session = Depends(get_db)):
     return {"message": "Usuario empleado creado exitosamente", "id": nuevo_usuario.id}
 
 
-@router.put("/usuarios/{usuario_id}/rol")
-def cambiar_rol_usuario(usuario_id: int, data: UsuarioRolUpdate, db: Session = Depends(get_db)):
-    """Cambia el rol y la sucursal de un usuario existente."""
+@router.put("/usuarios/{usuario_id}")
+def editar_usuario(usuario_id: int, data: UsuarioUpdate, db: Session = Depends(get_db)):
+    """Edita la información de un usuario existente (incluyendo su rol, correo, contraseña)."""
     usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
-    rol = db.query(Rol).filter(Rol.id == data.rol_id).first()
-    if not rol:
-        raise HTTPException(status_code=404, detail="Rol no válido.")
-    usuario.rol_id = data.rol_id
+    
+    if data.rol_id is not None:
+        rol = db.query(Rol).filter(Rol.id == data.rol_id).first()
+        if not rol:
+            raise HTTPException(status_code=404, detail="Rol no válido.")
+        usuario.rol_id = data.rol_id
+        
+    if data.nombres is not None:
+        usuario.nombres = data.nombres
+    if data.apellidos is not None:
+        usuario.apellidos = data.apellidos
+    if data.email is not None:
+        usuario.email = data.email
+    if data.telefono is not None:
+        usuario.telefono = data.telefono
     if data.sucursal_id is not None:
         usuario.sucursal_id = data.sucursal_id
+    if data.password is not None and len(data.password.strip()) > 0:
+        usuario.password_hash = get_password_hash(data.password)
+
     db.commit()
     db.refresh(usuario)
     return {
-        "message": f"Rol de '{usuario.nombres} {usuario.apellidos}' actualizado a '{rol.nombre}'.",
+        "message": f"Usuario '{usuario.nombres}' actualizado correctamente.",
         "usuario_id": usuario.id,
-        "nuevo_rol": rol.nombre
     }
 
 

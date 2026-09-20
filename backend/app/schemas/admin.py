@@ -9,19 +9,37 @@ class CategoriaCreate(BaseModel):
     descripcion: Optional[str] = None
 
 
+class CategoriaUpdate(BaseModel):
+    nombre: Optional[str] = None
+    descripcion: Optional[str] = None
+
+
 class TallaCreate(BaseModel):
     nombre: str
-    orden: int = 0
+    orden: int = 1
+    guia_medidas: Optional[str] = None
+
+
+class TallaUpdate(BaseModel):
+    nombre: Optional[str] = None
+    orden: Optional[int] = None
+    guia_medidas: Optional[str] = None
 
 
 class ColorCreate(BaseModel):
     nombre: str
+    codigo_hex: str
+
+
+class ColorUpdate(BaseModel):
+    nombre: Optional[str] = None
     codigo_hex: Optional[str] = None
 
 
 # --- Proveedores, Temporadas y Colecciones ---
 class ProveedorCreate(BaseModel):
     nombre: str
+    ruc_nit: Optional[str] = None
     contacto_nombre: Optional[str] = None
     telefono: Optional[str] = None
     email: Optional[EmailStr] = None
@@ -83,6 +101,7 @@ class ProductoUpdate(BaseModel):
     nombre: Optional[str] = None
     descripcion: Optional[str] = None
     categoria_id: Optional[int] = None
+    coleccion_id: Optional[int] = None
     precio_base: Optional[float] = None
     imagen_url: Optional[str] = None
     modelo_ar_url: Optional[str] = None
@@ -138,7 +157,12 @@ class UsuarioCreate(BaseModel):
     telefono: Optional[str] = None
 
 
-class UsuarioRolUpdate(BaseModel):
-    rol_id: int
+class UsuarioUpdate(BaseModel):
+    nombres: Optional[str] = None
+    apellidos: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    rol_id: Optional[int] = None
     sucursal_id: Optional[int] = None
+    telefono: Optional[str] = None
 

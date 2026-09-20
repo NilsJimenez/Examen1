@@ -1388,7 +1388,7 @@ export class ProductoDetalleComponent implements OnInit {
 
   // Imagen activa de la prenda (prioriza la variante de color seleccionada para cambio en 0ms)
   get imagenPrendaActual(): string {
-    return this.selectedVariante?.imagen_url || this.producto?.imagen_url || 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800';
+    return this.selectedVariante?.imagen_url || this.producto?.imagen_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800';
   }
 
   get sucursalActualNombre(): string {

@@ -10,6 +10,7 @@ class Proveedor(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     nombre: Mapped[str] = mapped_column(String(150), nullable=False)
+    ruc_nit: Mapped[Optional[str]] = mapped_column(String(50), unique=True, nullable=True)
     contacto_nombre: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     telefono: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     email: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)

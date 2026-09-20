@@ -12,10 +12,11 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Configuración de CORS para permitir conexiones desde Angular y Flutter
+# Configuración de CORS para permitir conexiones desde Angular y Flutter Web
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_origins=["http://localhost:4200", "http://localhost:3000"],
+    allow_origin_regex=r"http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -37,6 +37,11 @@ import { CarritoService } from '../../services/carrito.service';
 
           <!-- ROL: CLIENTE AUTENTICADO -->
           <ng-container *ngIf="authService.isLoggedIn && esCliente">
+            <!-- Lookbook IA / Arma tu Outfit -->
+            <a routerLink="/lookbook" routerLinkActive="active-link" class="nav-link" style="color: #a78bfa; font-weight: bold;">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Arma tu Outfit
+            </a>
+
             <!-- Carrito de Compras: Solo para clientes y únicamente si tienen prendas agregadas -->
             <a 
               *ngIf="carritoService.carritoCount() > 0" 

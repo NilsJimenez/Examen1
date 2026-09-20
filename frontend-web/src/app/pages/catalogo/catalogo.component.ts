@@ -62,7 +62,7 @@ import { Sucursal } from '../../models/sucursal.models';
           <div 
             (click)="filtrarYDesplazar(1)" 
             class="category-hero-card"
-            style="background-image: url('https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800&auto=format&fit=crop');"
+            style="background-image: url('https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&auto=format&fit=crop');"
           >
             <div class="cat-card-overlay"></div>
             <div class="cat-card-info">
@@ -358,7 +358,7 @@ import { Sucursal } from '../../models/sucursal.models';
             <!-- Contenedor de Imagen con Efecto Hover y Badges -->
             <div class="product-image-box">
               <img 
-                [src]="p.imagen_url_preview || p.imagen_url || 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600'" 
+                [src]="p.imagen_url_preview || p.imagen_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600'" 
                 [alt]="p.nombre" 
                 class="product-img" 
               />
@@ -504,7 +504,7 @@ import { Sucursal } from '../../models/sucursal.models';
               <div class="bundle-piece">
                 <div class="bundle-piece-img-box">
                   <img 
-                    src="https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600&auto=format&fit=crop&q=80" 
+                    src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&auto=format&fit=crop&q=80" 
                     alt="Camisa Oxford Slim" 
                   />
                   <span class="bundle-step-indicator">1</span>

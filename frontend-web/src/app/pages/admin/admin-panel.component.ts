@@ -173,7 +173,7 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
             <tbody>
               <tr *ngFor="let p of productosFiltrados">
                 <td>
-                  <img [src]="p.imagen_url || 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=100'" [alt]="p.nombre" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);" />
+                  <img [src]="p.imagen_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100'" [alt]="p.nombre" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);" />
                 </td>
                 <td style="font-weight: 700; color: var(--text-main);">{{ p.nombre }}</td>
                 <td><span class="badge" style="background: var(--table-th-bg); color: var(--text-muted); border: 1px solid var(--border-color);">{{ p.categoria?.nombre || 'General' }}</span></td>
@@ -1135,7 +1135,7 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
             <i class="fa-solid fa-image mr-1.5"></i> 1. Fotografía de Portada General
           </h4>
           <div class="flex gap-4 items-center">
-            <img [src]="prendaGestion.imagen_url || 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=200'" [alt]="prendaGestion.nombre" style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px; border: 1.5px solid var(--border-color);" />
+            <img [src]="prendaGestion.imagen_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=200'" [alt]="prendaGestion.nombre" style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px; border: 1.5px solid var(--border-color);" />
             <div class="flex-1">
               <label class="form-label text-xs">URL de la Imagen General (Catálogo / Portada)</label>
               <div class="flex gap-2">
@@ -1179,7 +1179,7 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
                 </div>
               </div>
 
-              <img [src]="col.imagen_url || 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=100'" [alt]="col.color_nombre" style="width: 48px; height: 48px; min-width: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);" />
+              <img [src]="col.imagen_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100'" [alt]="col.color_nombre" style="width: 48px; height: 48px; min-width: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);" />
 
               <div class="flex-1">
                 <input 

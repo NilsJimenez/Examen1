@@ -65,6 +65,8 @@ class Recomendacion(Base):
     motivo: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     fecha_generada: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+    producto = relationship("Producto")
+
 
 class InteraccionChatbot(Base):
     __tablename__ = "interacciones_chatbot"
