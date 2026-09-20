@@ -322,7 +322,7 @@ class _LookbookScreenState extends State<LookbookScreen> {
     
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => ProductoDetalleScreen(producto: prod)));
+        Navigator.push(context, MaterialPageRoute(builder: (_) => ProductoDetalleScreen(productoId: prod['id'])));
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
