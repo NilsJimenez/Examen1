@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/lookbook_service.dart';
 import '../services/carrito_service.dart';
 import 'producto_detalle_screen.dart';
+import 'ar_mirror_screen.dart';
 
 class LookbookScreen extends StatefulWidget {
   const LookbookScreen({super.key});
@@ -243,6 +244,39 @@ class _LookbookScreenState extends State<LookbookScreen> {
               const Text('Tu Lookbook Generado', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
               IconButton(icon: const Icon(Icons.refresh, color: Color(0xFFEAB308)), onPressed: () => setState(() => _result = null)),
             ],
+          ),
+          const SizedBox(height: 16),
+
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.camera_alt, color: Colors.white),
+              label: const Text('Probar en Espejo AR', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEAB308),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
+              ),
+              onPressed: () {
+                String? supUrl;
+                String? infUrl;
+                try {
+                  final List outfits = _result!['outfits'] ?? [];
+                  if (outfits.isNotEmpty) {
+                    for (var prenda in outfits[0]) {
+                      if (prenda['rol'].toString().toLowerCase() == 'superior') {
+                        supUrl = prenda['producto']['imagen_url'];
+                      }
+                      if (prenda['rol'].toString().toLowerCase() == 'inferior') {
+                        infUrl = prenda['producto']['imagen_url'];
+                      }
+                    }
+                  }
+                } catch (e) {}
+                
+                Navigator.push(context, MaterialPageRoute(builder: (_) => ARMirrorScreen(superiorUrl: supUrl, inferiorUrl: infUrl)));
+              },
+            ),
           ),
           const SizedBox(height: 16),
           

@@ -90,11 +90,34 @@
 
         <div style="display: grid; grid-template-columns: 1fr 300px; gap: 2rem;">
           
-          <!-- Espejo / Maniquí 3D -->
+                    <!-- Espejo / Maniquí 3D -->
           <div class="espejo-virtual" style="position: relative; background: linear-gradient(180deg, #1f1f23 0%, #000000 100%); border-radius: 20px; border: 2px solid #333; min-height: 550px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; box-shadow: inset 0 0 50px rgba(167, 139, 250, 0.1);">
              
-             <!-- Visor 3D Principal -->
-             <div *ngIf="prendaSeleccionada3D?.producto?.modelo_ar_url" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;">
+             <!-- Controles Superiores Espejo -->
+             <div style="position: absolute; top: 20px; right: 20px; z-index: 50; display: flex; gap: 10px;">
+               <button *ngIf="!espejoActivo" (click)="encenderEspejo()" class="btn hover-glow" style="background: var(--accent); color: #000; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(167,139,250,0.4);">
+                 <i class="fa-solid fa-camera"></i> Probarme la ropa (AR)
+               </button>
+               <button *ngIf="espejoActivo" (click)="apagarEspejo()" class="btn hover-glow" style="background: #ef4444; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                 <i class="fa-solid fa-power-off"></i> Apagar
+               </button>
+             </div>
+
+             <!-- VESTIDOR VIRTUAL AR (Webcam + Canvas) -->
+             <div *ngIf="espejoActivo" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; background: black;">
+                <div *ngIf="cargandoEspejo" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: var(--text-muted); z-index: 5;">
+                   <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2rem; color: var(--accent); margin-bottom: 10px;"></i>
+                   <p>Iniciando Motor IA...</p>
+                   <p style="font-size: 0.8rem;">(Si tu navegador lo solicita, concede permiso a la cámara)</p>
+                </div>
+                <!-- Video oculto para procesar -->
+                <video id="webcam-video" style="display: none;" playsinline></video>
+                <!-- Canvas donde dibujamos video + ropa -->
+                <canvas id="webcam-canvas" width="640" height="480" style="width: 100%; height: 100%; object-fit: cover;"></canvas>
+             </div>
+
+             <!-- Visor 3D Principal (Se oculta si el espejo AR está activo) -->
+             <div *ngIf="!espejoActivo && prendaSeleccionada3D?.producto?.modelo_ar_url" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;">
                 <model-viewer
                   [src]="prendaSeleccionada3D?.producto?.modelo_ar_url"
                   auto-rotate
@@ -109,7 +132,7 @@
                 </div>
              </div>
              
-             <div *ngIf="!prendaSeleccionada3D?.producto?.modelo_ar_url" style="position: absolute; opacity: 0.1; font-size: 35rem; color: white; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
+             <div *ngIf="!espejoActivo && !prendaSeleccionada3D?.producto?.modelo_ar_url" style="position: absolute; opacity: 0.1; font-size: 35rem; color: white; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
                 <i class="fa-solid fa-child-reaching"></i>
              </div>
 

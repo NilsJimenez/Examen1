@@ -94,6 +94,7 @@ class ProductoCreate(BaseModel):
     precio_base: float
     imagen_url: Optional[str] = None
     modelo_ar_url: Optional[str] = None
+    genero: Optional[str] = "Unisex"
     variantes: List[VarianteInput] = []
 
 
@@ -105,6 +106,7 @@ class ProductoUpdate(BaseModel):
     precio_base: Optional[float] = None
     imagen_url: Optional[str] = None
     modelo_ar_url: Optional[str] = None
+    genero: Optional[str] = None
     activo: Optional[bool] = None
 
 

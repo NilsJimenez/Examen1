@@ -29,6 +29,9 @@ def generar_lookbook(
     if req.sucursal_id:
         q = q.filter(InventarioSucursal.sucursal_id == req.sucursal_id)
         
+    if req.genero:
+        q = q.filter(Producto.genero.in_([req.genero, "Unisex", None, ""]))
+
     if req.talla_preferida:
         from app.models.producto import Talla
         q = q.join(Talla, ProductoVariante.talla_id == Talla.id).filter(Talla.nombre == req.talla_preferida)

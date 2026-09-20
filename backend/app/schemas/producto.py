@@ -49,6 +49,7 @@ class ProductoOut(BaseModel):
     precio_base: float
     imagen_url: Optional[str] = None
     modelo_ar_url: Optional[str] = None
+    genero: Optional[str] = "Unisex"
     categoria: Optional[CategoriaOut] = None
     activo: bool
     stock_total: Optional[int] = 0

@@ -38,6 +38,7 @@ def crear_producto(data: ProductoCreate, db: Session = Depends(get_db)):
         precio_base=data.precio_base,
         imagen_url=data.imagen_url,
         modelo_ar_url=data.modelo_ar_url,
+        genero=data.genero,
         activo=True
     )
     db.add(nuevo_producto)

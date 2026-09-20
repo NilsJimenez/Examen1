@@ -975,7 +975,16 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
               </div>
 
               <div class="form-group mb-0">
-                <label class="form-label text-xs">URL Modelo 3D / Realidad Aumentada (.glb)</label>
+                <label class="form-label text-xs">Género de la Prenda</label>
+              <select [(ngModel)]="prendaForm.genero" name="genero" class="form-input">
+                <option value="Unisex">Unisex / Ambos</option>
+                <option value="Hombre">Hombre</option>
+                <option value="Mujer">Mujer</option>
+                <option value="Niños">Niños</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label text-xs">URL Modelo 3D / Realidad Aumentada (.glb)</label>
                 <input type="url" [(ngModel)]="prendaForm.modelo_ar_url" name="modelo_ar_url" placeholder="https://modelviewer.dev/shared-assets/models/Astronaut.glb" class="form-input" />
               </div>
             </div>
@@ -1645,7 +1654,8 @@ export class AdminPanelComponent implements OnInit {
     categoria_id: null as number | null,
     proveedor_id: 1,
     imagen_url: '',
-    modelo_ar_url: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb'
+    modelo_ar_url: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
+    genero: 'Unisex'
   };
 
   // Prenda actualmente en Gestión de Fotos y Stock
@@ -2114,7 +2124,8 @@ export class AdminPanelComponent implements OnInit {
       categoria_id: targetCatId,
       proveedor_id: this.proveedores.length > 0 ? this.proveedores[0].id : 1,
       imagen_url: '',
-      modelo_ar_url: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb'
+      modelo_ar_url: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb',
+    genero: 'Unisex'
     };
     this.tallasSeleccionadasIds = [];
     this.coloresSeleccionadosIds = [];

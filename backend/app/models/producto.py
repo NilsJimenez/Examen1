@@ -97,6 +97,8 @@ class Producto(Base):
     precio_base: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     imagen_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     modelo_ar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    genero: Mapped[Optional[str]] = mapped_column(String(20), default="Unisex")
+    genero: Mapped[Optional[str]] = mapped_column(String(20), default="Unisex")
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
     fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

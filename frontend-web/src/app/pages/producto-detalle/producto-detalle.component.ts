@@ -192,6 +192,21 @@ import { Producto, Variante, Color, Talla } from '../../models/producto.models';
               </div>
             </div>
 
+            <!-- C. VISTA ESPEJO AR (Webcam + Canvas) -->
+            <div 
+              *ngIf="vistaActiva === 'espejo'" 
+              class="model-viewer-stage-container animate-fade-in"
+              style="background: black; overflow: hidden; position: relative;"
+            >
+              <div *ngIf="cargandoEspejo" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white; z-index: 5;">
+                 <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2rem; color: var(--accent); margin-bottom: 10px;"></i>
+                 <p>Iniciando Espejo Virtual...</p>
+                 <p style="font-size: 0.8rem;">(Si tu navegador lo solicita, concede permiso a la cámara)</p>
+              </div>
+              <video id="detalle-video" style="display: none;" playsinline></video>
+              <canvas id="detalle-canvas" width="640" height="480" style="width: 100%; height: 100%; object-fit: cover;"></canvas>
+            </div>
+
             <!-- B. VISTA 3D / REALIDAD AUMENTADA (Google Model-Viewer Integrado) -->
             <div 
               *ngIf="vistaActiva === 'ar'" 
@@ -325,10 +340,10 @@ import { Producto, Variante, Color, Talla } from '../../models/producto.models';
 
             <div class="widget-3d-labels">
               <span class="widget-tag">
-                {{ vistaActiva === 'foto' ? 'MODO INTERACTIVO' : 'VOLVER A FOTO' }}
+                {{ vistaActiva === 'foto' ? 'VISTA 3D' : (vistaActiva === 'ar' ? 'ESPEJO AR' : 'VER FOTO') }}
               </span>
               <span class="widget-title">
-                {{ vistaActiva === 'foto' ? 'Vestidor 3D / AR' : 'Ver Fotografía' }}
+                {{ vistaActiva === 'foto' ? 'Modelo 3D' : (vistaActiva === 'ar' ? 'Probar en Cámara' : 'Volver a Foto') }}
               </span>
             </div>
 
@@ -1313,8 +1328,156 @@ export class ProductoDetalleComponent implements OnInit {
   todosLosProductos: Producto[] = [];
   selectedVariante: Variante | null = null;
   haSeleccionadoColor: boolean = false;
-  vistaActiva: 'foto' | 'ar' = 'foto';
+  vistaActiva: 'foto' | 'ar' | 'espejo' = 'foto';
   animatingSwitch: boolean = false;
+
+  // Variables Espejo Magico AR
+  cargandoEspejo = false;
+  private videoElement!: HTMLVideoElement;
+  private canvasElement!: HTMLCanvasElement;
+  private canvasCtx!: CanvasRenderingContext2D | null;
+  private pose: any;
+  private camera: any;
+  imagenesCargadas: {[url: string]: HTMLImageElement} = {};
+
+  ngOnDestroy() {
+    this.apagarEspejo();
+  }
+
+  async encenderEspejo() {
+    this.cargandoEspejo = true;
+    
+    await this.loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js');
+    await this.loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js');
+
+    setTimeout(() => this.iniciarCamara(), 500);
+  }
+
+  apagarEspejo() {
+    if(this.camera) {
+      this.camera.stop();
+    }
+  }
+
+  loadScript(src: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) {
+        resolve();
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = src;
+      script.crossOrigin = 'anonymous';
+      script.onload = () => resolve();
+      script.onerror = () => reject();
+      document.body.appendChild(script);
+    });
+  }
+
+  iniciarCamara() {
+    this.videoElement = document.getElementById('detalle-video') as HTMLVideoElement;
+    this.canvasElement = document.getElementById('detalle-canvas') as HTMLCanvasElement;
+    if(!this.canvasElement || !this.videoElement) return;
+    this.canvasCtx = this.canvasElement.getContext('2d');
+
+    this.pose = new (window as any).Pose({
+      locateFile: (file: string) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+      }
+    });
+
+    this.pose.setOptions({
+      modelComplexity: 1,
+      smoothLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    this.pose.onResults((results: any) => this.onPoseResults(results));
+
+    this.camera = new (window as any).Camera(this.videoElement, {
+      onFrame: async () => {
+        await this.pose.send({ image: this.videoElement });
+      },
+      width: 640,
+      height: 480
+    });
+
+    this.camera.start().then(() => {
+        this.cargandoEspejo = false;
+    });
+  }
+
+  onPoseResults(results: any) {
+    if (!this.canvasCtx || !this.canvasElement) return;
+    this.canvasCtx.save();
+    this.canvasCtx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
+    
+    // Espejar
+    this.canvasCtx.translate(this.canvasElement.width, 0);
+    this.canvasCtx.scale(-1, 1);
+    
+    this.canvasCtx.drawImage(results.image, 0, 0, this.canvasElement.width, this.canvasElement.height);
+
+    if (results.poseLandmarks) {
+      const lShoulder = results.poseLandmarks[12]; 
+      const rShoulder = results.poseLandmarks[11]; 
+      const lHip = results.poseLandmarks[24];
+      const rHip = results.poseLandmarks[23];
+
+      if(lShoulder && rShoulder && lHip && rHip) {
+        const lsX = lShoulder.x * this.canvasElement.width;
+        const lsY = lShoulder.y * this.canvasElement.height;
+        const rsX = rShoulder.x * this.canvasElement.width;
+        const rsY = rShoulder.y * this.canvasElement.height;
+        
+        const lhX = lHip.x * this.canvasElement.width;
+        const lhY = lHip.y * this.canvasElement.height;
+        const rhX = rHip.x * this.canvasElement.width;
+        const rhY = rHip.y * this.canvasElement.height;
+
+        const shoulderWidth = Math.abs(lsX - rsX);
+        const hipWidth = Math.abs(lhX - rhX);
+
+        const imgUrl = this.imagenPrendaActual;
+        if(imgUrl) {
+          // Inferir si es prenda inferior por categoria o nombre
+          const catNombre = (this.producto?.categoria?.nombre || '').toLowerCase();
+          const pNombre = (this.producto?.nombre || '').toLowerCase();
+          
+          const esInferior = catNombre.includes('pantal') || catNombre.includes('short') || catNombre.includes('falda') || catNombre.includes('jean') || pNombre.includes('pantal') || pNombre.includes('short') || pNombre.includes('falda');
+          
+          if(esInferior) {
+            this.dibujarPrenda(imgUrl, (lhX + rhX)/2, (lhY + rhY)/2, hipWidth * 2.5, false);
+          } else {
+            this.dibujarPrenda(imgUrl, (lsX + rsX)/2, (lsY + rsY)/2, shoulderWidth * 2.2, true);
+          }
+        }
+      }
+    }
+    this.canvasCtx.restore();
+  }
+
+  dibujarPrenda(url: string, centerX: number, centerY: number, width: number, isSuperior: boolean) {
+    if(!this.imagenesCargadas[url]) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = url;
+      this.imagenesCargadas[url] = img;
+    }
+    
+    const img = this.imagenesCargadas[url];
+    if(img.complete && this.canvasCtx) {
+      const aspect = img.height / img.width;
+      const h = width * aspect;
+      const offsetY = isSuperior ? h * 0.15 : h * 0.1; 
+      
+      this.canvasCtx.globalCompositeOperation = "multiply"; 
+      this.canvasCtx.drawImage(img, centerX - width/2, centerY - offsetY, width, h);
+      this.canvasCtx.globalCompositeOperation = "source-over";
+    }
+  }
+
 
   agregandoCarrito: boolean = false;
   successMessage: string = '';
@@ -1490,7 +1653,15 @@ export class ProductoDetalleComponent implements OnInit {
   }
 
   toggleVista3D(): void {
-    this.vistaActiva = this.vistaActiva === 'foto' ? 'ar' : 'foto';
+    if (this.vistaActiva === 'foto') {
+      this.vistaActiva = 'ar';
+    } else if (this.vistaActiva === 'ar') {
+      this.vistaActiva = 'espejo';
+      this.encenderEspejo();
+    } else {
+      this.vistaActiva = 'foto';
+      this.apagarEspejo();
+    }
   }
 
   navegarPrenda(direccion: 'prev' | 'next'): void {
