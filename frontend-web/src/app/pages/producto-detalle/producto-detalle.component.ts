@@ -207,32 +207,7 @@ import { Producto, Variante, Color, Talla } from '../../models/producto.models';
               <canvas id="detalle-canvas" width="640" height="480" style="width: 100%; height: 100%; object-fit: cover;"></canvas>
             </div>
 
-            <!-- B. VISTA 3D / REALIDAD AUMENTADA (Google Model-Viewer Integrado) -->
-            <div 
-              *ngIf="vistaActiva === 'ar'" 
-              class="model-viewer-stage-container animate-fade-in"
-            >
-              <model-viewer
-                [src]="producto.modelo_ar_url || 'https://modelviewer.dev/shared-assets/models/Astronaut.glb'"
-                alt="Modelo 3D y Vestidor Virtual de la Prenda"
-                ar
-                ar-modes="webxr scene-viewer quick-look"
-                camera-controls
-                auto-rotate
-                rotation-per-second="25deg"
-                shadow-intensity="1.5"
-                class="stage-3d-model"
-              >
-                <button slot="ar-button" class="btn btn-accent ar-camera-btn">
-                  <i class="fa-solid fa-camera mr-2"></i> Probar en tu Cámara (AR)
-                </button>
-              </model-viewer>
-
-              <div class="stage-3d-instructions">
-                <i class="fa-solid fa-arrows-rotate mr-1.5" style="color: var(--accent);"></i>
-                Arrastra para girar en 360° • Usa la rueda para hacer zoom
-              </div>
-            </div>
+            
 
           </div>
 
@@ -328,27 +303,27 @@ import { Producto, Variante, Color, Talla } from '../../models/producto.models';
           <button 
             (click)="toggleVista3D()" 
             class="floating-3d-widget-btn"
-            [class.widget-btn-active]="vistaActiva === 'ar'"
+            [class.widget-btn-active]="vistaActiva === 'espejo'"
             title="Activar o alternar el Vestidor 3D y Realidad Aumentada"
             type="button"
           >
             <!-- Mini icono / preview 3D animado -->
             <div class="widget-3d-icon-circle">
-              <i *ngIf="vistaActiva === 'foto'" class="fa-solid fa-cube fa-spin-pulse"></i>
-              <i *ngIf="vistaActiva === 'ar'" class="fa-solid fa-image"></i>
-            </div>
+                <i *ngIf="vistaActiva === 'foto'" class="fa-solid fa-camera fa-fade"></i>
+                <i *ngIf="vistaActiva === 'espejo'" class="fa-solid fa-image"></i>
+              </div>
 
             <div class="widget-3d-labels">
               <span class="widget-tag">
-                {{ vistaActiva === 'foto' ? 'VISTA 3D' : (vistaActiva === 'ar' ? 'ESPEJO AR' : 'VER FOTO') }}
+                {{ vistaActiva === 'foto' ? 'ESPEJO AR' : 'VER FOTO' }}
               </span>
               <span class="widget-title">
-                {{ vistaActiva === 'foto' ? 'Modelo 3D' : (vistaActiva === 'ar' ? 'Probar en Cámara' : 'Volver a Foto') }}
+                {{ vistaActiva === 'foto' ? 'Probar en Cámara' : 'Volver a Foto' }}
               </span>
             </div>
 
             <div class="widget-arrow-dot">
-              <i class="fa-solid" [class.fa-arrow-up-right-from-square]="vistaActiva === 'foto'" [class.fa-rotate-left]="vistaActiva === 'ar'"></i>
+              <i class="fa-solid" [class.fa-arrow-up-right-from-square]="vistaActiva === 'foto'" [class.fa-rotate-left]="vistaActiva === 'espejo'"></i>
             </div>
           </button>
         </div>
@@ -1328,7 +1303,7 @@ export class ProductoDetalleComponent implements OnInit {
   todosLosProductos: Producto[] = [];
   selectedVariante: Variante | null = null;
   haSeleccionadoColor: boolean = false;
-  vistaActiva: 'foto' | 'ar' | 'espejo' = 'foto';
+  vistaActiva: 'foto' | 'espejo' = 'foto';
   animatingSwitch: boolean = false;
 
   // Variables Espejo Magico AR
@@ -1654,8 +1629,6 @@ export class ProductoDetalleComponent implements OnInit {
 
   toggleVista3D(): void {
     if (this.vistaActiva === 'foto') {
-      this.vistaActiva = 'ar';
-    } else if (this.vistaActiva === 'ar') {
       this.vistaActiva = 'espejo';
       this.encenderEspejo();
     } else {
