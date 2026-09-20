@@ -157,7 +157,7 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
           </button>
         </div>
 
-        <div class="card table-container">
+        <div class="card overflow-x-auto w-full">
           <table class="admin-table">
             <thead>
               <tr>
@@ -787,7 +787,7 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
           </button>
         </div>
 
-        <div class="card table-container">
+        <div class="card overflow-x-auto w-full">
           <table class="admin-table">
             <thead>
               <tr>
