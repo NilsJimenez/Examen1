@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/catalogo_service.dart';
 import '../services/bolsa_service.dart';
 import '../services/carrito_service.dart';
-import 'vestidor_ar_screen.dart';
+import 'ar_mirror_screen.dart';
 import 'bolsa_pruebas_screen.dart';
 import 'carrito_screen.dart';
 
@@ -202,7 +202,7 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const BolsaPruebasScreen()));
                 },
               ),
-              if (_producto!['modelo_ar_url'] != null)
+              if (true) // Botón AR siempre activo para el Espejo 2D
                 Container(
                   margin: const EdgeInsets.all(8.0),
                   decoration: BoxDecoration(
@@ -220,15 +220,22 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
                       // Registrar sesion AR
                       await _service.registerArSession(varId);
                       
-                      // Abrir visor
-                      if (mounted) {
-                        Navigator.push(context, MaterialPageRoute(
-                          builder: (context) => VestidorARScreen(
-                            modeloArUrl: _producto!['modelo_ar_url'],
-                            productName: _producto!['nombre'],
-                          )
-                        ));
-                      }
+                      // Inferir si es prenda inferior
+                        final nombre = _producto!['nombre'].toString().toLowerCase();
+                        final catNombre = _producto!['categoria'] != null ? _producto!['categoria']['nombre'].toString().toLowerCase() : '';
+                        final esInferior = nombre.contains('pantal') || nombre.contains('short') || nombre.contains('falda') || nombre.contains('jean') || catNombre.contains('pantal') || catNombre.contains('short') || catNombre.contains('falda') || catNombre.contains('jean');
+                        
+                        String imgUrl = imagenMostrada ?? _producto!['imagen_url'];
+                        
+                        // Abrir espejo
+                        if (mounted) {
+                          Navigator.push(context, MaterialPageRoute(
+                            builder: (context) => ARMirrorScreen(
+                              superiorUrl: esInferior ? null : imgUrl,
+                              inferiorUrl: esInferior ? imgUrl : null,
+                            )
+                          ));
+                        }
                     },
                   ),
                 ),
