@@ -76,7 +76,21 @@ export class AuthService {
   /**
    * Cierra la sesión eliminando el Token JWT y limpiando el estado
    */
+
+  forgotPassword(email: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/forgot-password`, { email });
+  }
+
+  verifyCode(email: string, code: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/verify-code`, { email, code });
+  }
+
+  resetPassword(email: string, code: string, new_password: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/reset-password`, { email, code, new_password });
+  }
+
   logout(): void {
+
     localStorage.removeItem('fashionstore_token');
     localStorage.removeItem('fashionstore_user');
     this.currentUserSubject.next(null);

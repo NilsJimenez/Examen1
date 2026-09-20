@@ -29,6 +29,8 @@ class Usuario(Base):
     telefono: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
     fecha_registro: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    reset_code: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)
+    reset_code_expires: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # Relaciones
     rol: Mapped["Rol"] = relationship("Rol", back_populates="usuarios")
@@ -50,6 +52,8 @@ class Cliente(Base):
     genero: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
     fecha_registro: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    reset_code: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)
+    reset_code_expires: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # Relaciones
     reservas: Mapped[list["Reserva"]] = relationship("Reserva", back_populates="cliente")

@@ -83,36 +83,50 @@ class AuthService {
     }
   }
 
-  Future<bool> forgotPassword(String email) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${Constants.apiUrl}/auth/forgot-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email}),
-      );
-      return response.statusCode == 200;
-    } catch (e) {
-      return false;
+
+
+
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    final response = await http.post(
+      Uri.parse('${Constants.apiUrl}/auth/forgot-password'),
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: jsonEncode({'email': email}),
+    );
+    if (response.statusCode == 200) {
+      return {'success': true, 'message': jsonDecode(response.body)['message']};
+    } else {
+      return {'success': false, 'message': jsonDecode(response.body)['detail'] ?? 'Error desconocido'};
     }
   }
 
-  Future<bool> resetPassword(String email, String newPassword) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${Constants.apiUrl}/auth/reset-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'new_password': newPassword,
-        }),
-      );
-      return response.statusCode == 200;
-    } catch (e) {
-      return false;
+  Future<Map<String, dynamic>> verifyCode(String email, String code) async {
+    final response = await http.post(
+      Uri.parse('${Constants.apiUrl}/auth/verify-code'),
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: jsonEncode({'email': email, 'code': code}),
+    );
+    if (response.statusCode == 200) {
+      return {'success': true, 'message': jsonDecode(response.body)['message']};
+    } else {
+      return {'success': false, 'message': jsonDecode(response.body)['detail'] ?? 'Código inválido'};
+    }
+  }
+
+  Future<Map<String, dynamic>> resetPassword(String email, String code, String newPassword) async {
+    final response = await http.post(
+      Uri.parse('${Constants.apiUrl}/auth/reset-password'),
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: jsonEncode({'email': email, 'code': code, 'new_password': newPassword}),
+    );
+    if (response.statusCode == 200) {
+      return {'success': true, 'message': jsonDecode(response.body)['message']};
+    } else {
+      return {'success': false, 'message': jsonDecode(response.body)['detail'] ?? 'Error al restablecer'};
     }
   }
 
   Future<void> logout() async {
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_roleKey);
