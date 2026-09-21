@@ -1,0 +1,10 @@
+.git
+.idea
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+backend/venv
+frontend-web
+frontend_mobile

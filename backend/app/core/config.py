@@ -8,8 +8,15 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     
-    # Base de datos Supabase
-    DATABASE_URL: str
+    # Base de datos Supabase (con fallback seguro para despliegue en la nube)
+    DATABASE_URL: str = "postgresql://postgres.tdlapakfyboflxawpema:Ficct_Examen@aws-0-sa-east-1.pooler.supabase.com:5432/postgres"
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def assemble_db_connection(cls, v: str) -> str:
+        if isinstance(v, str) and v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql://", 1)
+        return v
     
     # Seguridad y Token JWT
     SECRET_KEY: str = "supersecretkeyfashionstore2026sistemas2ficct"
