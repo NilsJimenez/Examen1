@@ -13,6 +13,9 @@ from app.core.config import settings
 
 router = APIRouter()
 
+# =============================================================================
+# CU-24: GENERAR OUTFIT COMPLETO POR OCASIÓN (LOOKBOOK IA)
+# =============================================================================
 @router.post("/generar", response_model=LookbookResponse)
 def generar_lookbook(
     req: LookbookRequest,
@@ -20,7 +23,10 @@ def generar_lookbook(
     current_user: dict = Depends(require_roles(["cliente", "admin", "encargado_sucursal"]))
 ):
     """
-    Genera un outfit completo basado en ocasión, presupuesto y talla, usando IA.
+    CU-24: Generar Outfit Completo por Ocasión (Lookbook IA).
+    Arma un conjunto armonioso de prendas (superior, inferior, calzado, accesorio)
+    utilizando Google Gemini AI con base en ocasión, presupuesto máximo, género y talla preferida.
+    Verifica disponibilidad de stock real en la sucursal indicada o catálogo global.
     """
     # 1. Filtrar inventario disponible
     # Buscar productos con stock > 0 en la sucursal indicada o en cualquier sucursal

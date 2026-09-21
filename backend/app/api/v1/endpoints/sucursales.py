@@ -33,6 +33,8 @@ class SucursalOut(BaseModel):
 @router.get("/", response_model=List[SucursalOut])
 def listar_sucursales(db: Session = Depends(get_db)):
     """
-    RF03: Lista todas las sucursales físicas activas de la cadena y sus ciudades.
+    CU-05: Administrar Ciudades y Sucursales (Consulta Pública).
+    Retorna la lista de todas las sucursales físicas activas de la cadena y sus ciudades asociadas
+    para selección de retiro, visualización de stock y reservas.
     """
     return db.query(Sucursal).options(joinedload(Sucursal.ciudad)).filter(Sucursal.activo == True).all()

@@ -26,6 +26,9 @@ def verificar_permisos_sucursal(db: Session, user: dict, sucursal_id: int):
         if usr_db and usr_db.sucursal_id != sucursal_id:
             raise HTTPException(status_code=403, detail="No tienes permisos para consultar reportes de otras sucursales.")
 
+# =============================================================================
+# CU-26: DASHBOARD BI DE VENTAS E INVENTARIO
+# =============================================================================
 @router.get("/dashboard", response_model=DashboardReporteOut)
 def get_dashboard_data(
     sucursal_id: int = Query(None, description="Filtro opcional de sucursal"),
@@ -34,6 +37,12 @@ def get_dashboard_data(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(["administrador", "encargado_sucursal"]))
 ):
+    """
+    CU-26: Dashboard BI de Análisis de Ventas, Reservas y Rendimiento.
+    Calcula en tiempo real los KPIs de negocio (Total Vendido, Ticket Promedio, Cantidad de Ventas,
+    Porcentaje de Reservas Concretadas) y agrupa las ventas por fecha para gráficos de tendencia.
+    Permite segmentación por sucursal física y rango de fechas.
+    """
     if sucursal_id:
         verificar_permisos_sucursal(db, current_user, sucursal_id)
     elif current_user["role"] == "encargado_sucursal":
@@ -170,12 +179,20 @@ def exportar_reporte(
 
 
 
+# =============================================================================
+# CU-27: REPORTES INTELIGENTES CON IA (VOZ/TEXTO) Y EXPORTACIÓN PDF/EXCEL
+# =============================================================================
 @router.post("/generativo", response_model=DashboardReporteOut)
 def reporte_generativo_ia(
     req: ReporteGenerativoRequest,
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(["administrador"]))
 ):
+    """
+    CU-27: Generación de Reportes Inteligentes por Voz o Texto (IA Gemini).
+    Interpreta consultas en lenguaje natural (ej: 'Ventas de la sucursal Centro del mes pasado')
+    y utiliza la IA para extraer sucursal, fechas y filtrar automáticamente la data del Dashboard.
+    """
     import requests
     import json
     from app.core.config import settings

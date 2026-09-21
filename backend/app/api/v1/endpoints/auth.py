@@ -12,10 +12,17 @@ from app.api.deps import get_current_user, require_roles
 router = APIRouter()
 
 
+# =============================================================================
+# CU-01: REGISTRAR CLIENTE
+# =============================================================================
 @router.post("/register-cliente", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 def register_cliente(data: ClienteRegisterRequest, db: Session = Depends(get_db)):
     """
-    RF01: Registro de un nuevo cliente desde la web o app móvil.
+    CU-01: Registrar Cliente.
+    Permite el autoregistro de clientes desde la Web o App Móvil.
+    - Valida que el correo electrónico no esté previamente registrado (Excepción 1).
+    - Encripta la contraseña usando algoritmo seguro bcrypt.
+    - Genera y retorna un Token JWT de acceso inmediato.
     """
     # Verificar si el correo ya existe
     existing_cliente = db.query(Cliente).filter(Cliente.email == data.email).first()
@@ -57,10 +64,17 @@ def register_cliente(data: ClienteRegisterRequest, db: Session = Depends(get_db)
     )
 
 
+# =============================================================================
+# CU-02: GESTIONAR INICIO DE SESIÓN
+# =============================================================================
 @router.post("/login", response_model=TokenResponse)
 def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     """
-    Inicio de sesión unificado para Clientes y Personal de la empresa (Admin, Encargados, Cajeros).
+    CU-02: Gestionar Inicio de Sesión.
+    Autenticación unificada para Clientes, Administradores, Encargados y Cajeros.
+    - Valida credenciales contra las tablas 'usuarios' y 'clientes'.
+    - Verifica si la cuenta se encuentra activa (Excepción 2).
+    - Genera un Token de acceso seguro (JWT) con el rol y privilegios correspondientes.
     """
     # 1. Buscar primero en empleados internos
     usuario = db.query(Usuario).filter(Usuario.email == credentials.email).first()

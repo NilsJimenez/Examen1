@@ -9,130 +9,313 @@ import { ToastService } from '../../services/toast.service';
   selector: 'app-login',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
-  
   template: `
     <div class="auth-page-wrapper">
+      
+      <!-- Card Principal Split (2 Columnas Moda de Lujo) -->
       <div class="auth-split-card animate-fade-in">
         
-        <!-- COLUMNA IZQUIERDA: FORMULARIOS -->
+        <!-- ================================================================= -->
+        <!-- COLUMNA IZQUIERDA: FORMULARIO DE ACCESO Y RECUPERACIÓN OTP        -->
+        <!-- ================================================================= -->
         <div class="auth-form-column">
           
-          <div class="auth-header">
-            <h2 class="auth-title">
-              <ng-container *ngIf="viewState === 'login'">INICIAR SESIÓN</ng-container>
-              <ng-container *ngIf="viewState === 'forgot_email'">RECUPERAR CONTRASEÑA</ng-container>
-              <ng-container *ngIf="viewState === 'forgot_code'">CÓDIGO DE VERIFICACIÓN</ng-container>
-              <ng-container *ngIf="viewState === 'forgot_password'">NUEVA CONTRASEÑA</ng-container>
-            </h2>
-            <div class="auth-title-line"></div>
-          </div>
-
-          <div *ngIf="errorMessage" class="auth-alert-error">
-            <i class="fa-solid fa-circle-exclamation mr-2"></i>
-            <span>{{ errorMessage }}</span>
-          </div>
-          
-          <div *ngIf="successMessage" class="auth-alert-success" style="background-color: rgba(34, 197, 94, 0.1); border-left: 4px solid #22c55e; color: #22c55e; padding: 12px; margin-bottom: 20px; border-radius: 4px; display: flex; align-items: center;">
-            <i class="fa-solid fa-check-circle mr-2"></i>
-            <span>{{ successMessage }}</span>
-          </div>
-
-          <!-- ESTADO: LOGIN -->
-          <form *ngIf="viewState === 'login'" (ngSubmit)="onSubmit()" class="auth-form">
-            <div class="auth-field-group">
-              <label class="auth-label">CORREO ELECTRÓNICO <span class="required-star">*</span></label>
-              <input type="email" name="email" [(ngModel)]="email" required placeholder="ejemplo@fashionstore.com" class="auth-input" />
+          <!-- 1. VISTA: INICIAR SESIÓN -->
+          <ng-container *ngIf="viewState === 'login'">
+            <!-- Encabezado con línea de acento dorado -->
+            <div class="auth-header">
+              <h2 class="auth-title">INICIAR SESIÓN</h2>
+              <div class="auth-title-line"></div>
             </div>
 
-            <div class="auth-field-group">
-              <label class="auth-label">CONTRASEÑA <span class="required-star">*</span></label>
-              <div class="password-input-wrapper">
-                <input [type]="mostrarPassword ? 'text' : 'password'" name="password" [(ngModel)]="password" required placeholder="••••••••" class="auth-input pr-10" />
-                <button type="button" class="password-eye-btn" (click)="togglePasswordVisibility()">
-                  <i class="fa-solid" [class.fa-eye]="!mostrarPassword" [class.fa-eye-slash]="mostrarPassword"></i>
-                </button>
+            <!-- Mensaje de Error -->
+            <div *ngIf="errorMessage" class="auth-alert-error">
+              <i class="fa-solid fa-circle-exclamation mr-2"></i>
+              <span>{{ errorMessage }}</span>
+            </div>
+
+            <form (ngSubmit)="onSubmit()" class="auth-form">
+              
+              <!-- Campo Correo Electrónico -->
+              <div class="auth-field-group">
+                <label class="auth-label">
+                  CORREO ELECTRÓNICO <span class="required-star">*</span>
+                </label>
+                <input 
+                  type="email" 
+                  name="email"
+                  [(ngModel)]="email" 
+                  required
+                  placeholder="ejemplo@fashionstore.com"
+                  class="auth-input" 
+                />
               </div>
-            </div>
 
-            <div class="auth-form-footer">
-              <a href="javascript:void(0)" (click)="setViewState('forgot_email')" class="forgot-link">¿Olvidaste tu contraseña?</a>
-            </div>
-
-            <button type="submit" [disabled]="isLoading" class="auth-submit-btn">
-              <span *ngIf="!isLoading">Ingresar <i class="fa-solid fa-arrow-right ml-2"></i></span>
-              <span *ngIf="isLoading"><i class="fa-solid fa-circle-notch fa-spin"></i> Validando...</span>
-            </button>
-            
-            <div class="auth-register-prompt">
-              <span class="auth-prompt-text">¿No tienes una cuenta?</span>
-              <a routerLink="/registro" class="auth-register-link">Regístrate ahora</a>
-            </div>
-          </form>
-
-          <!-- ESTADO: FORGOT EMAIL -->
-          <form *ngIf="viewState === 'forgot_email'" (ngSubmit)="onSendResetCode()" class="auth-form">
-            <p style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 1.5rem;">Ingresa tu correo electrónico y te enviaremos un código de 6 dígitos para restablecer tu contraseña.</p>
-            <div class="auth-field-group">
-              <label class="auth-label">CORREO ELECTRÓNICO <span class="required-star">*</span></label>
-              <input type="email" name="resetEmail" [(ngModel)]="resetEmail" required placeholder="ejemplo@fashionstore.com" class="auth-input" />
-            </div>
-            
-            <button type="submit" [disabled]="isLoading" class="auth-submit-btn">
-              <span *ngIf="!isLoading">Enviar Código</span>
-              <span *ngIf="isLoading"><i class="fa-solid fa-circle-notch fa-spin"></i> Enviando...</span>
-            </button>
-            <button type="button" (click)="setViewState('login')" class="btn-cancelar" style="width: 100%; margin-top: 10px; background: transparent; border: 1px solid var(--border-color); color: white; padding: 12px; border-radius: 4px; cursor: pointer; text-transform: uppercase; font-size: 0.85rem; font-weight: bold;">Cancelar</button>
-          </form>
-
-          <!-- ESTADO: FORGOT CODE -->
-          <form *ngIf="viewState === 'forgot_code'" (ngSubmit)="onVerifyCode()" class="auth-form">
-            <p style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 1.5rem;">Hemos enviado un código a <strong>{{resetEmail}}</strong>. Ingrésalo a continuación (expira en 15 min).</p>
-            <div class="auth-field-group">
-              <label class="auth-label">CÓDIGO DE 6 DÍGITOS <span class="required-star">*</span></label>
-              <input type="text" name="resetCode" [(ngModel)]="resetCode" required placeholder="123456" class="auth-input" style="text-align: center; letter-spacing: 5px; font-size: 1.2rem; font-weight: bold;" maxlength="6" />
-            </div>
-            
-            <button type="submit" [disabled]="isLoading" class="auth-submit-btn">
-              <span *ngIf="!isLoading">Verificar Código</span>
-              <span *ngIf="isLoading"><i class="fa-solid fa-circle-notch fa-spin"></i> Verificando...</span>
-            </button>
-            <button type="button" (click)="setViewState('forgot_email')" class="btn-cancelar" style="width: 100%; margin-top: 10px; background: transparent; border: none; color: var(--accent); cursor: pointer; text-decoration: underline; font-size: 0.85rem;">Ingresé mal mi correo</button>
-          </form>
-
-          <!-- ESTADO: FORGOT PASSWORD -->
-          <form *ngIf="viewState === 'forgot_password'" (ngSubmit)="onResetPassword()" class="auth-form">
-            <p style="color: #9ca3af; font-size: 0.9rem; margin-bottom: 1.5rem;">Crea una nueva contraseña segura para tu cuenta.</p>
-            <div class="auth-field-group">
-              <label class="auth-label">NUEVA CONTRASEÑA <span class="required-star">*</span></label>
-              <div class="password-input-wrapper">
-                <input [type]="mostrarPassword ? 'text' : 'password'" name="newPassword" [(ngModel)]="newPassword" required placeholder="••••••••" class="auth-input pr-10" />
-                <button type="button" class="password-eye-btn" (click)="togglePasswordVisibility()"><i class="fa-solid" [class.fa-eye]="!mostrarPassword" [class.fa-eye-slash]="mostrarPassword"></i></button>
+              <!-- Campo Contraseña con Botón de Mostrar/Ocultar (Ojo) -->
+              <div class="auth-field-group">
+                <label class="auth-label">
+                  CONTRASEÑA <span class="required-star">*</span>
+                </label>
+                <div class="password-input-wrapper">
+                  <input 
+                    [type]="mostrarPassword ? 'text' : 'password'" 
+                    name="password"
+                    [(ngModel)]="password" 
+                    required
+                    placeholder="Introduce tu contraseña"
+                    class="auth-input password-input" 
+                  />
+                  <button 
+                    type="button" 
+                    (click)="toggleMostrarPassword()" 
+                    class="password-toggle-btn"
+                    [title]="mostrarPassword ? 'Ocultar contraseña' : 'Ver contraseña'"
+                  >
+                    <i class="fa-solid" [class.fa-eye]="!mostrarPassword" [class.fa-eye-slash]="mostrarPassword"></i>
+                  </button>
+                </div>
               </div>
+
+              <!-- Fila: Recordarme & Olvidaste tu contraseña -->
+              <div class="auth-meta-row">
+                <label class="remember-me-label">
+                  <input type="checkbox" [(ngModel)]="recordarme" name="recordarme" class="remember-checkbox" />
+                  <span>Recordarme</span>
+                </label>
+                <a href="javascript:void(0)" (click)="setViewState('forgot_email')" class="forgot-link">
+                  ¿Olvidaste tu contraseña?
+                </a>
+              </div>
+
+              <!-- Botón Principal Submit -->
+              <button 
+                type="submit" 
+                [disabled]="loading" 
+                class="auth-submit-btn"
+              >
+                <span *ngIf="loading"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> VERIFICANDO...</span>
+                <span *ngIf="!loading">INICIAR SESIÓN</span>
+              </button>
+            </form>
+
+            <!-- Separador Estilizado -->
+            <div class="auth-divider">
+              <span>O ACCEDE COMO DEMO</span>
             </div>
-            
-            <button type="submit" [disabled]="isLoading" class="auth-submit-btn">
-              <span *ngIf="!isLoading">Actualizar Contraseña</span>
-              <span *ngIf="isLoading"><i class="fa-solid fa-circle-notch fa-spin"></i> Actualizando...</span>
-            </button>
-          </form>
+
+            <!-- Botones de Rápido Acceso Demo (Estilo Botones Sociales de la Referencia) -->
+            <div class="demo-buttons-grid">
+              <button 
+                type="button" 
+                (click)="fillCredentials('admin')" 
+                class="demo-access-btn"
+                title="Cargar credenciales de Administrador"
+              >
+                <i class="fa-solid fa-shield-halved mr-2" style="color: var(--accent);"></i>
+                <span>Admin Demo</span>
+              </button>
+
+              <button 
+                type="button" 
+                (click)="fillCredentials('encargado')" 
+                class="demo-access-btn"
+                title="Cargar credenciales de Encargado de Sucursal"
+              >
+                <i class="fa-solid fa-warehouse mr-2" style="color: #818cf8;"></i>
+                <span>Encargado Demo</span>
+              </button>
+            </div>
+
+            <!-- Enlace a Registro -->
+            <div class="auth-footer-switch">
+              <span>¿Aún no tienes cuenta?</span>
+              <a routerLink="/registro" class="switch-link">
+                Regístrate aquí
+              </a>
+            </div>
+          </ng-container>
+
+          <!-- 2. VISTA: RECUPERACIÓN - PASO 1 (INGRESAR EMAIL) -->
+          <ng-container *ngIf="viewState === 'forgot_email'">
+            <div class="auth-header">
+              <h2 class="auth-title">RECUPERAR CONTRASEÑA</h2>
+              <div class="auth-title-line"></div>
+            </div>
+
+            <p class="auth-helper-text">
+              Ingresa tu correo electrónico registrado y te enviaremos un código de seguridad OTP de 6 dígitos.
+            </p>
+
+            <div *ngIf="errorMessage" class="auth-alert-error">
+              <i class="fa-solid fa-circle-exclamation mr-2"></i>
+              <span>{{ errorMessage }}</span>
+            </div>
+            <div *ngIf="successMessage" class="auth-alert-success">
+              <i class="fa-solid fa-circle-check mr-2"></i>
+              <span>{{ successMessage }}</span>
+            </div>
+
+            <form (ngSubmit)="onSendResetCode()" class="auth-form">
+              <div class="auth-field-group">
+                <label class="auth-label">
+                  CORREO ELECTRÓNICO <span class="required-star">*</span>
+                </label>
+                <input 
+                  type="email" 
+                  name="resetEmail"
+                  [(ngModel)]="resetEmail" 
+                  required
+                  placeholder="ejemplo@fashionstore.com"
+                  class="auth-input" 
+                />
+              </div>
+
+              <button type="submit" [disabled]="loading" class="auth-submit-btn">
+                <span *ngIf="loading"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> ENVIANDO CÓDIGO...</span>
+                <span *ngIf="!loading">ENVIAR CÓDIGO OTP</span>
+              </button>
+
+              <button type="button" (click)="setViewState('login')" class="auth-back-btn">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Volver a Iniciar Sesión
+              </button>
+            </form>
+          </ng-container>
+
+          <!-- 3. VISTA: RECUPERACIÓN - PASO 2 (INGRESAR CÓDIGO OTP) -->
+          <ng-container *ngIf="viewState === 'forgot_code'">
+            <div class="auth-header">
+              <h2 class="auth-title">VALIDAR CÓDIGO OTP</h2>
+              <div class="auth-title-line"></div>
+            </div>
+
+            <p class="auth-helper-text">
+              Hemos enviado un código de 6 dígitos a <strong>{{ resetEmail }}</strong>. Ingrésalo a continuación:
+            </p>
+
+            <div *ngIf="errorMessage" class="auth-alert-error">
+              <i class="fa-solid fa-circle-exclamation mr-2"></i>
+              <span>{{ errorMessage }}</span>
+            </div>
+            <div *ngIf="successMessage" class="auth-alert-success">
+              <i class="fa-solid fa-circle-check mr-2"></i>
+              <span>{{ successMessage }}</span>
+            </div>
+
+            <form (ngSubmit)="onVerifyCode()" class="auth-form">
+              <div class="auth-field-group">
+                <label class="auth-label">
+                  CÓDIGO DE 6 DÍGITOS <span class="required-star">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  name="resetCode"
+                  [(ngModel)]="resetCode" 
+                  maxlength="6"
+                  required
+                  placeholder="123456"
+                  class="auth-input otp-code-input" 
+                />
+              </div>
+
+              <button type="submit" [disabled]="loading" class="auth-submit-btn">
+                <span *ngIf="loading"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> VERIFICANDO...</span>
+                <span *ngIf="!loading">VERIFICAR CÓDIGO</span>
+              </button>
+
+              <button type="button" (click)="setViewState('forgot_email')" class="auth-back-btn">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Cambiar correo
+              </button>
+            </form>
+          </ng-container>
+
+          <!-- 4. VISTA: RECUPERACIÓN - PASO 3 (NUEVA CONTRASEÑA) -->
+          <ng-container *ngIf="viewState === 'forgot_password'">
+            <div class="auth-header">
+              <h2 class="auth-title">NUEVA CONTRASEÑA</h2>
+              <div class="auth-title-line"></div>
+            </div>
+
+            <p class="auth-helper-text">
+              Introduce tu nueva contraseña segura para restablecer el acceso a tu cuenta.
+            </p>
+
+            <div *ngIf="errorMessage" class="auth-alert-error">
+              <i class="fa-solid fa-circle-exclamation mr-2"></i>
+              <span>{{ errorMessage }}</span>
+            </div>
+
+            <form (ngSubmit)="onResetPassword()" class="auth-form">
+              <div class="auth-field-group">
+                <label class="auth-label">
+                  NUEVA CONTRASEÑA <span class="required-star">*</span>
+                </label>
+                <div class="password-input-wrapper">
+                  <input 
+                    [type]="mostrarPassword ? 'text' : 'password'" 
+                    name="newPassword"
+                    [(ngModel)]="newPassword" 
+                    required
+                    placeholder="Mínimo 6 caracteres"
+                    class="auth-input password-input" 
+                  />
+                  <button 
+                    type="button" 
+                    (click)="toggleMostrarPassword()" 
+                    class="password-toggle-btn"
+                  >
+                    <i class="fa-solid" [class.fa-eye]="!mostrarPassword" [class.fa-eye-slash]="mostrarPassword"></i>
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" [disabled]="loading" class="auth-submit-btn">
+                <span *ngIf="loading"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> ACTUALIZANDO...</span>
+                <span *ngIf="!loading">ACTUALIZAR CONTRASEÑA</span>
+              </button>
+
+              <button type="button" (click)="setViewState('login')" class="auth-back-btn">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Cancelar
+              </button>
+            </form>
+          </ng-container>
 
         </div>
 
-        <!-- COLUMNA DERECHA: IMAGEN / BRANDING -->
-        <div class="auth-image-column" style="background-image: url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop');">
-          <div class="auth-image-overlay">
-            <h1 class="brand-logo-large">
-              <i class="fa-solid fa-vest-patches"></i> FashionStore
-            </h1>
-            <p class="brand-tagline">Descubre tu propio estilo.<br>Vístete para el éxito.</p>
+        <!-- ================================================================= -->
+        <!-- COLUMNA DERECHA: FASHION EDITORIAL BANNER (FOTO DE MODA DE LUJO)  -->
+        <!-- ================================================================= -->
+        <div class="auth-image-column">
+          
+          <!-- Botón de Cerrar (X) que regresa al catálogo -->
+          <button (click)="cerrarModal()" class="close-modal-btn" title="Cerrar y volver al catálogo">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+
+          <!-- Capa de Gradiente Oscuro para Legibilidad -->
+          <div class="auth-image-overlay"></div>
+
+          <!-- Contenido Tipográfico de Alta Costura sobre la Imagen -->
+          <div class="auth-image-content">
+            <span class="editorial-tag">
+              <i class="fa-solid fa-gem mr-1.5"></i> COLECCIÓN 2026
+            </span>
+            <h3 class="editorial-brand">FASHIONSTORE</h3>
+            <p class="editorial-headline">
+              ALTA COSTURA &<br>VESTIDORES VIRTUALES
+            </p>
+            <div class="editorial-separator"></div>
+            <p class="editorial-subtext">
+              Reserva prendas exclusivas online y pruébatelas en probadores VIP equipados con realidad aumentada
+            </p>
           </div>
+
         </div>
 
       </div>
+
     </div>
   `,
-  styles: [
-`
+  styles: [`
     .auth-page-wrapper {
       min-height: calc(100vh - 120px);
       display: flex;
@@ -182,7 +365,7 @@ import { ToastService } from '../../services/toast.service';
     }
 
     .auth-header {
-      margin-bottom: 2.25rem;
+      margin-bottom: 1.75rem;
     }
 
     .auth-title {
@@ -203,6 +386,13 @@ import { ToastService } from '../../services/toast.service';
       margin-top: 0.6rem;
     }
 
+    .auth-helper-text {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+    }
+
     .auth-alert-error {
       background: rgba(239, 68, 68, 0.12);
       color: #ef4444;
@@ -210,7 +400,19 @@ import { ToastService } from '../../services/toast.service';
       padding: 0.85rem 1.15rem;
       border-radius: 8px;
       font-size: 0.85rem;
-      margin-bottom: 1.75rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .auth-alert-success {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 0.85rem 1.15rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 1.5rem;
       display: flex;
       align-items: center;
     }
@@ -218,7 +420,7 @@ import { ToastService } from '../../services/toast.service';
     .auth-form {
       display: flex;
       flex-direction: column;
-      gap: 1.5rem;
+      gap: 1.4rem;
     }
 
     .auth-field-group {
@@ -261,6 +463,13 @@ import { ToastService } from '../../services/toast.service';
     .auth-input::placeholder {
       color: var(--text-muted);
       opacity: 0.6;
+    }
+
+    .otp-code-input {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: 0.35em;
+      text-align: center;
     }
 
     /* Wrapper de Contraseña con Botón de Ojo */
@@ -347,7 +556,7 @@ import { ToastService } from '../../services/toast.service';
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.2s ease;
-      margin-top: 0.75rem;
+      margin-top: 0.5rem;
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
     }
 
@@ -361,6 +570,25 @@ import { ToastService } from '../../services/toast.service';
     .auth-submit-btn:disabled {
       opacity: 0.6;
       cursor: not-allowed;
+    }
+
+    .auth-back-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0.4rem;
+      text-align: center;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s ease;
+    }
+
+    .auth-back-btn:hover {
+      color: var(--accent);
     }
 
     /* Separador Demo */
@@ -392,7 +620,7 @@ import { ToastService } from '../../services/toast.service';
       letter-spacing: 0.08em;
     }
 
-    /* Botones Rápidos Demo (Estilo social media de la referencia) */
+    /* Botones Rápidos Demo */
     .demo-buttons-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -544,127 +772,148 @@ import { ToastService } from '../../services/toast.service';
     }
   `]
 })
-
 export class LoginComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
   private toastService = inject(ToastService);
 
-  // General States
+  // Estados de vista
   viewState: 'login' | 'forgot_email' | 'forgot_code' | 'forgot_password' = 'login';
-  isLoading = false;
-  errorMessage = '';
-  successMessage = '';
-  mostrarPassword = false;
+  loading: boolean = false;
+  errorMessage: string = '';
+  successMessage: string = '';
+  mostrarPassword: boolean = false;
+  recordarme: boolean = true;
 
-  // Login Form
-  email = '';
-  password = '';
+  // Formulario Login
+  email: string = '';
+  password: string = '';
 
-  // Reset Form
-  resetEmail = '';
-  resetCode = '';
-  newPassword = '';
+  // Formulario Recuperación OTP
+  resetEmail: string = '';
+  resetCode: string = '';
+  newPassword: string = '';
 
-  setViewState(state: 'login' | 'forgot_email' | 'forgot_code' | 'forgot_password') {
+  setViewState(state: 'login' | 'forgot_email' | 'forgot_code' | 'forgot_password'): void {
     this.viewState = state;
     this.errorMessage = '';
     this.successMessage = '';
   }
 
-  togglePasswordVisibility() {
+  toggleMostrarPassword(): void {
     this.mostrarPassword = !this.mostrarPassword;
   }
 
-  onSubmit() {
+  fillCredentials(role: 'admin' | 'encargado'): void {
+    if (role === 'admin') {
+      this.email = 'admin@fashionstore.com';
+      this.password = 'Admin123!';
+    } else {
+      this.email = 'encargado@fashionstore.com';
+      this.password = 'Admin123!';
+    }
+  }
+
+  cerrarModal(): void {
+    this.router.navigate(['/catalogo']);
+  }
+
+  onSubmit(): void {
     if (!this.email || !this.password) {
-      this.errorMessage = 'Por favor, completa todos los campos requeridos.';
+      this.errorMessage = 'Por favor ingresa tu correo electrónico y contraseña.';
+      this.toastService.error('Campos Requeridos', this.errorMessage);
       return;
     }
 
-    this.isLoading = true;
+    this.loading = true;
     this.errorMessage = '';
 
     this.authService.login({ email: this.email, password: this.password }).subscribe({
       next: (res) => {
-        this.isLoading = false;
-        this.toastService.success('¡Bienvenido!', `Has iniciado sesión correctamente.`);
-        // Redirigir según el rol
-        const rol = res.role?.toLowerCase() || '';
-        if (rol === 'admin') {
+        this.loading = false;
+        this.toastService.success('¡Bienvenido!', `Has iniciado sesión correctamente como ${res.role || 'cliente'}.`);
+        const rol = (res.role || '').toLowerCase();
+        if (rol === 'administrador' || rol === 'admin') {
           this.router.navigate(['/admin']);
-        } else if (rol === 'encargado_sucursal') {
+        } else if (rol === 'encargado_sucursal' || rol === 'encargado') {
           this.router.navigate(['/encargado']);
         } else if (rol === 'cajero') {
-          this.router.navigate(['/cajero']);
+          this.router.navigate(['/encargado']);
         } else {
           this.router.navigate(['/catalogo']);
         }
       },
       error: (err) => {
-        this.isLoading = false;
-        this.errorMessage = 'Credenciales inválidas. Por favor, intenta nuevamente.';
+        this.loading = false;
+        this.errorMessage = err.error?.detail || 'Credenciales incorrectas. Verifica tu usuario y contraseña.';
+        this.toastService.error('Error de Acceso', this.errorMessage);
       }
     });
   }
 
-  onSendResetCode() {
+  onSendResetCode(): void {
     if (!this.resetEmail) {
-      this.errorMessage = 'Ingresa tu correo.'; return;
+      this.errorMessage = 'Ingresa tu correo electrónico registrado.';
+      return;
     }
-    this.isLoading = true;
+    this.loading = true;
     this.errorMessage = '';
     this.successMessage = '';
-    
+
     this.authService.forgotPassword(this.resetEmail).subscribe({
       next: (res) => {
-        this.isLoading = false;
-        this.successMessage = res.message || 'Código enviado.';
-        setTimeout(() => this.setViewState('forgot_code'), 1500);
+        this.loading = false;
+        this.successMessage = res.message || 'Código enviado con éxito.';
+        this.toastService.success('Código Enviado', 'Revisa tu bandeja de entrada o spam.');
+        setTimeout(() => this.setViewState('forgot_code'), 1200);
       },
       error: (err) => {
-        this.isLoading = false;
-        this.errorMessage = err.error?.detail || 'Error al enviar código.';
+        this.loading = false;
+        this.errorMessage = err.error?.detail || 'No se pudo enviar el código. Verifica el correo.';
       }
     });
   }
 
-  onVerifyCode() {
+  onVerifyCode(): void {
     if (!this.resetCode || this.resetCode.length !== 6) {
-      this.errorMessage = 'Ingresa el código de 6 dígitos.'; return;
+      this.errorMessage = 'Por favor ingresa el código de 6 dígitos.';
+      return;
     }
-    this.isLoading = true;
+    this.loading = true;
     this.errorMessage = '';
-    
+
     this.authService.verifyCode(this.resetEmail, this.resetCode).subscribe({
       next: () => {
-        this.isLoading = false;
-        this.successMessage = 'Código correcto. Ahora ingresa tu nueva contraseña.';
-        setTimeout(() => this.setViewState('forgot_password'), 1500);
+        this.loading = false;
+        this.successMessage = 'Código verificado. Ahora escribe tu nueva contraseña.';
+        setTimeout(() => this.setViewState('forgot_password'), 1000);
       },
       error: (err) => {
-        this.isLoading = false;
-        this.errorMessage = err.error?.detail || 'Código inválido.';
+        this.loading = false;
+        this.errorMessage = err.error?.detail || 'Código inválido o expirado.';
       }
     });
   }
 
-  onResetPassword() {
-    if (!this.newPassword) {
-      this.errorMessage = 'Ingresa la nueva contraseña.'; return;
+  onResetPassword(): void {
+    if (!this.newPassword || this.newPassword.length < 6) {
+      this.errorMessage = 'La nueva contraseña debe tener al menos 6 caracteres.';
+      return;
     }
-    this.isLoading = true;
+    this.loading = true;
     this.errorMessage = '';
-    
+
     this.authService.resetPassword(this.resetEmail, this.resetCode, this.newPassword).subscribe({
       next: () => {
-        this.isLoading = false;
-        this.toastService.success('¡Contraseña actualizada!', 'Ya puedes iniciar sesión.');
+        this.loading = false;
+        this.toastService.success('¡Contraseña Actualizada!', 'Tu contraseña ha sido cambiada. Inicia sesión con tus nuevos datos.');
+        this.email = this.resetEmail;
+        this.password = '';
         this.setViewState('login');
       },
       error: (err) => {
-        this.isLoading = false;
-        this.errorMessage = err.error?.detail || 'Error al actualizar contraseña.';
+        this.loading = false;
+        this.errorMessage = err.error?.detail || 'Error al actualizar la contraseña.';
       }
     });
   }
