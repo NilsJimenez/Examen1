@@ -16,11 +16,19 @@ export interface VentasPorDia {
   total: number;
 }
 
+export interface FiltrosInterpretados {
+  sucursal_id?: number | null;
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
+  formato_descarga?: 'pdf' | 'xlsx' | null;
+}
+
 export interface DashboardReporteOut {
   kpis: KPIData;
   ventas_por_dia: VentasPorDia[];
   mensaje: string | null;
   resumen_ia?: string;
+  filtros_interpretados?: FiltrosInterpretados;
 }
 
 @Injectable({

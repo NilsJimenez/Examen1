@@ -21,11 +21,45 @@ declare var webkitSpeechRecognition: any;
         </div>
         
         <div class="flex gap-3">
-          <button (click)="descargar('pdf')" class="btn btn-outline" style="border-color: #ef4444; color: #ef4444; padding: 0.6rem 1.2rem;">
-            <i class="fa-solid fa-file-pdf"></i> PDF
+          <button (click)="descargar('pdf')" [disabled]="descargandoFormato === 'pdf'" class="btn btn-outline" style="border-color: #ef4444; color: #ef4444; padding: 0.6rem 1.2rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid" [ngClass]="descargandoFormato === 'pdf' ? 'fa-circle-notch fa-spin' : 'fa-file-pdf'"></i> {{ descargandoFormato === 'pdf' ? 'Generando...' : 'Descargar PDF' }}
           </button>
-          <button (click)="descargar('xlsx')" class="btn btn-outline" style="border-color: #10b981; color: #10b981; padding: 0.6rem 1.2rem;">
-            <i class="fa-solid fa-file-excel"></i> Excel
+          <button (click)="descargar('xlsx')" [disabled]="descargandoFormato === 'xlsx'" class="btn btn-outline" style="border-color: #10b981; color: #10b981; padding: 0.6rem 1.2rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid" [ngClass]="descargandoFormato === 'xlsx' ? 'fa-circle-notch fa-spin' : 'fa-file-excel'"></i> {{ descargandoFormato === 'xlsx' ? 'Generando...' : 'Descargar Excel' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de Comando Inteligente con IA (Voz o Texto) -->
+      <div *ngIf="esAdmin" class="p-4 mb-6 rounded-xl" style="background: linear-gradient(135deg, rgba(167, 139, 250, 0.12), rgba(99, 102, 241, 0.08)); border: 1px solid rgba(167, 139, 250, 0.3);">
+        <label style="display: block; font-size: 0.8rem; color: #a78bfa; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Consulta Inteligente con IA (Voz o Texto con Descarga Automática)
+        </label>
+        <div class="flex gap-2">
+          <input 
+            type="text" 
+            [(ngModel)]="promptTextoIA" 
+            (keyup.enter)="enviarPromptTexto()" 
+            placeholder="Ej: 'Ventas de este mes y descargar en PDF' o 'Reporte en Excel de la sucursal Central'..." 
+            class="input" 
+            style="flex: 1; background: var(--card-bg); border: 1px solid rgba(167, 139, 250, 0.4); color: var(--text-main); padding: 0.6rem 1rem;"
+          >
+          <button 
+            (click)="enviarPromptTexto()" 
+            [disabled]="cargando || !promptTextoIA.trim()" 
+            class="btn" 
+            style="background: #a78bfa; color: #1e1b4b; font-weight: bold; padding: 0 1.2rem; display: flex; align-items: center; gap: 0.5rem;"
+          >
+            <i class="fa-solid fa-paper-plane"></i> Pedir
+          </button>
+          <button 
+            (click)="iniciarEscucha()" 
+            [disabled]="escuchando || cargando" 
+            class="btn btn-outline" 
+            style="border-color: #a78bfa; color: #a78bfa; padding: 0 1.2rem; display: flex; align-items: center; gap: 0.5rem;"
+            title="Hablar por micrófono"
+          >
+            <i class="fa-solid fa-microphone" [class.fa-beat-fade]="escuchando"></i> {{ escuchando ? 'Escuchando...' : 'Voz' }}
           </button>
         </div>
       </div>
@@ -49,12 +83,6 @@ declare var webkitSpeechRecognition: any;
               <option [ngValue]="null">Todas las sucursales</option>
               <option *ngFor="let s of sucursales" [value]="s.id">{{ s.nombre }}</option>
             </select>
-          </div>
-          
-          <div *ngIf="esAdmin" style="min-width: 200px;">
-            <button (click)="iniciarEscucha()" [disabled]="escuchando" class="btn btn-outline" style="width: 100%; height: 42px; border-color: #a78bfa; color: #a78bfa; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-              <i class="fa-solid fa-microphone" [class.fa-beat-fade]="escuchando"></i> {{ escuchando ? 'Escuchando...' : 'Pedir a la IA' }}
-            </button>
           </div>
 
           <div style="min-width: 150px;">
@@ -88,15 +116,30 @@ declare var webkitSpeechRecognition: any;
 
       <!-- Resumen IA -->
       <div *ngIf="!cargando && data?.resumen_ia" class="card" style="padding: 1.5rem; margin-bottom: 2rem; background: linear-gradient(145deg, rgba(167, 139, 250, 0.1), var(--card-bg)); border: 1px solid #a78bfa; border-left: 4px solid #a78bfa;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-          <h3 style="font-size: 1.1rem; font-family: serif; color: #a78bfa; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+          <h3 style="font-size: 1.15rem; font-family: serif; color: #a78bfa; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
             <i class="fa-solid fa-wand-magic-sparkles"></i> Resumen Ejecutivo de IA
           </h3>
-          <button (click)="toggleVoz()" class="btn btn-outline" style="border-color: #a78bfa; color: #a78bfa; padding: 0.3rem 0.6rem; font-size: 0.8rem; border-radius: 50px;">
-            <i class="fa-solid" [ngClass]="hablando ? 'fa-volume-xmark' : 'fa-volume-high'"></i> {{ hablando ? 'Detener Voz' : 'Escuchar' }}
-          </button>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <button (click)="descargar('pdf')" [disabled]="descargandoFormato === 'pdf'" class="btn btn-outline" style="border-color: #ef4444; color: #ef4444; padding: 0.35rem 0.8rem; font-size: 0.82rem; border-radius: 6px; display: flex; align-items: center; gap: 0.3rem;">
+              <i class="fa-solid" [ngClass]="descargandoFormato === 'pdf' ? 'fa-circle-notch fa-spin' : 'fa-file-pdf'"></i> {{ descargandoFormato === 'pdf' ? 'Generando...' : 'Descargar PDF' }}
+            </button>
+            <button (click)="descargar('xlsx')" [disabled]="descargandoFormato === 'xlsx'" class="btn btn-outline" style="border-color: #10b981; color: #10b981; padding: 0.35rem 0.8rem; font-size: 0.82rem; border-radius: 6px; display: flex; align-items: center; gap: 0.3rem;">
+              <i class="fa-solid" [ngClass]="descargandoFormato === 'xlsx' ? 'fa-circle-notch fa-spin' : 'fa-file-excel'"></i> {{ descargandoFormato === 'xlsx' ? 'Generando...' : 'Descargar Excel' }}
+            </button>
+            <button (click)="toggleVoz()" class="btn btn-outline" style="border-color: #a78bfa; color: #a78bfa; padding: 0.35rem 0.8rem; font-size: 0.82rem; border-radius: 50px;">
+              <i class="fa-solid" [ngClass]="hablando ? 'fa-volume-xmark' : 'fa-volume-high'"></i> {{ hablando ? 'Detener Voz' : 'Escuchar' }}
+            </button>
+          </div>
         </div>
         <p style="color: var(--text-main); line-height: 1.6; font-size: 0.95rem; white-space: pre-wrap; margin: 0;">{{ data?.resumen_ia }}</p>
+
+        <div *ngIf="data?.filtros_interpretados" style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed rgba(167, 139, 250, 0.3); display: flex; gap: 1rem; font-size: 0.8rem; color: var(--text-muted); flex-wrap: wrap;">
+          <span *ngIf="data?.filtros_interpretados?.sucursal_id"><i class="fa-solid fa-store" style="color: #a78bfa;"></i> Sucursal: #{{ data?.filtros_interpretados?.sucursal_id }}</span>
+          <span *ngIf="data?.filtros_interpretados?.fecha_inicio"><i class="fa-solid fa-calendar-day" style="color: #a78bfa;"></i> Desde: {{ data?.filtros_interpretados?.fecha_inicio }}</span>
+          <span *ngIf="data?.filtros_interpretados?.fecha_fin"><i class="fa-solid fa-calendar-day" style="color: #a78bfa;"></i> Hasta: {{ data?.filtros_interpretados?.fecha_fin }}</span>
+          <span *ngIf="data?.filtros_interpretados?.formato_descarga"><i class="fa-solid fa-cloud-arrow-down" style="color: #10b981;"></i> Descarga solicitada: <b>{{ data?.filtros_interpretados?.formato_descarga?.toUpperCase() }}</b></span>
+        </div>
       </div>
 
       <!-- Tarjetas de KPIs (Diseño Profesional en Grid puro inline) -->
@@ -190,6 +233,8 @@ export class ReportesComponent implements OnInit {
   cargando = false;
   escuchando = false;
   textoEscuchado = '';
+  promptTextoIA = '';
+  descargandoFormato: 'pdf' | 'xlsx' | null = null;
   hablando = false;
   sucursales: Sucursal[] = [];
 
@@ -222,9 +267,17 @@ export class ReportesComponent implements OnInit {
     });
   }
 
+  enviarPromptTexto() {
+    if (!this.promptTextoIA.trim() || this.cargando) return;
+    const p = this.promptTextoIA.trim();
+    this.textoEscuchado = p;
+    this.promptTextoIA = '';
+    this.procesarComandoIA(p);
+  }
+
   iniciarEscucha() {
     if (!('webkitSpeechRecognition' in window)) {
-      alert("Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.");
+      alert("Tu navegador no soporta reconocimiento de voz. Puedes escribir tu consulta en el campo de texto de IA.");
       return;
     }
     const recognition = new webkitSpeechRecognition();
@@ -234,7 +287,7 @@ export class ReportesComponent implements OnInit {
 
     recognition.onstart = () => {
       this.escuchando = true;
-      this.textoEscuchado = 'Escuchando...';
+      this.textoEscuchado = 'Escuchando tu voz...';
       this.detenerVoz(); // Callar a la IA si empieza a escuchar al usuario
     };
 
@@ -246,7 +299,7 @@ export class ReportesComponent implements OnInit {
 
     recognition.onerror = (event: any) => {
       console.error(event.error);
-      alert("Error con el micrófono. Intenta de nuevo.");
+      alert("Error con el micrófono. Puedes escribir tu solicitud directamente en el recuadro de texto.");
       this.escuchando = false;
       this.textoEscuchado = '';
     };
@@ -266,7 +319,7 @@ export class ReportesComponent implements OnInit {
       if (this.cargando) {
         this.cargando = false;
         this.textoEscuchado = '';
-        alert("Los servidores de Inteligencia Artificial (Google Gemini) están congestionados y no respondieron a tiempo. Por favor, usa los filtros manuales.");
+        alert("Los servidores de Inteligencia Artificial tardaron demasiado en responder. Puedes usar los filtros manuales o los botones de descarga directa.");
       }
     }, 15000);
 
@@ -276,9 +329,27 @@ export class ReportesComponent implements OnInit {
         if (this.cargando) {
           this.data = res;
           this.cargando = false;
-          setTimeout(() => this.textoEscuchado = '', 5000);
+          setTimeout(() => this.textoEscuchado = '', 6000);
           
-          // --- TEXT TO SPEECH (NUEVO) ---
+          // Sincronizar filtros si la IA detectó fechas o sucursal
+          if (res.filtros_interpretados) {
+            if (res.filtros_interpretados.sucursal_id !== undefined && res.filtros_interpretados.sucursal_id !== null) {
+              this.filtros.sucursal_id = res.filtros_interpretados.sucursal_id;
+            }
+            if (res.filtros_interpretados.fecha_inicio) {
+              this.filtros.fecha_inicio = res.filtros_interpretados.fecha_inicio;
+            }
+            if (res.filtros_interpretados.fecha_fin) {
+              this.filtros.fecha_fin = res.filtros_interpretados.fecha_fin;
+            }
+
+            // Descarga automática si el usuario la solicitó
+            if (res.filtros_interpretados.formato_descarga) {
+              this.descargar(res.filtros_interpretados.formato_descarga);
+            }
+          }
+
+          // --- TEXT TO SPEECH ---
           if (this.data?.resumen_ia && !this.data.resumen_ia.includes("saturada")) {
             this.reproducirVoz(this.data.resumen_ia);
           }
@@ -287,7 +358,7 @@ export class ReportesComponent implements OnInit {
       error: (err) => {
         clearTimeout(timeoutError);
         if (this.cargando) {
-          alert(err.error?.detail || "Los servidores de Inteligencia Artificial están saturados hoy. Por favor, intenta de nuevo más tarde o usa los filtros manuales.");
+          alert(err.error?.detail || "Los servidores de Inteligencia Artificial están ocupados. Por favor, intenta de nuevo o usa los filtros y botones de descarga directa.");
           this.cargando = false;
           this.textoEscuchado = '';
         }
@@ -328,13 +399,24 @@ export class ReportesComponent implements OnInit {
   }
 
   descargar(formato: 'pdf' | 'xlsx') {
-    this.reportesService.exportarReporte(formato, this.filtros).subscribe((blob) => {
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `reporte_${new Date().getTime()}.${formato}`;
-      a.click();
-      window.URL.revokeObjectURL(url);
+    this.descargandoFormato = formato;
+    this.reportesService.exportarReporte(formato, this.filtros).subscribe({
+      next: (blob: any) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `reporte_fashionstore_${formato}_${new Date().getTime()}.${formato}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        this.descargandoFormato = null;
+      },
+      error: (err: any) => {
+        console.error("Error al exportar reporte", err);
+        alert(`No se pudo descargar el archivo ${formato.toUpperCase()}. Verifica que existan datos de ventas.`);
+        this.descargandoFormato = null;
+      }
     });
   }
 }

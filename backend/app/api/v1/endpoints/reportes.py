@@ -138,8 +138,14 @@ def exportar_reporte(
         ws.title = "Reporte de Ventas"
         ws.append(["ID Venta", "Fecha", "Monto Total (Bs)", "Atendido Por (Usuario ID)"])
         
+        total_acumulado = 0.0
         for v in ventas:
-            ws.append([v.id, v.fecha_venta.strftime("%Y-%m-%d %H:%M:%S"), float(v.total), v.usuario_id])
+            monto = float(v.total)
+            total_acumulado += monto
+            f_str = v.fecha_venta.strftime("%Y-%m-%d %H:%M:%S") if hasattr(v.fecha_venta, 'strftime') else str(v.fecha_venta)
+            ws.append([v.id, f_str, monto, v.usuario_id or "N/A"])
+            
+        ws.append(["TOTAL", "", total_acumulado, ""])
             
         stream = io.BytesIO()
         wb.save(stream)
@@ -148,32 +154,69 @@ def exportar_reporte(
         return StreamingResponse(
             stream, 
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename=reporte_{datetime.now().strftime('%Y%m%d')}.xlsx"}
+            headers={"Content-Disposition": f"attachment; filename=reporte_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"}
         )
         
     elif formato == "pdf":
         pdf = FPDF()
         pdf.add_page()
-        pdf.set_font("Helvetica", size=16)
-        pdf.cell(200, 10, txt="Reporte Consolidado de Ventas - FashionStore", ln=True, align='C')
-        pdf.set_font("Helvetica", size=10)
-        pdf.ln(10)
         
-        pdf.cell(50, 10, txt="Fecha", border=1)
-        pdf.cell(40, 10, txt="Usuario ID", border=1)
-        pdf.cell(40, 10, txt="Total (Bs)", border=1, ln=True)
+        # Encabezado con estilo FashionStore
+        pdf.set_fill_color(30, 41, 59) # Slate oscuro
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_font("Helvetica", "B", 16)
+        pdf.cell(190, 14, txt=" FashionStore - Reporte Oficial de Ventas", ln=True, align='L', fill=True)
+        
+        pdf.set_text_color(100, 100, 100)
+        pdf.set_font("Helvetica", size=9)
+        pdf.ln(4)
+        info_filtro = f"Fecha de emisión: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        if sucursal_id:
+            info_filtro += f" | Sucursal ID: {sucursal_id}"
+        if fecha_inicio:
+            info_filtro += f" | Desde: {fecha_inicio}"
+        if fecha_fin:
+            info_filtro += f" | Hasta: {fecha_fin}"
+        pdf.cell(190, 6, txt=info_filtro, ln=True)
+        pdf.ln(4)
+        
+        # Cabecera de la tabla
+        pdf.set_fill_color(241, 245, 249)
+        pdf.set_text_color(30, 41, 59)
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.cell(30, 9, txt="ID Venta", border=1, fill=True, align='C')
+        pdf.cell(55, 9, txt="Fecha y Hora", border=1, fill=True, align='C')
+        pdf.cell(45, 9, txt="Usuario / Cajero ID", border=1, fill=True, align='C')
+        pdf.cell(60, 9, txt="Total (Bs.)", border=1, ln=True, fill=True, align='R')
+        
+        # Filas de la tabla
+        pdf.set_font("Helvetica", size=10)
+        pdf.set_text_color(50, 50, 50)
+        total_acumulado = 0.0
         
         for v in ventas:
-            pdf.cell(50, 10, txt=v.fecha_venta.strftime("%Y-%m-%d"), border=1)
-            pdf.cell(40, 10, txt=str(v.usuario_id), border=1)
-            pdf.cell(40, 10, txt=str(float(v.total)), border=1, ln=True)
+            monto = float(v.total)
+            total_acumulado += monto
+            f_str = v.fecha_venta.strftime("%Y-%m-%d %H:%M") if hasattr(v.fecha_venta, 'strftime') else str(v.fecha_venta)
+            pdf.cell(30, 8, txt=f"#{v.id}", border=1, align='C')
+            pdf.cell(55, 8, txt=f_str, border=1, align='C')
+            pdf.cell(45, 8, txt=str(v.usuario_id or "N/A"), border=1, align='C')
+            pdf.cell(60, 8, txt=f"Bs. {monto:,.2f}", border=1, ln=True, align='R')
             
-        stream = io.BytesIO(pdf.output(dest='S').encode('latin1'))
+        # Fila de Total
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.set_fill_color(248, 250, 252)
+        pdf.cell(130, 9, txt="TOTAL CONSOLIDADO:", border=1, fill=True, align='R')
+        pdf.set_text_color(20, 110, 80)
+        pdf.cell(60, 9, txt=f"Bs. {total_acumulado:,.2f}", border=1, ln=True, fill=True, align='R')
+            
+        pdf_bytes = bytes(pdf.output())
+        stream = io.BytesIO(pdf_bytes)
         
         return StreamingResponse(
             stream,
             media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename=reporte_{datetime.now().strftime('%Y%m%d')}.pdf"}
+            headers={"Content-Disposition": f"attachment; filename=reporte_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"}
         )
 
 
@@ -204,16 +247,17 @@ def reporte_generativo_ia(
         
         prompt_parse = f"""
         Eres un asistente inteligente para un sistema de BI (Reportes).
-        El usuario ha dictado el siguiente comando de voz: "{req.prompt}"
+        El usuario ha indicado el siguiente comando de voz o texto: "{req.prompt}"
         
-        Tú debes extraer los parámetros de búsqueda.
+        Tú debes extraer los parámetros de búsqueda y detectar si solicitó descargar o exportar el reporte.
         La fecha de hoy es: {datetime.now().strftime("%Y-%m-%d")}
         Sucursales válidas en el sistema (JSON): {sucursales_str}
         
         Devuelve estrictamente un JSON puro (SIN bloques markdown, SIN texto extra) con las siguientes llaves:
         - "sucursal_id": int o null (busca el nombre en el JSON proporcionado, si no menciona sucursal, es null).
-        - "fecha_inicio": string "YYYY-MM-DD" o null (interpreta frases como "último mes", "este año").
+        - "fecha_inicio": string "YYYY-MM-DD" o null (interpreta frases como "último mes", "este año", "hoy", "esta semana").
         - "fecha_fin": string "YYYY-MM-DD" o null.
+        - "formato_descarga": string "pdf" o "xlsx" o null (si el usuario pidió explícitamente descargarlo, exportarlo en pdf o excel, pon "pdf" o "xlsx". Si no lo pidió, null).
         """
         
         # Etapa 1
@@ -227,11 +271,29 @@ def reporte_generativo_ia(
         try:
             params = json.loads(respuesta_json)
         except:
-            raise HTTPException(status_code=400, detail="No se pudo interpretar el comando de voz. Por favor, sé más específico.")
+            params = {}
 
         sucursal_id = params.get("sucursal_id")
         fecha_inicio_str = params.get("fecha_inicio")
         fecha_fin_str = params.get("fecha_fin")
+        formato_descarga = params.get("formato_descarga")
+
+        # Heurística adicional en caso de que Gemini devuelva null pero el prompt contenga las palabras clave
+        p_lower = req.prompt.lower()
+        if formato_descarga not in ["pdf", "xlsx"]:
+            if "pdf" in p_lower:
+                formato_descarga = "pdf"
+            elif "excel" in p_lower or "xlsx" in p_lower:
+                formato_descarga = "xlsx"
+            else:
+                formato_descarga = None
+
+        filtros_interpretados = {
+            "sucursal_id": sucursal_id,
+            "fecha_inicio": fecha_inicio_str,
+            "fecha_fin": fecha_fin_str,
+            "formato_descarga": formato_descarga
+        }
         
         fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date() if fecha_inicio_str else None
         fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date() if fecha_fin_str else None
@@ -251,7 +313,8 @@ def reporte_generativo_ia(
                 "kpis": {"total_vendido": 0, "ticket_promedio": 0, "cantidad_ventas": 0, "reservas_concretadas_pct": 0},
                 "ventas_por_dia": [],
                 "mensaje": "La IA entendió tu solicitud, pero no hay ventas en el periodo o sucursal indicados.",
-                "resumen_ia": None
+                "resumen_ia": None,
+                "filtros_interpretados": filtros_interpretados
             }
 
         total_vendido = sum(v.total for v in ventas)
@@ -312,7 +375,8 @@ def reporte_generativo_ia(
             },
             "ventas_por_dia": ventas_chart,
             "mensaje": None,
-            "resumen_ia": resumen_ia
+            "resumen_ia": resumen_ia,
+            "filtros_interpretados": filtros_interpretados
         }
     except Exception as e:
         print("Error IA (Usando Fallback):", e)
@@ -332,6 +396,9 @@ def reporte_generativo_ia(
             v_dia_map[d_str] = v_dia_map.get(d_str, 0) + float(v.total)
         v_chart_fb = [{"fecha": k, "total": v} for k, v in sorted(v_dia_map.items())]
 
+        p_lower = req.prompt.lower()
+        fb_formato = "pdf" if "pdf" in p_lower else ("xlsx" if "excel" in p_lower or "xlsx" in p_lower else None)
+
         resumen_mock = "He analizado los datos globales. Actualmente, FashionStore mantiene un ritmo comercial estable. La efectividad de reservas es excelente, lo que indica un fuerte compromiso de nuestros clientes. Te recomiendo lanzar campañas de fidelización para mantener este flujo positivo durante el próximo trimestre."
 
         return {
@@ -343,5 +410,11 @@ def reporte_generativo_ia(
             },
             "ventas_por_dia": v_chart_fb,
             "mensaje": None,
-            "resumen_ia": resumen_mock
+            "resumen_ia": resumen_mock,
+            "filtros_interpretados": {
+                "sucursal_id": None,
+                "fecha_inicio": None,
+                "fecha_fin": None,
+                "formato_descarga": fb_formato
+            }
         }
