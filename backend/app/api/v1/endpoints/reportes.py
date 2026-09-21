@@ -108,7 +108,7 @@ def get_dashboard_data(
 
 @router.get("/exportar")
 def exportar_reporte(
-    formato: str = Query(..., regex="^(pdf|xlsx)$"),
+    formato: str = Query(..., pattern="^(pdf|xlsx)$"),
     sucursal_id: int = Query(None),
     fecha_inicio: date = Query(None),
     fecha_fin: date = Query(None),

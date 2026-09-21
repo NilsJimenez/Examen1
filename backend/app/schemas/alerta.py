@@ -28,7 +28,7 @@ class AlertaOut(BaseModel):
     sucursal: SucursalAlertaInfo
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class AtenderAlertaRequest(BaseModel):
     cantidad_ingresada: int
