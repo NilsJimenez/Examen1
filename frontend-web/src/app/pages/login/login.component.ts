@@ -810,7 +810,7 @@ export class LoginComponent {
       this.password = 'Admin123!';
     } else {
       this.email = 'encargado@fashionstore.com';
-      this.password = 'Admin123!';
+      this.password = 'Encargado123!';
     }
   }
 
