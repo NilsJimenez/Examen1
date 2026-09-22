@@ -30,36 +30,66 @@ declare var webkitSpeechRecognition: any;
         </div>
       </div>
 
-      <!-- Barra de Comando Inteligente con IA (Voz o Texto) -->
-      <div *ngIf="esAdmin" class="p-4 mb-6 rounded-xl" style="background: linear-gradient(135deg, rgba(167, 139, 250, 0.12), rgba(99, 102, 241, 0.08)); border: 1px solid rgba(167, 139, 250, 0.3);">
-        <label style="display: block; font-size: 0.8rem; color: #a78bfa; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-          <i class="fa-solid fa-wand-magic-sparkles"></i> Consulta Inteligente con IA (Voz o Texto con Descarga Automática)
-        </label>
-        <div class="flex gap-2">
+      <!-- Barra de Comando Inteligente con IA (Voz o Texto con Descarga Directa) -->
+      <div *ngIf="esAdmin" class="p-5 mb-6 rounded-xl" style="background: linear-gradient(135deg, rgba(167, 139, 250, 0.12), rgba(99, 102, 241, 0.08)); border: 1px solid rgba(167, 139, 250, 0.35); box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+        <div class="flex items-center justify-between mb-2">
+          <label style="font-size: 0.82rem; color: #a78bfa; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Asistente de Reportes por Voz / Texto (Descarga Directa en PDF o Excel)
+          </label>
+          <span class="text-xs" style="color: var(--text-muted); font-style: italic;">
+            <i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> Compatible con comandos de voz
+          </span>
+        </div>
+
+        <div class="flex gap-2 items-center" style="flex-wrap: wrap;">
           <input 
             type="text" 
             [(ngModel)]="promptTextoIA" 
             (keyup.enter)="enviarPromptTexto()" 
-            placeholder="Ej: 'Ventas de este mes y descargar en PDF' o 'Reporte en Excel de la sucursal Central'..." 
+            placeholder="Habla o escribe: Ej: 'Reporte de ventas de este mes y descargar en PDF'..." 
             class="input" 
-            style="flex: 1; background: var(--card-bg); border: 1px solid rgba(167, 139, 250, 0.4); color: var(--text-main); padding: 0.6rem 1rem;"
+            style="flex: 1; min-width: 250px; background: var(--card-bg); border: 1px solid rgba(167, 139, 250, 0.4); color: var(--text-main); padding: 0.65rem 1rem; border-radius: 8px;"
           >
+
+          <!-- Botón de Micrófono / Voz interactivo -->
           <button 
+            type="button"
+            (click)="toggleEscucha()" 
+            [disabled]="cargando" 
+            class="btn" 
+            [style.background]="escuchando ? '#ef4444' : 'rgba(167, 139, 250, 0.15)'"
+            [style.color]="escuchando ? '#ffffff' : '#a78bfa'"
+            [style.border]="escuchando ? '1px solid #ef4444' : '1px solid #a78bfa'"
+            style="padding: 0.65rem 1.2rem; display: flex; align-items: center; gap: 0.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+            title="Hablar por micrófono para pedir reporte y descargar directo"
+          >
+            <i class="fa-solid" [ngClass]="escuchando ? 'fa-microphone-lines fa-beat' : 'fa-microphone'"></i>
+            <span>{{ escuchando ? 'Detener Grabación' : 'Hablar por Micrófono' }}</span>
+          </button>
+
+          <!-- Botón Enviar Prompt Texto -->
+          <button 
+            type="button"
             (click)="enviarPromptTexto()" 
             [disabled]="cargando || !promptTextoIA.trim()" 
             class="btn" 
-            style="background: #a78bfa; color: #1e1b4b; font-weight: bold; padding: 0 1.2rem; display: flex; align-items: center; gap: 0.5rem;"
+            style="background: #a78bfa; color: #1e1b4b; font-weight: bold; padding: 0.65rem 1.2rem; display: flex; align-items: center; gap: 0.5rem; border-radius: 8px;"
           >
-            <i class="fa-solid fa-paper-plane"></i> Pedir
+            <i class="fa-solid fa-paper-plane"></i>
+            <span>Consultar</span>
           </button>
-          <button 
-            (click)="iniciarEscucha()" 
-            [disabled]="escuchando || cargando" 
-            class="btn btn-outline" 
-            style="border-color: #a78bfa; color: #a78bfa; padding: 0 1.2rem; display: flex; align-items: center; gap: 0.5rem;"
-            title="Hablar por micrófono"
-          >
-            <i class="fa-solid fa-microphone" [class.fa-beat-fade]="escuchando"></i> {{ escuchando ? 'Escuchando...' : 'Voz' }}
+        </div>
+
+        <!-- Banner animado mientras escucha -->
+        <div *ngIf="escuchando" class="mt-3 p-3 rounded-lg flex items-center justify-between" style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5;">
+          <div class="flex items-center gap-3">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444; display: inline-block;" class="animate-ping"></span>
+            <span class="text-xs sm:text-sm font-semibold">
+              <i class="fa-solid fa-headphones-simple mr-1"></i> Te estamos escuchando... Di tu solicitud (ej: <em>"Reporte de ventas de este mes en PDF"</em>)
+            </span>
+          </div>
+          <button (click)="detenerEscucha()" type="button" class="text-xs px-2 py-1 rounded" style="background: #ef4444; color: white; border: none; cursor: pointer;">
+            Finalizar
           </button>
         </div>
       </div>
@@ -267,61 +297,123 @@ export class ReportesComponent implements OnInit {
     });
   }
 
+  private recognition: any = null;
+
   enviarPromptTexto() {
     if (!this.promptTextoIA.trim() || this.cargando) return;
     const p = this.promptTextoIA.trim();
-    this.textoEscuchado = p;
     this.promptTextoIA = '';
     this.procesarComandoIA(p);
   }
 
+  toggleEscucha() {
+    if (this.escuchando) {
+      this.detenerEscucha();
+    } else {
+      this.iniciarEscucha();
+    }
+  }
+
   iniciarEscucha() {
-    if (!('webkitSpeechRecognition' in window)) {
-      alert("Tu navegador no soporta reconocimiento de voz. Puedes escribir tu consulta en el campo de texto de IA.");
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Tu navegador no tiene activada la API de reconocimiento de voz por micrófono. Te sugerimos usar Google Chrome o Microsoft Edge, o escribir directamente en la barra de consulta.");
       return;
     }
-    const recognition = new webkitSpeechRecognition();
-    recognition.lang = 'es-ES';
-    recognition.continuous = false;
-    recognition.interimResults = false;
 
-    recognition.onstart = () => {
-      this.escuchando = true;
-      this.textoEscuchado = 'Escuchando tu voz...';
-      this.detenerVoz(); // Callar a la IA si empieza a escuchar al usuario
-    };
+    try {
+      this.detenerVoz(); // Si la IA estaba hablando, silenciarla
+      this.recognition = new SpeechRecognition();
+      this.recognition.lang = 'es-ES';
+      this.recognition.continuous = false;
+      this.recognition.interimResults = true;
 
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      this.textoEscuchado = transcript;
-      this.procesarComandoIA(transcript);
-    };
+      this.recognition.onstart = () => {
+        this.escuchando = true;
+        this.textoEscuchado = '🎙️ Escuchando... Habla ahora';
+      };
 
-    recognition.onerror = (event: any) => {
-      console.error(event.error);
-      alert("Error con el micrófono. Puedes escribir tu solicitud directamente en el recuadro de texto.");
+      this.recognition.onresult = (event: any) => {
+        let textoParcial = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          textoParcial += event.results[i][0].transcript;
+        }
+        if (textoParcial) {
+          this.promptTextoIA = textoParcial;
+          this.textoEscuchado = textoParcial;
+        }
+
+        // Si es el resultado final
+        if (event.results[0] && event.results[0].isFinal) {
+          const textoFinal = event.results[0][0].transcript.trim();
+          this.escuchando = false;
+          this.promptTextoIA = textoFinal;
+          this.procesarComandoIA(textoFinal);
+        }
+      };
+
+      this.recognition.onerror = (event: any) => {
+        console.warn("SpeechRecognition error:", event.error);
+        this.escuchando = false;
+        if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+          alert("Permiso de micrófono bloqueado en tu navegador. Haz clic en el ícono del candado junto a la URL para permitir el micrófono.");
+        } else if (event.error === 'no-speech') {
+          this.textoEscuchado = 'No se escuchó audio. Haz clic de nuevo en el micrófono e inténtalo.';
+          setTimeout(() => { if (!this.escuchando) this.textoEscuchado = ''; }, 3500);
+        } else {
+          this.textoEscuchado = '';
+        }
+      };
+
+      this.recognition.onend = () => {
+        this.escuchando = false;
+      };
+
+      this.recognition.start();
+    } catch (err) {
+      console.error("Error al iniciar micrófono:", err);
       this.escuchando = false;
-      this.textoEscuchado = '';
-    };
+    }
+  }
 
-    recognition.onend = () => {
-      this.escuchando = false;
-    };
-
-    recognition.start();
+  detenerEscucha() {
+    if (this.recognition) {
+      try {
+        this.recognition.stop();
+      } catch (e) {}
+    }
+    this.escuchando = false;
   }
 
   procesarComandoIA(prompt: string) {
+    if (!prompt || !prompt.trim()) return;
     this.cargando = true;
-    
-    // Configuramos un temporizador de seguridad en caso de que el backend o la IA no respondan en 15s
+    this.textoEscuchado = `Procesando: "${prompt}"...`;
+
+    // Detectar intención de descarga directa por palabras clave en la voz/texto
+    const pLower = prompt.toLowerCase();
+    let formatoDirecto: 'pdf' | 'xlsx' | null = null;
+    if (pLower.includes('pdf')) {
+      formatoDirecto = 'pdf';
+    } else if (pLower.includes('excel') || pLower.includes('xlsx')) {
+      formatoDirecto = 'xlsx';
+    }
+
+    // Temporizador de seguridad
     const timeoutError = setTimeout(() => {
       if (this.cargando) {
         this.cargando = false;
-        this.textoEscuchado = '';
-        alert("Los servidores de Inteligencia Artificial tardaron demasiado en responder. Puedes usar los filtros manuales o los botones de descarga directa.");
+        // Si el usuario pidió descargar en pdf/excel, no lo dejamos esperando: descargamos de una vez
+        if (formatoDirecto) {
+          this.textoEscuchado = `Descargando reporte en ${formatoDirecto.toUpperCase()}...`;
+          this.descargar(formatoDirecto);
+        } else {
+          this.textoEscuchado = '';
+          alert("El servidor de IA tardó en responder. Hemos actualizado el tablero con la información disponible.");
+          this.cargarDashboard();
+        }
       }
-    }, 15000);
+    }, 12000);
 
     this.reportesService.generarReporteIA(prompt, this.sucursales).subscribe({
       next: (res) => {
@@ -329,7 +421,6 @@ export class ReportesComponent implements OnInit {
         if (this.cargando) {
           this.data = res;
           this.cargando = false;
-          setTimeout(() => this.textoEscuchado = '', 6000);
           
           // Sincronizar filtros si la IA detectó fechas o sucursal
           if (res.filtros_interpretados) {
@@ -342,14 +433,19 @@ export class ReportesComponent implements OnInit {
             if (res.filtros_interpretados.fecha_fin) {
               this.filtros.fecha_fin = res.filtros_interpretados.fecha_fin;
             }
-
-            // Descarga automática si el usuario la solicitó
-            if (res.filtros_interpretados.formato_descarga) {
-              this.descargar(res.filtros_interpretados.formato_descarga);
-            }
           }
 
-          // --- TEXT TO SPEECH ---
+          // Descarga automática directa (si la IA o las palabras clave detectaron el formato)
+          const formatoADescargar = res.filtros_interpretados?.formato_descarga || formatoDirecto;
+          if (formatoADescargar) {
+            this.textoEscuchado = `¡Listo! Descargando reporte en ${formatoADescargar.toUpperCase()}...`;
+            this.descargar(formatoADescargar);
+            setTimeout(() => { this.textoEscuchado = ''; }, 6000);
+          } else {
+            setTimeout(() => { if (this.textoEscuchado.startsWith('Procesando')) this.textoEscuchado = ''; }, 5000);
+          }
+
+          // --- TEXT TO SPEECH (Lectura por voz del resumen ejecutivo) ---
           if (this.data?.resumen_ia && !this.data.resumen_ia.includes("saturada")) {
             this.reproducirVoz(this.data.resumen_ia);
           }
@@ -358,9 +454,16 @@ export class ReportesComponent implements OnInit {
       error: (err) => {
         clearTimeout(timeoutError);
         if (this.cargando) {
-          alert(err.error?.detail || "Los servidores de Inteligencia Artificial están ocupados. Por favor, intenta de nuevo o usa los filtros y botones de descarga directa.");
           this.cargando = false;
-          this.textoEscuchado = '';
+          if (formatoDirecto) {
+            this.textoEscuchado = `Descargando reporte en ${formatoDirecto.toUpperCase()}...`;
+            this.descargar(formatoDirecto);
+            setTimeout(() => { this.textoEscuchado = ''; }, 6000);
+          } else {
+            alert(err.error?.detail || "Los servidores de IA están ocupados. Mostrando datos comerciales consolidados.");
+            this.textoEscuchado = '';
+            this.cargarDashboard();
+          }
         }
       }
     });
@@ -370,7 +473,7 @@ export class ReportesComponent implements OnInit {
   reproducirVoz(texto: string) {
     if (!('speechSynthesis' in window)) return;
     
-    this.detenerVoz(); // Limpiar cualquier voz previa
+    this.detenerVoz();
     
     const utterance = new SpeechSynthesisUtterance(texto);
     utterance.lang = 'es-ES';
@@ -398,9 +501,10 @@ export class ReportesComponent implements OnInit {
     }
   }
 
-  descargar(formato: 'pdf' | 'xlsx') {
+  descargar(formato: 'pdf' | 'xlsx', filtrosCustom?: any) {
     this.descargandoFormato = formato;
-    this.reportesService.exportarReporte(formato, this.filtros).subscribe({
+    const f = filtrosCustom || this.filtros;
+    this.reportesService.exportarReporte(formato, f).subscribe({
       next: (blob: any) => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -414,7 +518,7 @@ export class ReportesComponent implements OnInit {
       },
       error: (err: any) => {
         console.error("Error al exportar reporte", err);
-        alert(`No se pudo descargar el archivo ${formato.toUpperCase()}. Verifica que existan datos de ventas.`);
+        alert(`No se pudo descargar el archivo ${formato.toUpperCase()}. Verifica que existan ventas registradas.`);
         this.descargandoFormato = null;
       }
     });

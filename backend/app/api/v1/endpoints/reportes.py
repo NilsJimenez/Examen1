@@ -1,6 +1,6 @@
-import google.generativeai as genai
+from typing import Optional
 import json
-from datetime import datetime
+from datetime import datetime, date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -8,7 +8,6 @@ from sqlalchemy import func, case
 import io
 import openpyxl
 from fpdf import FPDF
-from datetime import datetime, date
 
 from app.db.session import get_db
 from app.api.deps import require_roles
@@ -18,6 +17,12 @@ from app.models.usuario import Usuario
 from app.schemas.reporte import DashboardReporteOut, ReporteGenerativoRequest
 
 router = APIRouter()
+
+def latin_safe(s: any) -> str:
+    """Evita errores de codificación Latin-1 en FPDF."""
+    if s is None:
+        return ""
+    return str(s).encode('latin-1', 'replace').decode('latin-1')
 
 def verificar_permisos_sucursal(db: Session, user: dict, sucursal_id: int):
     # Excepción 2: Denegar si no tiene permisos sobre la sucursal
@@ -31,9 +36,9 @@ def verificar_permisos_sucursal(db: Session, user: dict, sucursal_id: int):
 # =============================================================================
 @router.get("/dashboard", response_model=DashboardReporteOut)
 def get_dashboard_data(
-    sucursal_id: int = Query(None, description="Filtro opcional de sucursal"),
-    fecha_inicio: date = Query(None, description="Fecha de inicio"),
-    fecha_fin: date = Query(None, description="Fecha de fin"),
+    sucursal_id: Optional[int] = None,
+    fecha_inicio: Optional[date] = None,
+    fecha_fin: Optional[date] = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(["administrador", "encargado_sucursal"]))
 ):
@@ -43,12 +48,19 @@ def get_dashboard_data(
     Porcentaje de Reservas Concretadas) y agrupa las ventas por fecha para gráficos de tendencia.
     Permite segmentación por sucursal física y rango de fechas.
     """
+    if hasattr(sucursal_id, 'default') or not isinstance(sucursal_id, int):
+        sucursal_id = None
+    if hasattr(fecha_inicio, 'default') or not isinstance(fecha_inicio, (date, datetime)):
+        fecha_inicio = None
+    if hasattr(fecha_fin, 'default') or not isinstance(fecha_fin, (date, datetime)):
+        fecha_fin = None
+
     if sucursal_id:
         verificar_permisos_sucursal(db, current_user, sucursal_id)
     elif current_user["role"] == "encargado_sucursal":
         # Si no manda sucursal pero es encargado, forzar su propia sucursal
         usr_db = db.query(Usuario).get(current_user["id"])
-        sucursal_id = usr_db.sucursal_id
+        sucursal_id = usr_db.sucursal_id if usr_db else None
 
     # Base query for Ventas
     q_ventas = db.query(Venta)
@@ -108,18 +120,31 @@ def get_dashboard_data(
 
 @router.get("/exportar")
 def exportar_reporte(
-    formato: str = Query(..., pattern="^(pdf|xlsx)$"),
-    sucursal_id: int = Query(None),
-    fecha_inicio: date = Query(None),
-    fecha_fin: date = Query(None),
+    formato: str = "pdf",
+    sucursal_id: Optional[int] = None,
+    fecha_inicio: Optional[date] = None,
+    fecha_fin: Optional[date] = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(["administrador", "encargado_sucursal"]))
 ):
+    if hasattr(formato, 'default'):
+        formato = getattr(formato, 'default', 'pdf')
+    formato = str(formato).lower().strip()
+    if formato not in ["pdf", "xlsx"]:
+        formato = "pdf"
+
+    if hasattr(sucursal_id, 'default') or not isinstance(sucursal_id, int):
+        sucursal_id = None
+    if hasattr(fecha_inicio, 'default') or not isinstance(fecha_inicio, (date, datetime)):
+        fecha_inicio = None
+    if hasattr(fecha_fin, 'default') or not isinstance(fecha_fin, (date, datetime)):
+        fecha_fin = None
+
     if sucursal_id:
         verificar_permisos_sucursal(db, current_user, sucursal_id)
     elif current_user["role"] == "encargado_sucursal":
         usr_db = db.query(Usuario).get(current_user["id"])
-        sucursal_id = usr_db.sucursal_id
+        sucursal_id = usr_db.sucursal_id if usr_db else None
 
     # Re-query simplificada
     q_ventas = db.query(Venta)
@@ -130,7 +155,7 @@ def exportar_reporte(
     if fecha_fin:
         q_ventas = q_ventas.filter(func.date(Venta.fecha_venta) <= fecha_fin)
     
-    ventas = q_ventas.all()
+    ventas = q_ventas.order_by(Venta.fecha_venta.desc()).all()
 
     if formato == "xlsx":
         wb = openpyxl.Workbook()
@@ -165,29 +190,29 @@ def exportar_reporte(
         pdf.set_fill_color(30, 41, 59) # Slate oscuro
         pdf.set_text_color(255, 255, 255)
         pdf.set_font("Helvetica", "B", 16)
-        pdf.cell(190, 14, txt=" FashionStore - Reporte Oficial de Ventas", ln=True, align='L', fill=True)
+        pdf.cell(190, 14, txt=latin_safe(" FashionStore - Reporte Oficial de Ventas"), ln=True, align='L', fill=True)
         
         pdf.set_text_color(100, 100, 100)
         pdf.set_font("Helvetica", size=9)
         pdf.ln(4)
-        info_filtro = f"Fecha de emisión: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        info_filtro = f"Fecha de emision: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
         if sucursal_id:
             info_filtro += f" | Sucursal ID: {sucursal_id}"
         if fecha_inicio:
             info_filtro += f" | Desde: {fecha_inicio}"
         if fecha_fin:
             info_filtro += f" | Hasta: {fecha_fin}"
-        pdf.cell(190, 6, txt=info_filtro, ln=True)
+        pdf.cell(190, 6, txt=latin_safe(info_filtro), ln=True)
         pdf.ln(4)
         
         # Cabecera de la tabla
         pdf.set_fill_color(241, 245, 249)
         pdf.set_text_color(30, 41, 59)
         pdf.set_font("Helvetica", "B", 10)
-        pdf.cell(30, 9, txt="ID Venta", border=1, fill=True, align='C')
-        pdf.cell(55, 9, txt="Fecha y Hora", border=1, fill=True, align='C')
-        pdf.cell(45, 9, txt="Usuario / Cajero ID", border=1, fill=True, align='C')
-        pdf.cell(60, 9, txt="Total (Bs.)", border=1, ln=True, fill=True, align='R')
+        pdf.cell(30, 9, txt=latin_safe("ID Venta"), border=1, fill=True, align='C')
+        pdf.cell(55, 9, txt=latin_safe("Fecha y Hora"), border=1, fill=True, align='C')
+        pdf.cell(45, 9, txt=latin_safe("Usuario / Cajero"), border=1, fill=True, align='C')
+        pdf.cell(60, 9, txt=latin_safe("Total (Bs.)"), border=1, ln=True, fill=True, align='R')
         
         # Filas de la tabla
         pdf.set_font("Helvetica", size=10)
@@ -198,17 +223,17 @@ def exportar_reporte(
             monto = float(v.total)
             total_acumulado += monto
             f_str = v.fecha_venta.strftime("%Y-%m-%d %H:%M") if hasattr(v.fecha_venta, 'strftime') else str(v.fecha_venta)
-            pdf.cell(30, 8, txt=f"#{v.id}", border=1, align='C')
-            pdf.cell(55, 8, txt=f_str, border=1, align='C')
-            pdf.cell(45, 8, txt=str(v.usuario_id or "N/A"), border=1, align='C')
-            pdf.cell(60, 8, txt=f"Bs. {monto:,.2f}", border=1, ln=True, align='R')
+            pdf.cell(30, 8, txt=latin_safe(f"#{v.id}"), border=1, align='C')
+            pdf.cell(55, 8, txt=latin_safe(f_str), border=1, align='C')
+            pdf.cell(45, 8, txt=latin_safe(str(v.usuario_id or "N/A")), border=1, align='C')
+            pdf.cell(60, 8, txt=latin_safe(f"Bs. {monto:,.2f}"), border=1, ln=True, align='R')
             
         # Fila de Total
         pdf.set_font("Helvetica", "B", 10)
         pdf.set_fill_color(248, 250, 252)
-        pdf.cell(130, 9, txt="TOTAL CONSOLIDADO:", border=1, fill=True, align='R')
+        pdf.cell(130, 9, txt=latin_safe("TOTAL CONSOLIDADO:"), border=1, fill=True, align='R')
         pdf.set_text_color(20, 110, 80)
-        pdf.cell(60, 9, txt=f"Bs. {total_acumulado:,.2f}", border=1, ln=True, fill=True, align='R')
+        pdf.cell(60, 9, txt=latin_safe(f"Bs. {total_acumulado:,.2f}"), border=1, ln=True, fill=True, align='R')
             
         pdf_bytes = bytes(pdf.output())
         stream = io.BytesIO(pdf_bytes)
@@ -295,8 +320,19 @@ def reporte_generativo_ia(
             "formato_descarga": formato_descarga
         }
         
-        fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date() if fecha_inicio_str else None
-        fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date() if fecha_fin_str else None
+        fecha_inicio = None
+        if fecha_inicio_str:
+            try:
+                fecha_inicio = datetime.strptime(str(fecha_inicio_str).strip()[:10], "%Y-%m-%d").date()
+            except Exception:
+                fecha_inicio = None
+
+        fecha_fin = None
+        if fecha_fin_str:
+            try:
+                fecha_fin = datetime.strptime(str(fecha_fin_str).strip()[:10], "%Y-%m-%d").date()
+            except Exception:
+                fecha_fin = None
 
         q_ventas = db.query(Venta)
         if sucursal_id:
