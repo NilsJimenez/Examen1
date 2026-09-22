@@ -182,6 +182,8 @@ import { Producto, Variante, Color, Talla } from '../../models/producto.models';
                 [src]="imagenPrendaActual" 
                 [alt]="producto.nombre" 
                 class="floating-garment-img"
+                referrerpolicy="no-referrer"
+                (error)="onImgError($event)"
                 [class.animate-garment-switch]="animatingSwitch"
               />
 
@@ -465,7 +467,7 @@ import { Producto, Variante, Color, Talla } from '../../models/producto.models';
           <!-- Resumen de Prenda -->
           <div class="p-3.5 rounded-xl mb-6 flex items-center justify-between text-xs" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
             <div class="flex items-center gap-3">
-              <img [src]="producto.imagen_url" [alt]="producto.nombre" style="width: 44px; height: 44px; border-radius: 8px; object-fit: cover;" />
+              <img [src]="producto.imagen_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100'" [alt]="producto.nombre" referrerpolicy="no-referrer" (error)="onImgError($event)" style="width: 44px; height: 44px; border-radius: 8px; object-fit: cover;" />
               <div>
                 <strong style="color: var(--text-main);">{{ producto.nombre }}</strong>
                 <span class="block" style="color: var(--text-muted);">
@@ -1523,6 +1525,13 @@ export class ProductoDetalleComponent implements OnInit {
     }
 
     return 'rgba(245, 158, 11, 0.32)';
+  }
+
+  onImgError(event: any): void {
+    if (event?.target) {
+      event.target.onerror = null;
+      event.target.src = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800';
+    }
   }
 
   // Imagen activa de la prenda (prioriza la del producto inicialmente, luego cambia si eligen color)

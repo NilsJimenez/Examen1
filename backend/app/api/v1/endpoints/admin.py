@@ -1,3 +1,5 @@
+import urllib.parse
+import re
 from typing import List
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -20,6 +22,21 @@ from app.schemas.admin import (
 )
 from app.schemas.producto import ProductoDetailOut, CategoriaOut, TallaOut, ColorOut
 
+def limpiar_url_imagen(url: str | None) -> str | None:
+    if not url:
+        return None
+    url = str(url).strip().strip('"').strip("'")
+    if not url:
+        return None
+    if "imgurl=" in url:
+        try:
+            match = re.search(r'[?&]imgurl=([^&]+)', url)
+            if match:
+                url = urllib.parse.unquote(match.group(1))
+        except Exception:
+            pass
+    return url
+
 router = APIRouter(dependencies=[Depends(require_roles(["administrador"]))])
 
 
@@ -29,6 +46,7 @@ router = APIRouter(dependencies=[Depends(require_roles(["administrador"]))])
 @router.post("/productos", response_model=ProductoDetailOut, status_code=status.HTTP_201_CREATED)
 def crear_producto(data: ProductoCreate, db: Session = Depends(get_db)):
     """Crea una nueva prenda con sus variantes e inicializa stock en las sucursales."""
+    img_limpia = limpiar_url_imagen(data.imagen_url)
     nuevo_producto = Producto(
         nombre=data.nombre,
         descripcion=data.descripcion,
@@ -36,7 +54,7 @@ def crear_producto(data: ProductoCreate, db: Session = Depends(get_db)):
         proveedor_id=data.proveedor_id,
         coleccion_id=data.coleccion_id,
         precio_base=data.precio_base,
-        imagen_url=data.imagen_url,
+        imagen_url=img_limpia,
         modelo_ar_url=data.modelo_ar_url,
         genero=data.genero,
         activo=True
@@ -58,7 +76,7 @@ def crear_producto(data: ProductoCreate, db: Session = Depends(get_db)):
                     color_id=primer_color.id,
                     sku=sku,
                     precio_adicional=0.0,
-                    imagen_url=data.imagen_url,
+                    imagen_url=img_limpia,
                     stock_inicial=10
                 )
             )
@@ -71,13 +89,14 @@ def crear_producto(data: ProductoCreate, db: Session = Depends(get_db)):
         if existing_sku:
             v_sku = f"{v_sku}-{datetime.now().strftime('%M%S')}"
 
+        v_img = limpiar_url_imagen(v_data.imagen_url) or img_limpia
         nueva_variante = ProductoVariante(
             producto_id=nuevo_producto.id,
             talla_id=v_data.talla_id,
             color_id=v_data.color_id,
             sku=v_sku,
             precio_adicional=v_data.precio_adicional,
-            imagen_url=v_data.imagen_url or data.imagen_url,
+            imagen_url=v_img,
             activo=True
         )
         db.add(nueva_variante)
@@ -101,14 +120,26 @@ def crear_producto(data: ProductoCreate, db: Session = Depends(get_db)):
 
 @router.put("/productos/{producto_id}")
 def actualizar_producto(producto_id: int, data: ProductoUpdate, db: Session = Depends(get_db)):
-    """Actualiza los datos de una prenda."""
+    """Actualiza una prenda existente en el catálogo."""
     producto = db.query(Producto).filter(Producto.id == producto_id).first()
     if not producto:
         raise HTTPException(status_code=404, detail="Prenda no encontrada.")
 
     update_dict = data.model_dump(exclude_unset=True)
+    if "imagen_url" in update_dict:
+        update_dict["imagen_url"] = limpiar_url_imagen(update_dict["imagen_url"])
+
     for key, value in update_dict.items():
+        if isinstance(value, str):
+            value = value.strip()
         setattr(producto, key, value)
+
+    # Si se actualizó la imagen de portada, sincronizar variantes sin imagen propia
+    if "imagen_url" in update_dict and update_dict["imagen_url"]:
+        nueva_img = update_dict["imagen_url"]
+        for v in producto.variantes:
+            if not v.imagen_url:
+                v.imagen_url = nueva_img
 
     db.commit()
     db.refresh(producto)
@@ -185,7 +216,7 @@ def actualizar_variantes_prenda(producto_id: int, variantes_data: List[VarianteU
         ).first()
         if variante:
             if v_in.imagen_url is not None:
-                variante.imagen_url = v_in.imagen_url.strip() or None
+                variante.imagen_url = limpiar_url_imagen(v_in.imagen_url)
             if v_in.precio_adicional is not None:
                 variante.precio_adicional = v_in.precio_adicional
             if v_in.activo is not None:

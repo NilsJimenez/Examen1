@@ -280,6 +280,8 @@ import { Sucursal } from '../../models/sucursal.models';
               
               <div style="position: relative; height: 220px; width: 100%; flex-shrink: 0;">
                 <img [src]="getProductoImagen(rec.producto_id)" alt="Prenda" 
+                     referrerpolicy="no-referrer"
+                     (error)="onImgError($event)"
                      style="width: 100%; height: 100%; object-fit: cover;">
                 <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.8); color: #d4af37; border: 1px solid #d4af37; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold;">
                   {{ (rec.score * 100).toFixed(0) }}% MATCH
@@ -361,6 +363,8 @@ import { Sucursal } from '../../models/sucursal.models';
                 [src]="p.imagen_url_preview || p.imagen_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600'" 
                 [alt]="p.nombre" 
                 class="product-img" 
+                referrerpolicy="no-referrer"
+                (error)="onImgError($event)"
               />
               
               <!-- Badges Flotantes -->
@@ -1719,6 +1723,13 @@ export class CatalogoComponent implements OnInit {
         },
         error: (err) => console.error("Error al cargar IA:", err)
       });
+    }
+  }
+
+  onImgError(event: any): void {
+    if (event?.target) {
+      event.target.onerror = null;
+      event.target.src = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600';
     }
   }
 

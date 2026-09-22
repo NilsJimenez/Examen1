@@ -93,6 +93,7 @@ import { VentaService } from '../../services/venta.service';
                   <img 
                     [src]="item.imagen_url || 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=150'" 
                     [alt]="item.producto" 
+                    referrerpolicy="no-referrer"
                     style="width: 58px; height: 58px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border-color); flex-shrink: 0;"
                   />
                   <div>

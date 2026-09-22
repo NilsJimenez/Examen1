@@ -173,7 +173,7 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
             <tbody>
               <tr *ngFor="let p of productosFiltrados">
                 <td>
-                  <img [src]="p.imagen_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100'" [alt]="p.nombre" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);" />
+                  <img [src]="p.imagen_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100'" [alt]="p.nombre" referrerpolicy="no-referrer" (error)="onImgError($event)" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);" />
                 </td>
                 <td style="font-weight: 700; color: var(--text-main);">{{ p.nombre }}</td>
                 <td><span class="badge" style="background: var(--table-th-bg); color: var(--text-muted); border: 1px solid var(--border-color);">{{ p.categoria?.nombre || 'General' }}</span></td>
@@ -970,8 +970,16 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
 
             <div class="grid grid-cols-2 gap-4 mb-3">
               <div class="form-group mb-0">
-                <label class="form-label text-xs">Foto Oficial de Portada (URL)</label>
-                <input type="url" [(ngModel)]="prendaForm.imagen_url" name="imagen_url" placeholder="https://images.unsplash.com/..." class="form-input" />
+                <div class="flex items-center justify-between mb-1">
+                  <label class="form-label text-xs mb-0">Foto Oficial de Portada (URL)</label>
+                  <span *ngIf="prendaForm.imagen_url" class="text-xs" style="color: var(--accent);"><i class="fa-solid fa-eye"></i> Vista previa</span>
+                </div>
+                <div class="flex gap-2 items-center">
+                  <input type="url" [(ngModel)]="prendaForm.imagen_url" (input)="onPrendaUrlChange()" (blur)="onPrendaUrlChange()" name="imagen_url" placeholder="https://images.unsplash.com/... o enlace de imagen" class="form-input" style="flex: 1;" />
+                  <div *ngIf="prendaForm.imagen_url" style="width: 42px; height: 42px; min-width: 42px; border-radius: 6px; overflow: hidden; border: 1.5px solid var(--accent); background: var(--table-th-bg); display: flex; align-items: center; justify-content: center;">
+                    <img [src]="prendaForm.imagen_url" referrerpolicy="no-referrer" (error)="onImgError($event)" alt="Preview" style="width: 100%; height: 100%; object-fit: cover;" />
+                  </div>
+                </div>
               </div>
 
               <div class="form-group mb-0">
@@ -1036,11 +1044,11 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
             <i class="fa-solid fa-image mr-1.5"></i> 1. Fotografía de Portada General
           </h4>
           <div class="flex gap-4 items-center">
-            <img [src]="prendaGestion.imagen_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=200'" [alt]="prendaGestion.nombre" style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px; border: 1.5px solid var(--border-color);" />
+            <img [src]="prendaGestion.imagen_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=200'" [alt]="prendaGestion.nombre" referrerpolicy="no-referrer" (error)="onImgError($event)" style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px; border: 1.5px solid var(--border-color);" />
             <div class="flex-1">
               <label class="form-label text-xs">URL de la Imagen General (Catálogo / Portada)</label>
               <div class="flex gap-2">
-                <input type="url" [(ngModel)]="prendaGestion.imagen_url" placeholder="https://images.unsplash.com/..." class="form-input" style="padding: 0.45rem 0.75rem;" />
+                <input type="url" [(ngModel)]="prendaGestion.imagen_url" (blur)="prendaGestion.imagen_url = limpiarUrlImagen(prendaGestion.imagen_url)" placeholder="https://images.unsplash.com/... o enlace de imagen" class="form-input" style="padding: 0.45rem 0.75rem;" />
                 <button type="button" (click)="guardarFotoGeneral()" class="btn btn-primary" style="padding: 0.45rem 0.9rem; font-size: 0.8rem; white-space: nowrap;">
                   <i class="fa-solid fa-floppy-disk mr-1"></i> Guardar Foto
                 </button>
@@ -1080,12 +1088,13 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
                 </div>
               </div>
 
-              <img [src]="col.imagen_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100'" [alt]="col.color_nombre" style="width: 48px; height: 48px; min-width: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);" />
+              <img [src]="col.imagen_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100'" [alt]="col.color_nombre" referrerpolicy="no-referrer" (error)="onImgError($event)" style="width: 48px; height: 48px; min-width: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color);" />
 
               <div class="flex-1">
                 <input 
                   type="url" 
                   [(ngModel)]="col.imagen_url" 
+                  (blur)="col.imagen_url = limpiarUrlImagen(col.imagen_url)"
                   placeholder="URL imagen de la prenda en color {{ col.color_nombre }} (https://...)" 
                   class="form-input" 
                   style="padding: 0.45rem 0.75rem; font-size: 0.82rem;" 
@@ -2075,6 +2084,31 @@ export class AdminPanelComponent implements OnInit {
     return this.tallasSeleccionadasIds.length * this.coloresSeleccionadosIds.length;
   }
 
+  limpiarUrlImagen(url: string | null | undefined): string {
+    if (!url) return '';
+    let clean = url.trim().replace(/^["']|["']$/g, '');
+    if (clean.includes('imgurl=')) {
+      try {
+        const match = clean.match(/[?&]imgurl=([^&]+)/);
+        if (match && match[1]) clean = decodeURIComponent(match[1]);
+      } catch (e) {}
+    }
+    return clean;
+  }
+
+  onImgError(event: any): void {
+    if (event?.target) {
+      event.target.onerror = null;
+      event.target.src = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400';
+    }
+  }
+
+  onPrendaUrlChange(): void {
+    if (this.prendaForm.imagen_url) {
+      this.prendaForm.imagen_url = this.limpiarUrlImagen(this.prendaForm.imagen_url);
+    }
+  }
+
   guardarPrenda(): void {
     if (!this.esPrendaValida()) {
       this.errorMessage = 'Revisa los campos obligatorios: Nombre de la prenda, Categoría y Precio base.';
@@ -2083,6 +2117,8 @@ export class AdminPanelComponent implements OnInit {
 
     this.guardando = true;
     this.errorMessage = '';
+
+    this.prendaForm.imagen_url = this.limpiarUrlImagen(this.prendaForm.imagen_url);
 
     const payload = {
       ...this.prendaForm,
@@ -2174,6 +2210,7 @@ export class AdminPanelComponent implements OnInit {
 
   guardarFotoGeneral(): void {
     if (!this.prendaGestion) return;
+    this.prendaGestion.imagen_url = this.limpiarUrlImagen(this.prendaGestion.imagen_url);
     this.adminService.actualizarProducto(this.prendaGestion.id, {
       imagen_url: this.prendaGestion.imagen_url
     }).subscribe({
@@ -2191,10 +2228,12 @@ export class AdminPanelComponent implements OnInit {
     // Preparar lista de actualizaciones para cada variante según el color
     const updates: any[] = [];
     for (const col of this.coloresPrendaGestion) {
+      const limpia = this.limpiarUrlImagen(col.imagen_url);
+      col.imagen_url = limpia;
       for (const vid of col.variante_ids) {
         updates.push({
           id: vid,
-          imagen_url: col.imagen_url ? col.imagen_url.trim() : null
+          imagen_url: limpia || null
         });
       }
     }

@@ -52,6 +52,7 @@ import { ToastService } from '../../services/toast.service';
               <img 
                 [src]="item.imagen_url || 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=200'" 
                 [alt]="item.producto" 
+                referrerpolicy="no-referrer"
                 style="width: 80px; height: 80px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border-color);"
               />
               <div class="min-w-0">
