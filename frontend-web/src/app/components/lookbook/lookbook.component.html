@@ -3,7 +3,7 @@
     <h2 style="color: var(--text-main); font-size: 2.3rem; font-family: serif; font-weight: bold; margin-bottom: 0.5rem;">
       <i class="fa-solid fa-wand-magic-sparkles" style="color: #a78bfa; margin-right: 0.5rem;"></i> Lookbook & Asesor de Outfits
     </h2>
-    <p style="color: var(--text-muted); font-size: 1.05rem;">Tu estilista personal inteligente: combina prendas superiores, inferiores y calzado en perfecta armonía.</p>
+    <p style="color: var(--text-muted); font-size: 1.05rem;">Tu estilista personal inteligente: combina prendas superiores, inferiores y vestidos en perfecta armonía.</p>
   </div>
 
   <div style="display: grid; grid-template-columns: 340px 1fr; gap: 2rem; align-items: start;">
@@ -120,7 +120,7 @@
         </div>
         <h3 style="color: var(--text-main); font-size: 1.3rem; margin-bottom: 0.5rem;">Diseña tu Look Completo</h3>
         <p style="color: var(--text-muted); font-size: 0.95rem; max-width: 420px;">
-          Indica tu ocasión, género y presupuesto en el panel izquierdo para recibir una propuesta coordinada de prendas superiores, inferiores y calzado.
+          Indica tu ocasión, género y presupuesto en el panel izquierdo para recibir una propuesta coordinada de prendas superiores, inferiores y vestidos.
         </p>
       </div>
 
@@ -145,35 +145,124 @@
               </p>
             </div>
 
-            <!-- Resumen Total y CTA -->
-            <div style="background: var(--card-bg); padding: 1.2rem 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); text-align: right; min-width: 230px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <!-- Resumen Total y Botón Comprar Todo -->
+            <div style="background: var(--card-bg); padding: 1.2rem 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); text-align: right; min-width: 240px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
               <div style="font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Total Outfit ({{ conjuntoActual.length }} prendas)</div>
               <div style="font-size: 1.9rem; font-family: serif; color: var(--accent); font-weight: bold; margin: 0.2rem 0 0.8rem 0;">
                 Bs. {{ resultado.total_bs | number:'1.2-2' }}
               </div>
               <button 
-                (click)="agregarTodoAlCarrito()" 
+                (click)="comprarOutfit()" 
+                [disabled]="agregandoCarrito"
                 class="btn" 
-                style="width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: bold; padding: 0.65rem 1rem; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: transform 0.2s;"
+                style="width: 100%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: bold; padding: 0.75rem 1rem; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: transform 0.2s; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);"
               >
-                <i class="fa-solid fa-cart-shopping"></i> Llevar Todo al Carrito
+                <i class="fa-solid" [ngClass]="agregandoCarrito ? 'fa-circle-notch fa-spin' : 'fa-cart-shopping'"></i>
+                <span>{{ agregandoCarrito ? 'Enviando al Carrito...' : 'Comprar Outfit Completo' }}</span>
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Título de Sección de Prendas Coordinadas -->
+        <!-- Barra de Acciones del Outfit: Botón de Cámara y Regenerar -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 0.8rem;">
           <h3 style="color: var(--text-main); font-size: 1.25rem; font-family: serif; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
             <i class="fa-solid fa-layer-group" style="color: #a78bfa;"></i> Prendas del Conjunto
           </h3>
-          <button 
-            (click)="armarOutfit()" 
-            class="btn btn-outline" 
-            style="border-color: #a78bfa; color: #a78bfa; padding: 0.4rem 0.9rem; font-size: 0.85rem; border-radius: 8px; display: flex; align-items: center; gap: 0.4rem; cursor: pointer;"
-          >
-            <i class="fa-solid fa-shuffle"></i> Probar otra combinación
-          </button>
+          
+          <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+            <!-- BOTÓN PROBARME CON LA CÁMARA (ESPEJO) -->
+            <button 
+              type="button"
+              (click)="toggleEspejo()" 
+              class="btn" 
+              [style.background]="espejoActivo ? '#ef4444' : 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)'"
+              style="color: white; padding: 0.55rem 1.15rem; font-size: 0.88rem; font-weight: bold; border-radius: 8px; border: none; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.35); transition: all 0.2s;"
+            >
+              <i class="fa-solid" [ngClass]="espejoActivo ? 'fa-video-slash' : 'fa-camera'"></i>
+              <span>{{ espejoActivo ? 'Apagar Cámara' : 'Probarme el Outfit con la Cámara' }}</span>
+            </button>
+
+            <!-- PROBAR OTRA COMBINACIÓN -->
+            <button 
+              type="button"
+              (click)="armarOutfit()" 
+              class="btn btn-outline" 
+              style="border-color: #a78bfa; color: #a78bfa; padding: 0.55rem 0.95rem; font-size: 0.88rem; border-radius: 8px; display: flex; align-items: center; gap: 0.4rem; cursor: pointer;"
+            >
+              <i class="fa-solid fa-shuffle"></i> Probar otra combinación
+            </button>
+          </div>
+        </div>
+
+        <!-- CONTENEDOR DEL PROBADOR VIRTUAL CON CÁMARA EN VIVO -->
+        <div *ngIf="espejoActivo" class="card mb-6 p-4 rounded-xl fade-in" style="background: #09090b; border: 2px solid #a78bfa; box-shadow: 0 8px 35px rgba(167, 139, 250, 0.25); overflow: hidden;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; border-bottom: 1px solid #27272a; padding-bottom: 0.6rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <span style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; display: inline-block;" class="animate-ping"></span>
+              <span style="color: #a78bfa; font-weight: bold; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                <i class="fa-solid fa-camera"></i> Probador Virtual en Vivo
+              </span>
+              <span style="color: var(--text-muted); font-size: 0.8rem;">(Espejo en tiempo real)</span>
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <button (click)="comprarOutfit()" [disabled]="agregandoCarrito" class="btn" style="background: #10b981; color: white; padding: 0.4rem 0.9rem; font-size: 0.82rem; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.4rem;">
+                <i class="fa-solid fa-cart-shopping"></i> Comprar este Outfit
+              </button>
+              <button (click)="apagarEspejo()" title="Cerrar Probador con Cámara" style="background: #27272a; color: #a1a1aa; border: none; border-radius: 6px; padding: 0.4rem 0.7rem; cursor: pointer;">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+
+          <div style="position: relative; width: 100%; height: 500px; background: #000; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+            
+            <!-- Loading cámara -->
+            <div *ngIf="cargandoEspejo" style="position: absolute; z-index: 10; text-align: center; color: #a78bfa; background: rgba(0,0,0,0.8); width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+              <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; margin-bottom: 0.8rem;"></i>
+              <p style="font-size: 0.95rem; color: #fff; margin: 0; font-weight: 600;">Iniciando cámara y probador virtual...</p>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem;">(Si tu navegador lo solicita, concede permiso de cámara)</p>
+            </div>
+
+            <!-- Error cámara -->
+            <div *ngIf="errorEspejo" style="position: absolute; z-index: 10; text-align: center; color: #ef4444; background: rgba(0,0,0,0.85); width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem;">
+              <i class="fa-solid fa-triangle-exclamation" style="font-size: 2.5rem; margin-bottom: 0.8rem;"></i>
+              <p style="font-size: 1rem; color: #fca5a5; font-weight: bold; margin: 0;">{{ errorEspejo }}</p>
+              <button (click)="encenderEspejo()" class="btn btn-outline" style="margin-top: 1rem; border-color: #ef4444; color: #ef4444; padding: 0.4rem 0.9rem; font-size: 0.85rem; border-radius: 6px;">
+                Reintentar Acceso
+              </button>
+            </div>
+
+            <!-- Video oculto -->
+            <video id="webcam-video" playsinline style="display: none;"></video>
+
+            <!-- Canvas donde se dibuja el video espejado y las prendas -->
+            <canvas id="webcam-canvas" width="640" height="480" style="width: 100%; height: 100%; object-fit: contain;"></canvas>
+
+            <!-- Selector lateral de prendas para probarse en la cámara -->
+            <div style="position: absolute; right: 15px; top: 15px; display: flex; flex-direction: column; gap: 8px; z-index: 15; max-height: 90%; overflow-y: auto;">
+              <div 
+                *ngFor="let item of conjuntoActual"
+                (click)="seleccionarPrendaEnFoco(item)"
+                [style.border]="prendaEnFoco === item ? '2px solid #a78bfa' : '1px solid rgba(255,255,255,0.2)'"
+                [style.background]="prendaEnFoco === item ? 'rgba(167, 139, 250, 0.3)' : 'rgba(0,0,0,0.75)'"
+                style="backdrop-filter: blur(8px); padding: 6px 10px; border-radius: 8px; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s;"
+                title="Haz clic para probarte esta prenda"
+              >
+                <img [src]="item.producto.imagen_url" style="width: 38px; height: 38px; object-fit: cover; border-radius: 4px;">
+                <div style="text-align: left;">
+                  <div style="font-size: 0.65rem; color: #a78bfa; font-weight: bold; text-transform: uppercase;">{{ item.rol }}</div>
+                  <div style="font-size: 0.75rem; color: #fff; max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ item.producto.nombre }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Guía inferior -->
+            <div style="position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.75); padding: 6px 16px; border-radius: 20px; font-size: 0.78rem; color: #d4d4d8; z-index: 15; pointer-events: none; border: 1px solid rgba(255,255,255,0.15);">
+              <i class="fa-solid fa-person mr-1"></i> Párate frente a la cámara para ver el ajuste de las prendas
+            </div>
+          </div>
         </div>
 
         <!-- Grid de Prendas del Outfit -->

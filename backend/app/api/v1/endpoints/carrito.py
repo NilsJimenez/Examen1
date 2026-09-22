@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from pydantic import BaseModel
 from app.db.session import get_db
@@ -10,8 +10,11 @@ from app.models.usuario import Cliente
 
 router = APIRouter()
 
+from typing import Optional
+
 class AgregarItemInput(BaseModel):
-    variante_id: int
+    variante_id: Optional[int] = None
+    producto_id: Optional[int] = None
     cantidad: int = 1
 
 class ActualizarItemInput(BaseModel):
@@ -68,17 +71,23 @@ def ver_carrito(db: Session = Depends(get_db), current_user: dict = Depends(get_
 
 @router.post("/agregar")
 def agregar_item(data: AgregarItemInput, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
-    """CU-18: Agregar prenda al carrito."""
+    """CU-18: Agregar prenda al carrito por variante_id o producto_id."""
     cliente = get_cliente_obj(current_user, db)
-    variante = db.query(ProductoVariante).filter(ProductoVariante.id == data.variante_id, ProductoVariante.activo == True).first()
+    variante = None
+    if data.variante_id:
+        variante = db.query(ProductoVariante).filter(ProductoVariante.id == data.variante_id, ProductoVariante.activo == True).first()
+    elif data.producto_id:
+        variante = db.query(ProductoVariante).filter(ProductoVariante.producto_id == data.producto_id, ProductoVariante.activo == True).first()
+
     if not variante:
-        raise HTTPException(status_code=404, detail="Variante no encontrada.")
+        raise HTTPException(status_code=404, detail="Variante no encontrada para esta prenda.")
+
     carrito = get_o_crear_carrito(cliente.id, db)
-    item_existente = db.query(CarritoDetalle).filter(CarritoDetalle.carrito_id == carrito.id, CarritoDetalle.variante_id == data.variante_id).first()
+    item_existente = db.query(CarritoDetalle).filter(CarritoDetalle.carrito_id == carrito.id, CarritoDetalle.variante_id == variante.id).first()
     if item_existente:
         item_existente.cantidad += data.cantidad
     else:
-        db.add(CarritoDetalle(carrito_id=carrito.id, variante_id=data.variante_id, cantidad=data.cantidad))
+        db.add(CarritoDetalle(carrito_id=carrito.id, variante_id=variante.id, cantidad=data.cantidad))
     db.commit()
     return serializar_carrito(carrito, db)
 

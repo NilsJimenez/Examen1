@@ -1,4 +1,4 @@
-﻿import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -27,8 +27,9 @@ export class CarritoService {
     );
   }
 
-  agregarItem(varianteId: number, cantidad: number = 1): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/agregar`, { variante_id: varianteId, cantidad }, { headers: this.headers }).pipe(
+  agregarItem(id: number, cantidad: number = 1, esProductoId: boolean = false): Observable<any> {
+    const body = esProductoId ? { producto_id: id, cantidad } : { variante_id: id, cantidad };
+    return this.http.post<any>(`${this.apiUrl}/agregar`, body, { headers: this.headers }).pipe(
       tap(c => this.carritoCount.set(c?.total_items || 0))
     );
   }
