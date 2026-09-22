@@ -148,6 +148,28 @@ import { ToastService } from '../../services/toast.service';
                 </div>
               </div>
 
+              <!-- Resguardo: Entrada de Monto si la orden no cargó el total -->
+              <div *ngIf="monto <= 0 && !cargandoOrden" class="card p-4 flex items-center justify-between animate-fade-in" style="border: 1px dashed var(--accent); background: rgba(245,158,11,0.06);">
+                <div class="text-xs">
+                  <strong class="block text-sm" style="color: var(--text-main);">
+                    <i class="fa-solid fa-calculator mr-1.5" style="color: var(--accent);"></i> Indicar Monto a Cancelar
+                  </strong>
+                  <span style="color: var(--text-muted);">Ingresa el total de la orden para actualizar el código QR y el comprobante:</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-sm" style="color: var(--accent);">Bs.</span>
+                  <input 
+                    type="number" 
+                    [(ngModel)]="monto" 
+                    (ngModelChange)="onMontoChange()" 
+                    placeholder="0.00" 
+                    min="1" 
+                    class="form-input font-mono font-bold text-sm text-right" 
+                    style="width: 110px; padding: 6px 10px;"
+                  />
+                </div>
+              </div>
+
               <!-- CONTENIDO: PAGO QR -->
               <div *ngIf="metodoPago === 'qr'" class="card p-6 flex flex-col items-center text-center animate-fade-in">
                 <div class="flex items-center gap-2 text-xs uppercase tracking-wider font-bold mb-4" style="color: var(--accent);">
@@ -447,6 +469,11 @@ export class PagoComponent implements OnInit {
     if (!this.qrImage || !this.qrImage.startsWith('data:image')) {
       this.qrImage = this.obtenerFallbackQr();
     }
+  }
+
+  onMontoChange(): void {
+    this.qrImage = '';
+    this.generarQrFrontend();
   }
 
   cargarOrden(): void {
