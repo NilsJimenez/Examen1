@@ -149,13 +149,34 @@ import { ToastService } from '../../services/toast.service';
             </div>
 
             <div *ngIf="metodoEntrega === 'delivery'" class="form-group">
-              <label class="form-label">Dirección de Entrega</label>
-              <input 
-                type="text" 
-                [(ngModel)]="direccionEnvio" 
-                placeholder="Calle, Número, Zona o Edificio" 
-                class="form-input" 
-              />
+              <div class="flex justify-between items-center mb-2">
+                <label class="form-label mb-0">Dirección de Entrega</label>
+                <button 
+                  type="button" 
+                  (click)="obtenerUbicacionActual()" 
+                  [disabled]="cargandoUbicacion"
+                  class="text-xs flex items-center gap-1.5 font-semibold transition-all"
+                  style="background: none; border: none; color: var(--accent); cursor: pointer; padding: 2px 6px; border-radius: 6px;"
+                  title="Detectar mi ubicación mediante GPS del dispositivo"
+                >
+                  <i class="fa-solid" [ngClass]="cargandoUbicacion ? 'fa-circle-notch fa-spin' : 'fa-location-crosshairs'"></i>
+                  <span>{{ cargandoUbicacion ? 'Detectando GPS...' : '📍 Usar mi ubicación actual' }}</span>
+                </button>
+              </div>
+              <div class="relative">
+                <input 
+                  type="text" 
+                  [(ngModel)]="direccionEnvio" 
+                  placeholder="Calle, Número, Zona o presiona 'Usar mi ubicación'" 
+                  class="form-input pr-9" 
+                />
+                <span *ngIf="ubicacionDetectada" class="absolute right-3 top-1/2 -translate-y-1/2 text-sm" style="color: #22c55e;">
+                  <i class="fa-solid fa-circle-check"></i>
+                </span>
+              </div>
+              <p *ngIf="ubicacionDetectada" class="text-[11px] mt-1.5 flex items-center gap-1.5" style="color: #22c55e;">
+                <i class="fa-solid fa-map-pin"></i> Ubicación capturada con éxito mediante GPS
+              </p>
             </div>
 
             <div class="flex flex-col gap-2 pt-3 text-sm" style="border-top: 1px solid var(--border-color);">
@@ -212,6 +233,70 @@ export class CarritoComponent implements OnInit {
 
   metodoEntrega: string = 'retiro_tienda';
   direccionEnvio: string = '';
+  cargandoUbicacion: boolean = false;
+  ubicacionDetectada: boolean = false;
+
+  obtenerUbicacionActual(): void {
+    if (!navigator.geolocation) {
+      this.toastService.error('GPS no compatible', 'Tu navegador o dispositivo no soporta geolocalización.');
+      return;
+    }
+
+    this.cargandoUbicacion = true;
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        try {
+          // Geocodificación inversa con OpenStreetMap Nominatim en español
+          const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`, {
+            headers: { 'Accept-Language': 'es' }
+          });
+          const data = await resp.json();
+          if (data && data.address) {
+            const addr = data.address;
+            const calle = addr.road || addr.street || addr.neighbourhood || '';
+            const barrio = addr.suburb || addr.neighbourhood || addr.quarter || '';
+            const ciudad = addr.city || addr.town || addr.municipality || 'Santa Cruz de la Sierra';
+
+            let dirFormateada = calle;
+            if (barrio && barrio !== calle) dirFormateada += (dirFormateada ? `, ${barrio}` : barrio);
+            if (ciudad) dirFormateada += (dirFormateada ? `, ${ciudad}` : ciudad);
+
+            this.direccionEnvio = dirFormateada || data.display_name;
+          } else {
+            this.direccionEnvio = `Ubicación GPS: ${lat.toFixed(5)}, ${lon.toFixed(5)} (Santa Cruz)`;
+          }
+          this.ubicacionDetectada = true;
+          this.cargandoUbicacion = false;
+          this.toastService.success('Ubicación Detectada', 'Tu dirección actual ha sido capturada por GPS.');
+        } catch (e) {
+          this.direccionEnvio = `Ubicación GPS: Lat ${lat.toFixed(5)}, Long ${lon.toFixed(5)} (Santa Cruz)`;
+          this.ubicacionDetectada = true;
+          this.cargandoUbicacion = false;
+          this.toastService.info('Coordenadas GPS', 'Ubicación registrada con coordenadas satelitales.');
+        }
+      },
+      (err) => {
+        this.cargandoUbicacion = false;
+        let msg = 'No se pudo obtener la ubicación GPS.';
+        if (err.code === err.PERMISSION_DENIED) {
+          msg = 'Permiso de ubicación denegado en tu navegador. Puedes escribirla manualmente.';
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          msg = 'Señal de GPS no disponible temporalmente.';
+        } else if (err.code === err.TIMEOUT) {
+          msg = 'Tiempo de espera de GPS agotado.';
+        }
+        this.toastService.warning('Aviso de Ubicación', msg);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
+  }
 
   ngOnInit(): void {
     this.cargarCarrito();
