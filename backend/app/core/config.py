@@ -14,8 +14,14 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def assemble_db_connection(cls, v: str) -> str:
-        if isinstance(v, str) and v.startswith("postgres://"):
-            return v.replace("postgres://", "postgresql://", 1)
+        if isinstance(v, str):
+            v = v.strip().strip('"').strip("'")
+            if v.startswith("postgres://"):
+                v = v.replace("postgres://", "postgresql://", 1)
+            # Si se pasa el dominio directo de Supabase (IPv6 puro), redirigir al Connection Pooler IPv4
+            # para evitar el error "Network is unreachable" en Railway / Docker en la nube
+            if "db.tdlapakfyboflxawpema.supabase.co" in v:
+                v = "postgresql://postgres.tdlapakfyboflxawpema:Ficct_Examen@aws-0-sa-east-1.pooler.supabase.com:5432/postgres"
         return v
     
     # Seguridad y Token JWT
