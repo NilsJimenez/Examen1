@@ -6,10 +6,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
-SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+from app.core.config import settings
+
+SMTP_SERVER = os.getenv("SMTP_SERVER") or settings.SMTP_SERVER or "smtp.gmail.com"
+SMTP_PORT = int(os.getenv("SMTP_PORT") or settings.SMTP_PORT or 587)
+SMTP_USERNAME = os.getenv("SMTP_USERNAME") or settings.SMTP_USERNAME or ""
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD") or settings.SMTP_PASSWORD or ""
 
 def send_reset_code_email(to_email: str, code: str):
     if not SMTP_USERNAME or not SMTP_PASSWORD:

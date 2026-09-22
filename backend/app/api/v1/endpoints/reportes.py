@@ -240,7 +240,7 @@ def reporte_generativo_ia(
     import json
     from app.core.config import settings
     api_key = settings.GEMINI_API_KEY
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
     
     try:
         sucursales_str = json.dumps(req.sucursales_disponibles)

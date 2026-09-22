@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     # Inteligencia Artificial
     GEMINI_API_KEY: str = ""
     
+    # Configuración de Correo Electrónico (SMTP para Recuperación de Contraseña)
+    SMTP_SERVER: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    
     # CORS (Permitir peticiones desde Angular / Flutter)
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:4200", "http://localhost:3000", "*"]
 
