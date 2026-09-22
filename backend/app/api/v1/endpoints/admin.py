@@ -15,7 +15,7 @@ from app.models.inventario import InventarioSucursal, MovimientoInventario
 from app.schemas.admin import (
     ProductoCreate, ProductoUpdate, CategoriaCreate, CategoriaUpdate, TallaCreate, TallaUpdate, ColorCreate, ColorUpdate,
     SucursalCreate, CiudadCreate, ProveedorCreate, TemporadaCreate, ColeccionCreate,
-    UsuarioCreate, UsuarioUpdate, StockIngresoInput, StockMatrizInput, VarianteUpdateInput,
+    UsuarioCreate, UsuarioUpdate, StockIngresoInput, StockMatrizInput, VarianteUpdateInput, VarianteInput,
     RolCreate, RolOut
 )
 from app.schemas.producto import ProductoDetailOut, CategoriaOut, TallaOut, ColorOut
@@ -42,19 +42,34 @@ def crear_producto(data: ProductoCreate, db: Session = Depends(get_db)):
         activo=True
     )
     db.add(nuevo_producto)
-    db.commit()
-    db.refresh(nuevo_producto)
+    db.flush()
 
-    # Crear variantes si se enviaron
+    # Si no se enviaron variantes (registro simplificado Paso 1), creamos una variante base lista para catálogo
+    variantes_a_crear = list(data.variantes) if data.variantes else []
+    if not variantes_a_crear:
+        primera_talla = db.query(Talla).filter(Talla.activo == True).first()
+        primer_color = db.query(Color).filter(Color.activo == True).first()
+        if primera_talla and primer_color:
+            base_code = "".join(filter(str.isalnum, data.nombre.upper()))[:4] or "MODA"
+            sku = f"SKU-{base_code}-{primera_talla.nombre}-{primer_color.nombre[:3].upper()}-{datetime.now().strftime('%M%S')}"
+            variantes_a_crear.append(
+                VarianteInput(
+                    talla_id=primera_talla.id,
+                    color_id=primer_color.id,
+                    sku=sku,
+                    precio_adicional=0.0,
+                    imagen_url=data.imagen_url,
+                    stock_inicial=10
+                )
+            )
+
     sucursales = db.query(Sucursal).filter(Sucursal.activo == True).all()
 
-    for v_data in data.variantes:
-        # Verificar que el SKU no exista (Excepción 1 de CU-06)
-        existing_sku = db.query(ProductoVariante).filter(ProductoVariante.sku == v_data.sku).first()
-        if existing_sku:
-            raise HTTPException(status_code=400, detail=f"El código de producto SKU '{v_data.sku}' ya existe.")
-        
+    for v_data in variantes_a_crear:
         v_sku = v_data.sku
+        existing_sku = db.query(ProductoVariante).filter(ProductoVariante.sku == v_sku).first()
+        if existing_sku:
+            v_sku = f"{v_sku}-{datetime.now().strftime('%M%S')}"
 
         nueva_variante = ProductoVariante(
             producto_id=nuevo_producto.id,
@@ -66,10 +81,8 @@ def crear_producto(data: ProductoCreate, db: Session = Depends(get_db)):
             activo=True
         )
         db.add(nueva_variante)
-        db.commit()
-        db.refresh(nueva_variante)
+        db.flush()
 
-        # Inicializar registro de inventario en cada sucursal con la cantidad ingresada
         cant_inicial = v_data.stock_inicial if v_data.stock_inicial is not None else 10
         for suc in sucursales:
             inv = InventarioSucursal(
@@ -80,8 +93,8 @@ def crear_producto(data: ProductoCreate, db: Session = Depends(get_db)):
                 stock_minimo=3
             )
             db.add(inv)
-        db.commit()
 
+    db.commit()
     db.refresh(nuevo_producto)
     return nuevo_producto
 

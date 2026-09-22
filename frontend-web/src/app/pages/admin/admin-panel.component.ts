@@ -976,140 +976,32 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
 
               <div class="form-group mb-0">
                 <label class="form-label text-xs">Género de la Prenda</label>
-              <select [(ngModel)]="prendaForm.genero" name="genero" class="form-input">
-                <option value="Unisex">Unisex / Ambos</option>
-                <option value="Hombre">Hombre</option>
-                <option value="Mujer">Mujer</option>
-                <option value="Niños">Niños</option>
-              </select>
+                <select [(ngModel)]="prendaForm.genero" name="genero" class="form-input">
+                  <option value="Unisex">Unisex / Ambos</option>
+                  <option value="Hombre">Hombre</option>
+                  <option value="Mujer">Mujer</option>
+                  <option value="Niños">Niños</option>
+                </select>
+              </div>
             </div>
-            <div class="col-6">
+
+            <div class="form-group mb-3">
               <label class="form-label text-xs">URL Modelo 3D / Realidad Aumentada (.glb)</label>
-                <input type="url" [(ngModel)]="prendaForm.modelo_ar_url" name="modelo_ar_url" placeholder="https://modelviewer.dev/shared-assets/models/Astronaut.glb" class="form-input" />
-              </div>
-            </div>
-          </div>
-
-          <!-- SECCIÓN 2: SELECCIÓN DE TALLAS -->
-          <div class="p-4 rounded-xl mb-4" style="background: var(--table-th-bg); border: 1.5px solid" [style.border-color]="tallasSeleccionadasIds.length === 0 ? '#ef4444' : 'var(--border-color)'">
-            <div class="flex items-center justify-between mb-2">
-              <h4 class="text-xs font-bold uppercase" [style.color]="tallasSeleccionadasIds.length === 0 ? '#ef4444' : 'var(--accent)'">
-                <i class="fa-solid fa-ruler-combined mr-1"></i> 2. Tallas disponibles para esta prenda *
-              </h4>
-              <span class="text-xs font-bold" [style.color]="tallasSeleccionadasIds.length > 0 ? '#10b981' : '#ef4444'">
-                {{ tallasSeleccionadasIds.length }} seleccionadas
-              </span>
+              <input type="url" [(ngModel)]="prendaForm.modelo_ar_url" name="modelo_ar_url" placeholder="https://modelviewer.dev/shared-assets/models/Astronaut.glb" class="form-input" />
             </div>
 
-            <div class="flex flex-wrap gap-2 mb-2">
-              <button 
-                type="button"
-                *ngFor="let t of tallas"
-                (click)="toggleTalla(t.id)"
-                class="size-chip"
-                [class.selected]="isTallaSelected(t.id)"
-              >
-                <i *ngIf="isTallaSelected(t.id)" class="fa-solid fa-check text-xs mr-1"></i>
-                {{ t.nombre }}
-              </button>
+            <div class="form-group mb-0">
+              <label class="form-label text-xs">Descripción de la Prenda (Opcional)</label>
+              <textarea [(ngModel)]="prendaForm.descripcion" name="descripcion" rows="2" placeholder="Detalles de confección, tela o estilo..." class="form-input" style="resize: vertical;"></textarea>
             </div>
-          </div>
-
-          <!-- SECCIÓN 3: SELECCIÓN DE COLORES -->
-          <div class="p-4 rounded-xl mb-4" style="background: var(--table-th-bg); border: 1.5px solid" [style.border-color]="coloresSeleccionadosIds.length === 0 ? '#ef4444' : 'var(--border-color)'">
-            <div class="flex items-center justify-between mb-2">
-              <h4 class="text-xs font-bold uppercase" [style.color]="coloresSeleccionadosIds.length === 0 ? '#ef4444' : 'var(--accent)'">
-                <i class="fa-solid fa-palette mr-1"></i> 3. Colores disponibles para esta prenda *
-              </h4>
-              <span class="text-xs font-bold" [style.color]="coloresSeleccionadosIds.length > 0 ? '#10b981' : '#ef4444'">
-                {{ coloresSeleccionadosIds.length }} seleccionados
-              </span>
-            </div>
-
-            <div class="flex flex-wrap gap-2 mb-2">
-              <button 
-                type="button"
-                *ngFor="let c of colores"
-                (click)="toggleColor(c.id)"
-                class="color-chip"
-                [class.selected]="isColorSelected(c.id)"
-              >
-                <span class="color-dot-indicator" [style.background-color]="c.codigo_hex || '#000'"></span>
-                <span>{{ c.nombre }}</span>
-                <i *ngIf="isColorSelected(c.id)" class="fa-solid fa-check text-xs ml-1" style="color: var(--accent);"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- SECCIÓN 4: FOTOS POR COLOR Y CANTIDAD INICIAL QUE ENTRA -->
-          <div *ngIf="coloresSeleccionadosIds.length > 0" class="p-4 rounded-xl mb-4" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
-            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-              <h4 class="text-xs font-bold uppercase" style="color: var(--accent);">
-                <i class="fa-solid fa-camera mr-1"></i> 4. Fotos Dedicadas por Color &amp; Lote de Entrada
-              </h4>
-              <div class="flex items-center gap-2">
-                <span class="text-xs font-medium" style="color: var(--text-muted);">Stock por variante:</span>
-                <div class="flex items-center gap-1">
-                  <button 
-                    type="button" 
-                    *ngFor="let cant of [5, 10, 15, 20, 30]" 
-                    (click)="seleccionarLoteStock(cant)" 
-                    class="batch-preset-btn"
-                    [class.selected]="stockInicialNuevoProducto === cant"
-                  >
-                    {{ cant }}
-                  </button>
-                </div>
-                <input type="number" [(ngModel)]="stockInicialNuevoProducto" [ngModelOptions]="{standalone: true}" min="1" class="form-input text-xs font-bold" style="width: 70px; padding: 0.3rem 0.5rem; color: #10b981; text-align: center;" />
-                <span class="text-xs" style="color: var(--text-muted);">Uds</span>
-              </div>
-            </div>
-
-            <p class="text-xs mb-3" style="color: var(--text-muted);">
-              Pega la URL de la foto de la prenda para cada color (el cliente verá cambiar la prenda de inmediato a ese color):
-            </p>
-
-            <div class="flex flex-col gap-2">
-              <div *ngFor="let cId of coloresSeleccionadosIds" class="flex items-center gap-3 p-2 rounded-lg" style="background: var(--card-bg); border: 1px solid var(--border-color);">
-                <span class="color-dot-indicator" [style.background-color]="getColorById(cId)?.codigo_hex || '#000'" style="width: 18px; height: 18px; min-width: 18px; border-radius: 50%;"></span>
-                <span class="text-xs font-bold" style="min-width: 110px; color: var(--text-main);">{{ getColorById(cId)?.nombre }}:</span>
-                <input 
-                  type="url" 
-                  [(ngModel)]="fotosColoresNuevoProducto[cId]" 
-                  [ngModelOptions]="{standalone: true}" 
-                  placeholder="URL foto para prenda en color {{ getColorById(cId)?.nombre }}..." 
-                  class="form-input" 
-                  style="padding: 0.35rem 0.6rem; font-size: 0.8rem;" 
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- RESUMEN AUTOMÁTICO DE VARIANTES Y CANTIDADES A GENERAR -->
-          <div *ngIf="esPrendaValida()" class="p-4 rounded-xl mb-4 animate-fade-in" style="background: rgba(245, 158, 11, 0.08); border: 1.5px solid rgba(245, 158, 11, 0.35);">
-            <div class="flex items-center justify-between mb-2">
-              <span class="font-bold text-xs" style="color: var(--accent);">
-                <i class="fa-solid fa-boxes-stacked mr-1"></i> Resumen de Producción e Inventario
-              </span>
-              <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: var(--accent); font-weight: 700; border: 1px solid rgba(245, 158, 11, 0.4);">
-                {{ tallasSeleccionadasIds.length }} tallas × {{ coloresSeleccionadosIds.length }} colores = {{ getVariantesGeneradasCount() }} variantes
-              </span>
-            </div>
-            <p class="text-xs" style="color: var(--text-main); margin-bottom: 0.25rem;">
-              Cada combinación de talla y color entrará con <strong>{{ stockInicialNuevoProducto || 10 }} unidades</strong> en el inventario de la tienda.
-            </p>
-            <p class="text-xs font-bold flex items-center gap-1.5" style="color: #10b981; margin: 0;">
-              <i class="fa-solid fa-arrow-trend-up"></i>
-              <span>Total en lote: <strong>{{ getTotalUnidadesEntrantes() }} prendas</strong> ingresarán automáticamente al Kardex de Inventario.</span>
-            </p>
           </div>
 
           <!-- Botones de Acción -->
           <div class="flex items-center justify-end gap-3 pt-4 border-t" style="border-color: var(--border-color);">
             <button type="button" (click)="mostrarModalPrenda = false" class="btn btn-outline">Cancelar</button>
-            <button type="submit" [disabled]="guardando || !esPrendaValida()" class="btn btn-primary">
-              <span *ngIf="guardando"><i class="fa-solid fa-circle-notch fa-spin"></i> Guardando y registrando stock...</span>
-              <span *ngIf="!guardando"><i class="fa-solid fa-check"></i> Publicar Prenda y Generar Stock</span>
+            <button type="submit" [disabled]="guardando || !esPrendaValida()" class="btn btn-primary" style="padding: 0.6rem 1.5rem;">
+              <span *ngIf="guardando"><i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Guardando prenda...</span>
+              <span *ngIf="!guardando"><i class="fa-solid fa-check mr-1"></i> Guardar Prenda</span>
             </button>
           </div>
 
@@ -2172,10 +2064,10 @@ export class AdminPanelComponent implements OnInit {
 
   esPrendaValida(): boolean {
     return (
+      !!this.prendaForm.nombre &&
       !!this.prendaForm.nombre.trim() &&
       this.prendaForm.categoria_id !== null &&
-      this.tallasSeleccionadasIds.length > 0 &&
-      this.coloresSeleccionadosIds.length > 0
+      Number(this.prendaForm.precio_base) > 0
     );
   }
 
@@ -2185,52 +2077,30 @@ export class AdminPanelComponent implements OnInit {
 
   guardarPrenda(): void {
     if (!this.esPrendaValida()) {
-      this.errorMessage = 'Revisa los campos obligatorios: Categoría, al menos 1 Talla y al menos 1 Color.';
+      this.errorMessage = 'Revisa los campos obligatorios: Nombre de la prenda, Categoría y Precio base.';
       return;
     }
 
     this.guardando = true;
     this.errorMessage = '';
 
-    const variantesPayload: any[] = [];
-    const baseCode = this.prendaForm.nombre
-      .trim()
-      .substring(0, 4)
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, 'MODA');
-
-    for (const tid of this.tallasSeleccionadasIds) {
-      const t = this.tallas.find(x => x.id === tid);
-      for (const cid of this.coloresSeleccionadosIds) {
-        const c = this.colores.find(x => x.id === cid);
-        const sku = `SKU-${baseCode}-${t?.nombre || tid}-${c?.nombre.substring(0, 3).toUpperCase() || cid}-${Math.floor(100 + Math.random() * 900)}`;
-        const fotoColor = this.fotosColoresNuevoProducto[cid] || this.prendaForm.imagen_url || null;
-        variantesPayload.push({
-          talla_id: tid,
-          color_id: cid,
-          sku: sku,
-          precio_adicional: 0,
-          imagen_url: fotoColor,
-          stock_inicial: Number(this.stockInicialNuevoProducto) || 15
-        });
-      }
-    }
-
     const payload = {
       ...this.prendaForm,
-      variantes: variantesPayload
+      variantes: []
     };
 
     this.adminService.crearProducto(payload).subscribe({
-      next: () => {
+      next: (prod) => {
         this.guardando = false;
         this.mostrarModalPrenda = false;
-        this.successMessage = `¡Prenda "${this.prendaForm.nombre}" publicada con éxito con sus ${variantesPayload.length} variantes e inventario inicial!`;
-        this.cargarDatosGenerales();
+        this.successMessage = `¡Prenda "${this.prendaForm.nombre}" guardada con éxito! Puedes configurar sus fotos y stock en "Fotos & Lotes".`;
+        this.productoService.getProductos().subscribe({
+          next: (data) => this.productos = data || []
+        });
       },
       error: (err) => {
         this.guardando = false;
-        this.errorMessage = err.error?.detail || 'Error al registrar la prenda en Supabase.';
+        this.errorMessage = err.error?.detail || 'Error al registrar la prenda en la base de datos.';
       }
     });
   }
