@@ -1,4 +1,4 @@
-﻿import { Injectable, inject } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -38,6 +38,10 @@ export class VentaService {
     cliente_id?: number;
   }): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/pos`, data, { headers: this.headers });
+  }
+
+  getVenta(ventaId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${ventaId}`, { headers: this.headers });
   }
 
   getMisCompras(): Observable<any[]> {

@@ -1,4 +1,7 @@
 import uuid
+import io
+import base64
+import qrcode
 from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -149,3 +152,49 @@ def mis_compras(db: Session = Depends(get_db), current_user: dict = Depends(get_
             "precio_unitario": float(d.precio_unitario)
         } for d in v.detalles]
     } for v in ventas]
+
+@router.get("/{venta_id}")
+def obtener_venta(venta_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    """Obtener detalle de la venta para pasarela de pago y generar QR."""
+    venta = db.query(Venta).options(
+        joinedload(Venta.detalles).joinedload(VentaDetalle.variante).joinedload(ProductoVariante.producto),
+        joinedload(Venta.detalles).joinedload(VentaDetalle.variante).joinedload(ProductoVariante.talla),
+        joinedload(Venta.detalles).joinedload(VentaDetalle.variante).joinedload(ProductoVariante.color),
+        joinedload(Venta.comprobante)
+    ).filter(Venta.id == venta_id).first()
+    if not venta:
+        raise HTTPException(status_code=404, detail="Orden de compra no encontrada.")
+    
+    # Generar QR Simple interoperable en base64 con el payload de cobro
+    qr_data = f"FASHIONSTORE|ORDEN:{venta.id}|TOTAL:{float(venta.total):.2f}|BS|PAGOSIMPLE"
+    qr = qrcode.QRCode(version=1, box_size=8, border=2)
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="#09090b", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    qr_base64 = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+
+    return {
+        "id": venta.id,
+        "subtotal": float(venta.subtotal),
+        "costo_envio": float(venta.costo_envio or 0),
+        "total": float(venta.total),
+        "estado": venta.estado,
+        "metodo_entrega": venta.metodo_entrega,
+        "direccion_envio": venta.direccion_envio,
+        "fecha_venta": venta.fecha_venta.isoformat() if venta.fecha_venta else None,
+        "numero_comprobante": venta.comprobante.numero_comprobante if venta.comprobante else None,
+        "qr_image": qr_base64,
+        "items": [{
+            "producto": d.variante.producto.nombre if d.variante and d.variante.producto else "Prenda",
+            "imagen_url": d.variante.producto.imagen_url if d.variante and d.variante.producto else None,
+            "talla": d.variante.talla.nombre if d.variante and d.variante.talla else "U",
+            "color": d.variante.color.nombre if d.variante and d.variante.color else "",
+            "color_hex": d.variante.color.codigo_hex if d.variante and d.variante.color else "#333",
+            "cantidad": d.cantidad,
+            "precio_unitario": float(d.precio_unitario),
+            "subtotal": float(d.subtotal)
+        } for d in venta.detalles]
+    }
+
