@@ -37,9 +37,9 @@ import { CarritoService } from '../../services/carrito.service';
             <a routerLink="/lookbook" routerLinkActive="active-link" class="nav-link" style="color: #a78bfa; font-weight: bold;">
               <i class="fa-solid fa-wand-magic-sparkles"></i> Arma tu Outfit
             </a>
-            <a *ngIf="carritoService.carritoCount() > 0" routerLink="/carrito" routerLinkActive="active-link" class="nav-link relative">
+            <a routerLink="/carrito" routerLinkActive="active-link" class="nav-link relative">
               <i class="fa-solid fa-cart-shopping"></i> Carrito
-              <span class="cart-badge">{{ carritoService.carritoCount() }}</span>
+              <span *ngIf="carritoService.carritoCount() > 0" class="cart-badge">{{ carritoService.carritoCount() }}</span>
             </a>
             <a routerLink="/mis-reservas" routerLinkActive="active-link" class="nav-link">
               <i class="fa-solid fa-calendar-check"></i> Reservas
@@ -62,12 +62,30 @@ import { CarritoService } from '../../services/carrito.service';
         </nav>
 
         <!-- Acciones Derecha (Desktop) y Hamburger (Mobile) -->
-        <div class="flex items-center gap-3 lg:gap-5 flex-shrink-0">
-          
+        <div class="flex items-center gap-2.5 sm:gap-3 lg:gap-4 flex-shrink-0">
+
+          <!-- Botón de Modo Claro/Oscuro -->
           <button (click)="themeService.toggleTheme()" class="theme-toggle-btn" [title]="themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro'">
             <i *ngIf="themeService.isDarkMode()" class="fa-solid fa-sun" style="color: #f59e0b;"></i>
             <i *ngIf="!themeService.isDarkMode()" class="fa-solid fa-moon" style="color: #64748b;"></i>
           </button>
+
+          <!-- BOTÓN DESTACADO DE CARRITO (Accesible para clientes en Desktop y Móvil) -->
+          <a 
+            *ngIf="!esAdmin && !esEncargado && !esCajero" 
+            routerLink="/carrito" 
+            routerLinkActive="cart-btn-active"
+            class="cart-header-btn" 
+            title="Ver mi Carrito de Compras"
+          >
+            <div class="relative flex items-center justify-center">
+              <i class="fa-solid fa-cart-shopping text-base sm:text-lg"></i>
+              <span *ngIf="carritoService.carritoCount() > 0" class="cart-pill-badge">
+                {{ carritoService.carritoCount() }}
+              </span>
+            </div>
+            <span class="hidden md:inline font-bold text-xs">Carrito</span>
+          </a>
 
           <!-- Desktop Auth actions -->
           <div class="hidden lg:flex items-center">
@@ -109,7 +127,10 @@ import { CarritoService } from '../../services/carrito.service';
 
           <ng-container *ngIf="authService.isLoggedIn && esCliente">
             <a routerLink="/lookbook" (click)="closeMenu()" class="nav-link" style="color: #a78bfa; font-weight: bold;"><i class="fa-solid fa-wand-magic-sparkles"></i> Arma tu Outfit</a>
-            <a *ngIf="carritoService.carritoCount() > 0" routerLink="/carrito" (click)="closeMenu()" class="nav-link"><i class="fa-solid fa-cart-shopping"></i> Carrito ({{ carritoService.carritoCount() }})</a>
+            <a routerLink="/carrito" (click)="closeMenu()" class="nav-link flex items-center justify-between">
+              <span><i class="fa-solid fa-cart-shopping mr-2"></i> Carrito</span>
+              <span *ngIf="carritoService.carritoCount() > 0" class="badge" style="background: #ef4444; color: white; border-radius: 9999px; padding: 2px 8px; font-weight: bold;">{{ carritoService.carritoCount() }}</span>
+            </a>
             <a routerLink="/mis-reservas" (click)="closeMenu()" class="nav-link"><i class="fa-solid fa-calendar-check"></i> Mis Reservas</a>
             <a routerLink="/mis-compras" (click)="closeMenu()" class="nav-link"><i class="fa-solid fa-bag-shopping"></i> Mis Compras</a>
           </ng-container>
@@ -141,6 +162,21 @@ import { CarritoService } from '../../services/carrito.service';
         </div>
       </div>
     </header>
+
+    <!-- Botón Flotante de Carrito en la esquina inferior derecha si tiene items -->
+    <a 
+      *ngIf="(!esAdmin && !esEncargado && !esCajero) && carritoService.carritoCount() > 0" 
+      routerLink="/carrito" 
+      class="floating-cart-fab"
+      title="Tienes prendas en tu carrito. Toca para ver y pagar"
+    >
+      <div class="relative flex items-center justify-center">
+        <i class="fa-solid fa-bag-shopping text-lg"></i>
+        <span class="floating-cart-counter">{{ carritoService.carritoCount() }}</span>
+      </div>
+      <span class="font-bold text-sm tracking-wide">Pagar / Carrito</span>
+      <i class="fa-solid fa-arrow-right text-xs ml-1"></i>
+    </a>
   `,
   styles: [`
     .nav-link {
@@ -186,6 +222,86 @@ import { CarritoService } from '../../services/carrito.service';
       font-weight: bold;
       font-size: 0.95rem;
       border: 1px solid var(--border-color);
+    }
+    .cart-header-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 9999px;
+      background: var(--table-th-bg);
+      border: 1.5px solid var(--border-color);
+      color: var(--text-main);
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .cart-header-btn:hover, .cart-btn-active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(212, 175, 55, 0.12);
+      transform: translateY(-1px);
+    }
+    .cart-pill-badge {
+      position: absolute;
+      top: -9px;
+      right: -11px;
+      background: #ef4444;
+      color: #ffffff;
+      font-size: 0.65rem;
+      font-weight: 800;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      box-shadow: 0 2px 5px rgba(239, 68, 68, 0.5);
+    }
+    .floating-cart-fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.75rem 1.3rem;
+      background: #d4af37;
+      color: #09090b !important;
+      font-weight: 800;
+      border-radius: 9999px;
+      text-decoration: none;
+      box-shadow: 0 8px 24px rgba(212, 175, 55, 0.45), 0 2px 10px rgba(0,0,0,0.3);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      animation: pulse-soft 2.5s infinite;
+    }
+    .floating-cart-fab:hover {
+      transform: translateY(-3px) scale(1.04);
+      background: #e2c056;
+      box-shadow: 0 12px 28px rgba(212, 175, 55, 0.6);
+    }
+    .floating-cart-counter {
+      position: absolute;
+      top: -7px;
+      right: -10px;
+      background: #09090b;
+      color: #d4af37;
+      font-size: 0.7rem;
+      font-weight: 900;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #d4af37;
+    }
+    @keyframes pulse-soft {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
     }
   `]
 })
