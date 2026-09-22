@@ -49,7 +49,7 @@ def crear_reserva(data: ReservaCreate, db: Session = Depends(get_db), current_us
         inv = db.query(InventarioSucursal).filter(
             InventarioSucursal.variante_id == item.variante_id,
             InventarioSucursal.sucursal_id == data.sucursal_id
-        ).first()
+        ).with_for_update().first()
         if not inv:
             raise HTTPException(status_code=400, detail=f"Variante {item.variante_id} no disponible en esa sucursal.")
         libre = inv.cantidad_disponible - inv.cantidad_reservada
