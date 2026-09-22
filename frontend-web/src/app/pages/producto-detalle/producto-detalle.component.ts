@@ -118,14 +118,14 @@ import { Producto, Variante, Color, Talla } from '../../models/producto.models';
             <div class="stage-stock-indicator">
               <span 
                 class="stock-status-dot" 
-                [style.background-color]="stockActualSucursal > 0 ? '#10b981' : '#ef4444'"
+                [style.background-color]="estadoActualSucursalColor"
               ></span>
               <span class="stock-store-name">{{ sucursalActualNombre }}:</span>
               <span 
                 class="stock-count-text font-bold"
-                [style.color]="stockActualSucursal > 0 ? '#10b981' : '#ef4444'"
+                [style.color]="estadoActualSucursalColor"
               >
-                {{ stockActualSucursal > 0 ? stockActualSucursal + ' uds. disponibles' : 'Agotado en esta tienda' }}
+                {{ estadoActualSucursalTexto }}
               </span>
             </div>
 
@@ -375,18 +375,21 @@ import { Producto, Variante, Color, Talla } from '../../models/producto.models';
                 </div>
                 <span class="text-xs block mt-0.5" style="color: var(--text-muted);">
                   Stock libre: <strong style="color: var(--text-main);">{{ s.stock_libre }}</strong> unidades
+                  <span *ngIf="s.cantidad_reservada > 0" class="ml-1 text-[11px] font-semibold" style="color: #f59e0b;">
+                    • {{ s.cantidad_reservada }} en probador/reservadas
+                  </span>
                 </span>
               </div>
 
               <div class="flex items-center gap-3">
                 <span 
                   class="badge" 
-                  [style.background]="s.estado === 'disponible' ? 'rgba(16,185,129,0.15)' : (s.estado === 'ultimas_unidades' ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)')"
-                  [style.color]="s.estado === 'disponible' ? '#10b981' : (s.estado === 'ultimas_unidades' ? '#f59e0b' : '#ef4444')"
-                  [style.border]="'1px solid ' + (s.estado === 'disponible' ? '#10b981' : (s.estado === 'ultimas_unidades' ? '#f59e0b' : '#ef4444'))"
+                  [style.background]="s.estado === 'disponible' ? 'rgba(16,185,129,0.15)' : (s.estado === 'reservado' ? 'rgba(245,158,11,0.18)' : (s.estado === 'ultimas_unidades' ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)'))"
+                  [style.color]="s.estado === 'disponible' ? '#10b981' : (s.estado === 'reservado' ? '#f59e0b' : (s.estado === 'ultimas_unidades' ? '#f59e0b' : '#ef4444'))"
+                  [style.border]="'1px solid ' + (s.estado === 'disponible' ? '#10b981' : (s.estado === 'reservado' ? '#f59e0b' : (s.estado === 'ultimas_unidades' ? '#f59e0b' : '#ef4444')))"
                   style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase;"
                 >
-                  {{ s.estado === 'ultimas_unidades' ? 'Últimas Uds.' : s.estado }}
+                  {{ s.estado === 'ultimas_unidades' ? 'Últimas Uds.' : (s.estado === 'reservado' ? 'Reservado' : s.estado) }}
                 </span>
 
                 <button 
@@ -435,7 +438,7 @@ import { Producto, Variante, Color, Talla } from '../../models/producto.models';
               </label>
               <select [(ngModel)]="reservaSucursalId" (change)="onCambiarSucursalReserva()" class="form-input">
                 <option *ngFor="let suc of stockSucursales" [value]="suc.sucursal_id" [disabled]="suc.stock_libre <= 0">
-                  {{ suc.sucursal_nombre }} — {{ suc.stock_libre > 0 ? '(' + suc.stock_libre + ' disponibles)' : '(Agotado)' }}
+                  {{ suc.sucursal_nombre }} — {{ suc.stock_libre > 0 ? '(' + suc.stock_libre + ' disponibles)' : (suc.cantidad_reservada > 0 ? '(Prendas Reservadas)' : '(Agotado)') }}
                 </option>
               </select>
             </div>
@@ -1545,6 +1548,40 @@ export class ProductoDetalleComponent implements OnInit {
   get sucursalActualNombre(): string {
     const s = this.stockSucursales.find(item => item.sucursal_id === Number(this.sucursalSeleccionadaId));
     return s ? s.sucursal_nombre : 'Sucursal Central La Paz';
+  }
+
+  get sucursalActualData(): any {
+    return this.stockSucursales.find(item => item.sucursal_id === Number(this.sucursalSeleccionadaId)) || null;
+  }
+
+  get estadoActualSucursal(): 'disponible' | 'ultimas_unidades' | 'reservado' | 'agotado' {
+    const s = this.sucursalActualData;
+    if (!s) return 'agotado';
+    if (s.stock_libre >= 5) return 'disponible';
+    if (s.stock_libre > 0) return 'ultimas_unidades';
+    if (s.cantidad_reservada > 0) return 'reservado';
+    return 'agotado';
+  }
+
+  get estadoActualSucursalColor(): string {
+    switch (this.estadoActualSucursal) {
+      case 'disponible': return '#10b981'; // Verde
+      case 'ultimas_unidades': return '#f59e0b'; // Naranja / Ámbar
+      case 'reservado': return '#f59e0b'; // Ámbar (Prendas apartadas)
+      case 'agotado': return '#ef4444'; // Rojo (Sin stock)
+    }
+  }
+
+  get estadoActualSucursalTexto(): string {
+    const s = this.sucursalActualData;
+    if (!s) return 'Consultando stock...';
+    if (s.stock_libre > 0) {
+      return `${s.stock_libre} uds. disponibles`;
+    }
+    if (s.cantidad_reservada > 0) {
+      return `Reservado (${s.cantidad_reservada} en probador)`;
+    }
+    return 'Agotado en esta tienda';
   }
 
   get stockActualSucursal(): number {

@@ -44,6 +44,8 @@ def get_stock_por_variante(variante_id: int, db: Session = Depends(get_db)):
             estado = "disponible"
         elif libre > 0:
             estado = "ultimas_unidades"
+        elif inv.cantidad_reservada > 0:
+            estado = "reservado"
         else:
             estado = "agotado"
         resultado.append({
