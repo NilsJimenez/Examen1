@@ -50,9 +50,9 @@ export class LookbookComponent implements OnInit {
     const r = (rol || '').toLowerCase();
     if (r.includes('superior')) return '#3b82f6'; // Azul
     if (r.includes('inferior')) return '#8b5cf6'; // Púrpura
-    if (r.includes('calzado')) return '#10b981'; // Verde Esmeralda
     if (r.includes('vestid')) return '#ec4899'; // Rosa Fucsia
-    return '#f59e0b'; // Ámbar para accesorio
+    if (r.includes('abrig') || r.includes('chaquet')) return '#f59e0b'; // Ámbar
+    return '#10b981'; // Esmeralda
   }
 
   armarOutfit() {

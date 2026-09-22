@@ -57,10 +57,10 @@ def generar_lookbook(
         rol = "accesorio"
         if "vestid" in texto:
             rol = "vestido"
-        elif any(k in texto for k in ["camis", "poler", "chaquet", "sueter", "top", "blusa", "abrig", "biker", "blazer", "sudadera"]):
+        elif any(k in texto for k in ["abrig", "chaquet", "blazer", "cardigan", "biker", "sueter"]):
+            rol = "abrigo"
+        elif any(k in texto for k in ["camis", "poler", "top", "blusa", "sudadera"]):
             rol = "superior"
-        elif any(k in texto for k in ["zapat", "calzad", "botas", "botin", "tacón", "tacon", "mocas", "sneaker", "stiletto", "tenis"]):
-            rol = "calzado"
         elif any(k in texto for k in ["pantal", "jean", "short", "fald", "legging", "bermuda", "calza"]):
             rol = "inferior"
 
@@ -80,22 +80,22 @@ def generar_lookbook(
     prompt = f"""
     Eres el "Fashion Stylist IA" de FashionStore.
     El cliente quiere un outfit para: "{req.ocasion}".
-    El género del cliente es: "{req.genero if req.genero else 'Unisex / Cualquiera'}". Debes buscar estrictamente prendas que coincidan con este género o sean Unisex.
+    El género del cliente es: "{req.genero if req.genero else 'Unisex / Cualquiera'}". Debes buscar prendas que coincidan con este género o sean Unisex.
     Su presupuesto máximo es: Bs. {req.presupuesto_max}.
     
-    Aquí tienes el catálogo de prendas disponibles en su talla:
+    Aquí tienes el catálogo de prendas de vestir disponibles en su talla:
     {catalogo_str}
     
     Reglas OBLIGATORIAS:
-    1. Debes seleccionar SIEMPRE un outfit completo y armónico:
-       - Opción A: 1 prenda superior + 1 prenda inferior + 1 calzado (y 1 accesorio opcional si alcanza).
-       - Opción B: 1 vestido + 1 calzado (y 1 accesorio opcional).
-    2. La suma de los precios de las prendas elegidas DEBE SER MENOR O IGUAL a {req.presupuesto_max}. Si no hay combinación exacta que cumpla el presupuesto, elige la combinación más armoniosa y cercana.
+    1. Debes seleccionar SIEMPRE un outfit completo y armónico de ropa:
+       - Opción A: 1 prenda superior (blusa, camisa, polera o top) + 1 prenda inferior (pantalón, jean o falda) y opcionalmente 1 chaqueta/abrigo.
+       - Opción B: 1 vestido y opcionalmente 1 chaqueta/abrigo.
+    2. La suma de los precios de las prendas elegidas DEBE SER MENOR O IGUAL a {req.presupuesto_max}.
     3. Asegúrate de que los estilos y colores combinen bien para la ocasión ({req.ocasion}).
     
     Devuelve ESTRICTAMENTE un JSON puro (SIN bloques markdown) con la siguiente estructura:
     {{
-        "prendas_ids": [id1, id2, id3],
+        "prendas_ids": [id1, id2],
         "justificacion": "He elegido esta combinación porque...",
         "alerta_presupuesto": false
     }}
@@ -128,27 +128,25 @@ def generar_lookbook(
         vestidos = [p for p in cat_filtrado if p.get('rol_sugerido') == 'vestido']
         superiores = [p for p in cat_filtrado if p.get('rol_sugerido') == 'superior']
         inferiores = [p for p in cat_filtrado if p.get('rol_sugerido') == 'inferior']
-        calzados = [p for p in cat_filtrado if p.get('rol_sugerido') == 'calzado']
+        abrigos = [p for p in cat_filtrado if p.get('rol_sugerido') == 'abrigo']
         accesorios = [p for p in cat_filtrado if p.get('rol_sugerido') == 'accesorio']
         
         fallback_ids = []
-        # Si es mujer y la ocasión es formal/fiesta y hay vestido
-        if "mujer" in gen and vestidos and ("fiesta" in req.ocasion.lower() or "boda" in req.ocasion.lower() or "gala" in req.ocasion.lower() or not superiores):
+        # Si es mujer y hay vestido para ocasión de gala/fiesta
+        if "mujer" in gen and vestidos and any(w in req.ocasion.lower() for w in ["fiesta", "boda", "gala", "noche", "evento"]):
             fallback_ids.append(vestidos[0]["id"])
-            if calzados: fallback_ids.append(calzados[0]["id"])
-            elif accesorios: fallback_ids.append(accesorios[0]["id"])
+            if abrigos: fallback_ids.append(abrigos[0]["id"])
         else:
             if superiores: fallback_ids.append(superiores[0]["id"])
             if inferiores: fallback_ids.append(inferiores[0]["id"])
-            if calzados: fallback_ids.append(calzados[0]["id"])
-            if accesorios and len(fallback_ids) < 3: fallback_ids.append(accesorios[0]["id"])
+            if abrigos and len(fallback_ids) < 3: fallback_ids.append(abrigos[0]["id"])
             
         if not fallback_ids and catalogo_simplificado:
-            fallback_ids = [p["id"] for p in catalogo_simplificado[:3]]
+            fallback_ids = [p["id"] for p in catalogo_simplificado[:2]]
 
         data_ia = {
             "prendas_ids": fallback_ids,
-            "justificacion": f"Para la ocasión '{req.ocasion}', he combinado estas prendas coordinadas (superior, inferior y calzado) para un look equilibrado y elegante.",
+            "justificacion": f"Para la ocasión '{req.ocasion}', he combinado estas prendas coordinadas para un look favorecedor y estilizado.",
             "alerta_presupuesto": False
         }
 
@@ -168,12 +166,12 @@ def generar_lookbook(
             rol = "Accesorio"
             if "vestid" in texto:
                 rol = "Vestido"
-            elif any(k in texto for k in ["camis", "poler", "chaquet", "sueter", "top", "blusa", "abrig", "biker", "blazer", "sudadera"]):
-                rol = "Superior"
-            elif any(k in texto for k in ["zapat", "calzad", "botas", "botin", "tacón", "tacon", "mocas", "sneaker", "stiletto", "tenis"]):
-                rol = "Calzado"
+            elif any(k in texto for k in ["abrig", "chaquet", "blazer", "cardigan", "biker", "sueter"]):
+                rol = "Chaqueta / Abrigo"
+            elif any(k in texto for k in ["camis", "poler", "top", "blusa", "sudadera"]):
+                rol = "Prenda Superior"
             elif any(k in texto for k in ["pantal", "jean", "short", "fald", "legging", "bermuda", "calza"]):
-                rol = "Inferior"
+                rol = "Prenda Inferior"
                 
             outfit.append(PrendaLookbook(
                 producto=ProductoOut.model_validate(prod),
