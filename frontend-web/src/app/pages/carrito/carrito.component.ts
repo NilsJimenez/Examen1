@@ -376,8 +376,34 @@ export class CarritoComponent implements OnInit {
     }).subscribe({
       next: (res) => {
         this.checkoutLoading = false;
+        const ordenData = {
+          id: res.venta_id,
+          venta_id: res.venta_id,
+          subtotal: res.subtotal || this.subtotal,
+          costo_envio: res.costo_envio || (this.metodoEntrega === 'delivery' ? 30 : 0),
+          total: res.total || (this.subtotal + (this.metodoEntrega === 'delivery' ? 30 : 0)),
+          metodo_entrega: this.metodoEntrega,
+          direccion_envio: this.metodoEntrega === 'delivery' ? this.direccionEnvio : '',
+          qr_image: res.qr_image || '',
+          items: this.items.map(it => ({
+            producto: it.producto_nombre || it.producto || it.nombre || 'Prenda',
+            talla: it.talla || 'U',
+            color: it.color || '',
+            cantidad: it.cantidad || 1,
+            subtotal: it.subtotal || 0,
+            precio_unitario: it.precio_unitario || 0
+          }))
+        };
+
+        try {
+          sessionStorage.setItem('orden_activa', JSON.stringify(ordenData));
+          sessionStorage.setItem('orden_' + res.venta_id, JSON.stringify(ordenData));
+        } catch (e) {
+          console.warn('No se pudo persistir orden en sessionStorage', e);
+        }
+
         this.toastService.success('Orden Generada', 'Venta registrada. Procede a confirmar el método de pago.');
-        this.router.navigate(['/pago', res.venta_id], { state: { orden: res } });
+        this.router.navigate(['/pago', res.venta_id], { state: { orden: ordenData } });
       },
       error: (err) => {
         this.checkoutLoading = false;

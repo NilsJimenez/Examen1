@@ -87,7 +87,7 @@ import { ToastService } from '../../services/toast.service';
             <div class="text-right">
               <span class="block text-xs" style="color: var(--text-muted);">Total a Cancelar</span>
               <span class="font-serif text-xl sm:text-2xl font-bold" style="color: var(--accent);">
-                Bs. {{ monto | number:'1.2-2' }}
+                Bs. {{ (monto > 0 ? monto : (orden?.total || 0)) | number:'1.2-2' }}
               </span>
             </div>
           </div>
@@ -157,18 +157,14 @@ import { ToastService } from '../../services/toast.service';
                 <!-- Marco QR -->
                 <div class="p-3 bg-white rounded-2xl shadow-lg mb-4 inline-block" style="border: 2px solid var(--accent);">
                   <img 
-                    *ngIf="qrImage" 
-                    [src]="qrImage" 
+                    [src]="qrImage || obtenerFallbackQr()" 
                     alt="Código QR de Pago FashionStore" 
-                    style="width: 190px; height: 190px; object-fit: contain; display: block;" 
+                    style="width: 200px; height: 200px; object-fit: contain; display: block;" 
                   />
-                  <div *ngIf="!qrImage" class="w-48 h-48 flex items-center justify-center text-gray-800">
-                    <i class="fa-solid fa-qrcode text-7xl"></i>
-                  </div>
                 </div>
 
                 <div class="text-xs max-w-sm mb-4" style="color: var(--text-muted);">
-                  Escanea este código desde la app de tu banco favorito (<strong style="color: var(--text-main);">Banco Unión, BCP, BNB, Mercantil, Ganadero, Bisa</strong>). El cobro por <strong style="color: var(--accent);">Bs. {{ monto | number:'1.2-2' }}</strong> se acreditará al instante.
+                  Escanea este código desde la app de tu banco favorito (<strong style="color: var(--text-main);">Banco Unión, BCP, BNB, Mercantil, Ganadero, Bisa</strong>). El cobro por <strong style="color: var(--accent);">Bs. {{ (monto > 0 ? monto : (orden?.total || 0)) | number:'1.2-2' }}</strong> se acreditará al instante.
                 </div>
 
                 <div class="w-full p-3 rounded-xl mb-5 flex items-center justify-between text-xs" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
@@ -183,7 +179,7 @@ import { ToastService } from '../../services/toast.service';
                   style="padding: 0.85rem; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
                 >
                   <span *ngIf="loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Verificando Transferencia QR...</span>
-                  <span *ngIf="!loading"><i class="fa-solid fa-check-circle"></i> He Escaneado y Pagado (Bs. {{ monto | number:'1.2-2' }})</span>
+                  <span *ngIf="!loading"><i class="fa-solid fa-check-circle"></i> He Escaneado y Pagado (Bs. {{ (monto > 0 ? monto : (orden?.total || 0)) | number:'1.2-2' }})</span>
                 </button>
               </div>
 
@@ -270,7 +266,7 @@ import { ToastService } from '../../services/toast.service';
                   style="padding: 0.85rem; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
                 >
                   <span *ngIf="loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Procesando Transacción Bancaria...</span>
-                  <span *ngIf="!loading"><i class="fa-solid fa-lock"></i> Pagar con Tarjeta Bs. {{ monto | number:'1.2-2' }}</span>
+                  <span *ngIf="!loading"><i class="fa-solid fa-lock"></i> Pagar con Tarjeta Bs. {{ (monto > 0 ? monto : (orden?.total || 0)) | number:'1.2-2' }}</span>
                 </button>
               </div>
 
@@ -293,7 +289,7 @@ import { ToastService } from '../../services/toast.service';
                 <div class="p-4 rounded-xl text-xs flex flex-col gap-2" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
                   <div class="flex justify-between" style="color: var(--text-muted);">
                     <span>Monto Exacto a Preparar:</span>
-                    <strong class="font-serif text-sm" style="color: var(--accent);">Bs. {{ monto | number:'1.2-2' }}</strong>
+                    <strong class="font-serif text-sm" style="color: var(--accent);">Bs. {{ (monto > 0 ? monto : (orden?.total || 0)) | number:'1.2-2' }}</strong>
                   </div>
                   <div *ngIf="orden?.direccion_envio" class="flex justify-between" style="color: var(--text-muted);">
                     <span>Dirección de Cobro:</span>
@@ -307,8 +303,8 @@ import { ToastService } from '../../services/toast.service';
                   class="btn btn-primary w-full mt-2"
                   style="padding: 0.85rem; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
                 >
-                  <span *ngIf="loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Registrando Orden...</span>
-                  <span *ngIf="!loading"><i class="fa-solid fa-check"></i> Confirmar Pedido con Pago en Efectivo</span>
+                  <span *ngIf="loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Registrando Pedido...</span>
+                  <span *ngIf="!loading"><i class="fa-solid fa-check"></i> Confirmar Pedido en Efectivo (Bs. {{ (monto > 0 ? monto : (orden?.total || 0)) | number:'1.2-2' }})</span>
                 </button>
               </div>
 
@@ -343,7 +339,7 @@ import { ToastService } from '../../services/toast.service';
                 <div class="flex flex-col gap-2 pt-2 text-xs" style="border-top: 1px solid var(--border-color);">
                   <div class="flex justify-between" style="color: var(--text-muted);">
                     <span>Subtotal:</span>
-                    <span class="font-semibold" style="color: var(--text-main);">Bs. {{ (orden?.subtotal || 0) | number:'1.2-2' }}</span>
+                    <span class="font-semibold" style="color: var(--text-main);">Bs. {{ (orden?.subtotal || (monto > 0 ? monto : 0)) | number:'1.2-2' }}</span>
                   </div>
                   <div class="flex justify-between" style="color: var(--text-muted);">
                     <span>Costo de Envío:</span>
@@ -353,7 +349,7 @@ import { ToastService } from '../../services/toast.service';
                   </div>
                   <div class="flex justify-between text-sm font-bold pt-2 mt-1" style="border-top: 1px dashed var(--border-color); color: var(--text-main);">
                     <span>Total a Pagar:</span>
-                    <span class="font-serif text-lg" style="color: var(--accent);">Bs. {{ monto | number:'1.2-2' }}</span>
+                    <span class="font-serif text-lg" style="color: var(--accent);">Bs. {{ (monto > 0 ? monto : (orden?.total || 0)) | number:'1.2-2' }}</span>
                   </div>
                 </div>
 
@@ -394,18 +390,30 @@ export class PagoComponent implements OnInit {
   cvv: string = '789';
 
   ngOnInit(): void {
-    // Si la orden viene en el state de navegación (desde el checkout directo del carrito)
+    // 1. Si la orden viene en history.state (desde el checkout directo del carrito)
     if (history.state?.orden) {
-      const o = history.state.orden;
-      this.orden = o;
-      this.monto = Number(o.total) || 0;
-      this.generarQrFrontend();
-      this.cargandoOrden = false;
+      this.asignarDatosOrden(history.state.orden);
     }
 
+    // 2. Suscribirse al id de la ruta
     this.route.params.subscribe(params => {
       this.ventaId = Number(params['id']);
       if (this.ventaId) {
+        // Chequear si existe en sessionStorage
+        try {
+          const spec = sessionStorage.getItem('orden_' + this.ventaId);
+          const activa = sessionStorage.getItem('orden_activa');
+          if (spec) {
+            this.asignarDatosOrden(JSON.parse(spec));
+          } else if (activa) {
+            const parsed = JSON.parse(activa);
+            if (Number(parsed.id) === this.ventaId || Number(parsed.venta_id) === this.ventaId) {
+              this.asignarDatosOrden(parsed);
+            }
+          }
+        } catch (e) {}
+
+        this.generarQrFrontend();
         this.cargarOrden();
       } else {
         this.toastService.error('Orden Inválida', 'No se especificó un número de orden válido.');
@@ -414,22 +422,39 @@ export class PagoComponent implements OnInit {
     });
   }
 
+  asignarDatosOrden(data: any): void {
+    if (!data) return;
+    this.orden = data;
+    const numTotal = Number(data.total);
+    if (!isNaN(numTotal) && numTotal > 0) {
+      this.monto = numTotal;
+    }
+    if (data.qr_image) {
+      this.qrImage = data.qr_image;
+    }
+    this.generarQrFrontend();
+    this.cargandoOrden = false;
+  }
+
+  obtenerFallbackQr(): string {
+    const totalVal = (this.monto > 0 ? this.monto : (Number(this.orden?.total) || 0)).toFixed(2);
+    const idVal = this.ventaId || this.orden?.id || this.orden?.venta_id || 1;
+    const payload = encodeURIComponent(`FASHIONSTORE|ORDEN:${idVal}|TOTAL:${totalVal}|BS|PAGOSIMPLE`);
+    return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${payload}`;
+  }
+
   generarQrFrontend(): void {
-    if (!this.qrImage && this.ventaId) {
-      const payload = encodeURIComponent(`FASHIONSTORE|ORDEN:${this.ventaId}|TOTAL:${this.monto.toFixed(2)}|BS|PAGOSIMPLE`);
-      this.qrImage = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${payload}`;
+    if (!this.qrImage || !this.qrImage.startsWith('data:image')) {
+      this.qrImage = this.obtenerFallbackQr();
     }
   }
 
   cargarOrden(): void {
-    this.cargandoOrden = !this.orden; // solo mostrar loading si no teníamos datos en history.state
+    this.cargandoOrden = !this.orden; // Solo mostrar loading si no teníamos datos previos
     
     this.ventaService.getVenta(this.ventaId).subscribe({
       next: (res) => {
-        this.orden = res;
-        this.monto = Number(res.total) || this.monto;
-        this.qrImage = res.qr_image || this.qrImage;
-        this.generarQrFrontend();
+        this.asignarDatosOrden(res);
         this.cargandoOrden = false;
 
         // Si la orden ya estaba completada (pagada con anterioridad)
@@ -439,16 +464,12 @@ export class PagoComponent implements OnInit {
         }
       },
       error: () => {
-        // FALLBACK si el endpoint individual aún no está desplegado o da 404
+        // FALLBACK si el backend tarda o da 404
         this.ventaService.getMisCompras().subscribe({
           next: (compras) => {
             const v = compras.find((c: any) => c.id === this.ventaId);
             if (v) {
-              this.orden = v;
-              this.monto = Number(v.total) || this.monto;
-              this.generarQrFrontend();
-              this.cargandoOrden = false;
-
+              this.asignarDatosOrden(v);
               if (v.estado === 'completada') {
                 this.pagoExitoso = true;
                 this.comprobanteNumero = v.numero_comprobante || 'COMP-' + this.ventaId;
@@ -495,10 +516,12 @@ export class PagoComponent implements OnInit {
     if (!this.monto || this.monto <= 0) {
       if (this.orden?.total > 0) {
         this.monto = Number(this.orden.total);
-      } else {
-        this.toastService.error('Monto Inválido', 'El monto a pagar debe ser mayor a 0 Bs.');
-        return;
       }
+    }
+
+    if (!this.monto || this.monto <= 0) {
+      this.toastService.error('Monto Inválido', 'El monto a pagar debe ser mayor a 0 Bs.');
+      return;
     }
 
     if (this.metodoPago === 'tarjeta_credito') {
@@ -519,6 +542,10 @@ export class PagoComponent implements OnInit {
         this.loading = false;
         this.pagoExitoso = true;
         this.comprobanteNumero = res.numero_comprobante || 'COMP-FS2026';
+        try {
+          sessionStorage.removeItem('orden_activa');
+          sessionStorage.removeItem('orden_' + this.ventaId);
+        } catch (e) {}
         this.toastService.success('¡Pago Confirmado!', `Comprobante ${this.comprobanteNumero} generado con éxito.`, 6000);
         // Refrescar contador del carrito a 0
         this.carritoService.refreshCount();

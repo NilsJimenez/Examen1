@@ -76,9 +76,29 @@ def checkout(data: CheckoutInput, db: Session = Depends(get_db), current_user: d
         v = i.variante
         precio = float(v.producto.precio_base or 0) + float(v.precio_adicional or 0) if v and v.producto else 0
         det = VentaDetalle(venta_id=venta.id, variante_id=i.variante_id, cantidad=i.cantidad, precio_unitario=precio, subtotal=precio * i.cantidad)
-        db.add(det)
     db.commit()
-    return {"venta_id": venta.id, "subtotal": subtotal, "costo_envio": costo_envio, "total": total, "estado": venta.estado, "mensaje": "Orden creada. Procede al pago."}
+    # Generar QR Simple interoperable en base64 con el payload de cobro
+    qr_data = f"FASHIONSTORE|ORDEN:{venta.id}|TOTAL:{float(venta.total):.2f}|BS|PAGOSIMPLE"
+    qr = qrcode.QRCode(version=1, box_size=8, border=2)
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="#09090b", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    qr_base64 = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+
+    return {
+        "venta_id": venta.id,
+        "id": venta.id,
+        "subtotal": subtotal,
+        "costo_envio": costo_envio,
+        "total": total,
+        "estado": venta.estado,
+        "metodo_entrega": venta.metodo_entrega,
+        "direccion_envio": venta.direccion_envio,
+        "qr_image": qr_base64,
+        "mensaje": "Orden creada. Procede al pago."
+    }
 
 @router.post("/pagar/{venta_id}")
 def pagar_venta(venta_id: int, data: PagoInput, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
