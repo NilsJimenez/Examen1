@@ -377,7 +377,7 @@ export class CarritoComponent implements OnInit {
       next: (res) => {
         this.checkoutLoading = false;
         this.toastService.success('Orden Generada', 'Venta registrada. Procede a confirmar el método de pago.');
-        this.router.navigate(['/pago', res.venta_id]);
+        this.router.navigate(['/pago', res.venta_id], { state: { orden: res } });
       },
       error: (err) => {
         this.checkoutLoading = false;

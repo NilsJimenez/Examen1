@@ -88,9 +88,9 @@ def pagar_venta(venta_id: int, data: PagoInput, db: Session = Depends(get_db), c
         raise HTTPException(status_code=404, detail="Orden no encontrada.")
     if venta.estado != "pendiente_pago":
         raise HTTPException(status_code=400, detail=f"La orden ya fue procesada: {venta.estado}")
-    if data.monto < float(venta.total):
-        raise HTTPException(status_code=400, detail="Monto insuficiente.")
-    pago = Pago(venta_id=venta.id, metodo_pago=data.metodo_pago, monto=data.monto, estado="aprobado", pasarela="Simulado_FashionStore", referencia_transaccion="TXN-" + str(uuid.uuid4())[:8].upper())
+    if round(float(data.monto), 2) < round(float(venta.total), 2) - 0.05:
+        raise HTTPException(status_code=400, detail=f"Monto insuficiente. Se requiere al menos Bs. {float(venta.total):.2f}")
+    pago = Pago(venta_id=venta.id, metodo_pago=data.metodo_pago, monto=float(venta.total), estado="aprobado", pasarela="Simulado_FashionStore", referencia_transaccion="TXN-" + str(uuid.uuid4())[:8].upper())
     db.add(pago)
     venta.estado = "completada"
     for det in venta.detalles:

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { VentaService } from '../../services/venta.service';
+import { CarritoService } from '../../services/carrito.service';
 import { ToastService } from '../../services/toast.service';
 
 @Component({
@@ -374,6 +375,7 @@ export class PagoComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private ventaService = inject(VentaService);
+  private carritoService = inject(CarritoService);
   private toastService = inject(ToastService);
 
   ventaId: number = 0;
@@ -392,6 +394,15 @@ export class PagoComponent implements OnInit {
   cvv: string = '789';
 
   ngOnInit(): void {
+    // Si la orden viene en el state de navegación (desde el checkout directo del carrito)
+    if (history.state?.orden) {
+      const o = history.state.orden;
+      this.orden = o;
+      this.monto = Number(o.total) || 0;
+      this.generarQrFrontend();
+      this.cargandoOrden = false;
+    }
+
     this.route.params.subscribe(params => {
       this.ventaId = Number(params['id']);
       if (this.ventaId) {
@@ -403,13 +414,22 @@ export class PagoComponent implements OnInit {
     });
   }
 
+  generarQrFrontend(): void {
+    if (!this.qrImage && this.ventaId) {
+      const payload = encodeURIComponent(`FASHIONSTORE|ORDEN:${this.ventaId}|TOTAL:${this.monto.toFixed(2)}|BS|PAGOSIMPLE`);
+      this.qrImage = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${payload}`;
+    }
+  }
+
   cargarOrden(): void {
-    this.cargandoOrden = true;
+    this.cargandoOrden = !this.orden; // solo mostrar loading si no teníamos datos en history.state
+    
     this.ventaService.getVenta(this.ventaId).subscribe({
       next: (res) => {
         this.orden = res;
-        this.monto = res.total;
-        this.qrImage = res.qr_image || '';
+        this.monto = Number(res.total) || this.monto;
+        this.qrImage = res.qr_image || this.qrImage;
+        this.generarQrFrontend();
         this.cargandoOrden = false;
 
         // Si la orden ya estaba completada (pagada con anterioridad)
@@ -418,9 +438,31 @@ export class PagoComponent implements OnInit {
           this.comprobanteNumero = res.numero_comprobante || 'COMP-' + this.ventaId;
         }
       },
-      error: (err) => {
-        this.cargandoOrden = false;
-        this.toastService.error('Error al Cargar Orden', err.error?.detail || 'No se pudo recuperar la orden.');
+      error: () => {
+        // FALLBACK si el endpoint individual aún no está desplegado o da 404
+        this.ventaService.getMisCompras().subscribe({
+          next: (compras) => {
+            const v = compras.find((c: any) => c.id === this.ventaId);
+            if (v) {
+              this.orden = v;
+              this.monto = Number(v.total) || this.monto;
+              this.generarQrFrontend();
+              this.cargandoOrden = false;
+
+              if (v.estado === 'completada') {
+                this.pagoExitoso = true;
+                this.comprobanteNumero = v.numero_comprobante || 'COMP-' + this.ventaId;
+              }
+            } else {
+              this.cargandoOrden = false;
+              this.generarQrFrontend();
+            }
+          },
+          error: () => {
+            this.cargandoOrden = false;
+            this.generarQrFrontend();
+          }
+        });
       }
     });
   }
@@ -450,9 +492,13 @@ export class PagoComponent implements OnInit {
   }
 
   procesarPago(): void {
-    if (this.monto <= 0) {
-      this.toastService.error('Monto Inválido', 'El monto a pagar debe ser mayor a 0 Bs.');
-      return;
+    if (!this.monto || this.monto <= 0) {
+      if (this.orden?.total > 0) {
+        this.monto = Number(this.orden.total);
+      } else {
+        this.toastService.error('Monto Inválido', 'El monto a pagar debe ser mayor a 0 Bs.');
+        return;
+      }
     }
 
     if (this.metodoPago === 'tarjeta_credito') {
@@ -474,6 +520,8 @@ export class PagoComponent implements OnInit {
         this.pagoExitoso = true;
         this.comprobanteNumero = res.numero_comprobante || 'COMP-FS2026';
         this.toastService.success('¡Pago Confirmado!', `Comprobante ${this.comprobanteNumero} generado con éxito.`, 6000);
+        // Refrescar contador del carrito a 0
+        this.carritoService.refreshCount();
       },
       error: (err) => {
         this.loading = false;
