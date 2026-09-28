@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY . .
 
+ENV PYTHONPATH=/app
 ENV PORT=8000
 EXPOSE 8000
 
