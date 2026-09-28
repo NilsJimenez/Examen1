@@ -31,7 +31,8 @@ def root():
         "message": "Bienvenido a la API REST de FashionStore",
         "docs": "/docs",
         "version": settings.VERSION,
-        "status": "online"
+        "status": "online",
+        "build": "2026-09-28-v2"
     }
 
 
