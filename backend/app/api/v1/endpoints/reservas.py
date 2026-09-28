@@ -17,6 +17,9 @@ class ReservaItemInput(BaseModel):
     variante_id: int
     cantidad: int = 1
 
+class ItemEstadoInput(BaseModel):
+    estado_prenda: str  # 'reservada', 'disponible', 'vendida'
+
 class ReservaCreate(BaseModel):
     sucursal_id: int
     fecha_reserva: str
@@ -71,7 +74,12 @@ def crear_reserva(data: ReservaCreate, db: Session = Depends(get_db), current_us
     db.commit()
     db.refresh(reserva)
     for item in data.items:
-        det = ReservaDetalle(reserva_id=reserva.id, variante_id=item.variante_id, cantidad=item.cantidad)
+        det = ReservaDetalle(
+            reserva_id=reserva.id,
+            variante_id=item.variante_id,
+            cantidad=item.cantidad,
+            estado_prenda="reservada"
+        )
         db.add(det)
         inv = db.query(InventarioSucursal).filter(
             InventarioSucursal.variante_id == item.variante_id,
@@ -105,11 +113,13 @@ def mis_reservas(db: Session = Depends(get_db), current_user: dict = Depends(get
         "estado": r.estado,
         "fecha_creacion": r.fecha_creacion.isoformat(),
         "items": [{
+            "id": d.id,
             "variante_id": d.variante_id,
             "producto": d.variante.producto.nombre if d.variante and d.variante.producto else "---",
             "talla": d.variante.talla.nombre if d.variante and d.variante.talla else "---",
             "color": d.variante.color.nombre if d.variante and d.variante.color else "---",
             "cantidad": d.cantidad,
+            "estado_prenda": getattr(d, 'estado_prenda', 'reservada') or 'reservada',
         } for d in r.detalles],
     } for r in reservas]
 
@@ -118,7 +128,25 @@ def get_reserva(reserva_id: int, db: Session = Depends(get_db), current_user: di
     reserva = db.query(Reserva).options(joinedload(Reserva.sucursal), joinedload(Reserva.detalles).joinedload(ReservaDetalle.variante).joinedload(ProductoVariante.producto), joinedload(Reserva.detalles).joinedload(ReservaDetalle.variante).joinedload(ProductoVariante.talla), joinedload(Reserva.detalles).joinedload(ReservaDetalle.variante).joinedload(ProductoVariante.color)).filter(Reserva.id == reserva_id).first()
     if not reserva:
         raise HTTPException(status_code=404, detail="Reserva no encontrada.")
-    return {"id": reserva.id, "codigo_reserva": reserva.codigo_reserva, "codigo_qr": generar_qr_base64(reserva.codigo_reserva), "estado": reserva.estado, "sucursal": reserva.sucursal.nombre if reserva.sucursal else "---", "fecha": str(reserva.fecha_reserva), "hora": str(reserva.horario_atencion), "observaciones": reserva.observaciones, "items": [{"variante_id": d.variante_id, "producto": d.variante.producto.nombre if d.variante and d.variante.producto else "---", "talla": d.variante.talla.nombre if d.variante and d.variante.talla else "---", "color": d.variante.color.nombre if d.variante and d.variante.color else "---", "cantidad": d.cantidad} for d in reserva.detalles]}
+    return {
+        "id": reserva.id,
+        "codigo_reserva": reserva.codigo_reserva,
+        "codigo_qr": generar_qr_base64(reserva.codigo_reserva),
+        "estado": reserva.estado,
+        "sucursal": reserva.sucursal.nombre if reserva.sucursal else "---",
+        "fecha": str(reserva.fecha_reserva),
+        "hora": str(reserva.horario_atencion),
+        "observaciones": reserva.observaciones,
+        "items": [{
+            "id": d.id,
+            "variante_id": d.variante_id,
+            "producto": d.variante.producto.nombre if d.variante and d.variante.producto else "---",
+            "talla": d.variante.talla.nombre if d.variante and d.variante.talla else "---",
+            "color": d.variante.color.nombre if d.variante and d.variante.color else "---",
+            "cantidad": d.cantidad,
+            "estado_prenda": getattr(d, 'estado_prenda', 'reservada') or 'reservada',
+        } for d in reserva.detalles]
+    }
 
 @router.patch("/{reserva_id}/cancelar")
 def cancelar_reserva(reserva_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
@@ -142,7 +170,23 @@ def cancelar_reserva(reserva_id: int, db: Session = Depends(get_db), current_use
 def reservas_sucursal(sucursal_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     """CU-16: Ver reservas de la sucursal."""
     reservas = db.query(Reserva).options(joinedload(Reserva.cliente), joinedload(Reserva.detalles).joinedload(ReservaDetalle.variante).joinedload(ProductoVariante.producto), joinedload(Reserva.detalles).joinedload(ReservaDetalle.variante).joinedload(ProductoVariante.talla), joinedload(Reserva.detalles).joinedload(ReservaDetalle.variante).joinedload(ProductoVariante.color)).filter(Reserva.sucursal_id == sucursal_id, Reserva.estado.in_(["pendiente", "preparada"])).order_by(Reserva.fecha_reserva, Reserva.horario_atencion).all()
-    return [{"id": r.id, "codigo_reserva": r.codigo_reserva, "cliente": f"{r.cliente.nombres} {r.cliente.apellidos}" if r.cliente else "—", "fecha": str(r.fecha_reserva), "hora": str(r.horario_atencion), "estado": r.estado, "items": [{"producto": d.variante.producto.nombre if d.variante and d.variante.producto else "—", "talla": d.variante.talla.nombre if d.variante and d.variante.talla else "—", "color": d.variante.color.nombre if d.variante and d.variante.color else "—", "cantidad": d.cantidad} for d in r.detalles]} for r in reservas]
+    return [{
+        "id": r.id,
+        "codigo_reserva": r.codigo_reserva,
+        "cliente": f"{r.cliente.nombres} {r.cliente.apellidos}" if r.cliente else "—",
+        "fecha": str(r.fecha_reserva),
+        "hora": str(r.horario_atencion),
+        "estado": r.estado,
+        "items": [{
+            "id": d.id,
+            "variante_id": d.variante_id,
+            "producto": d.variante.producto.nombre if d.variante and d.variante.producto else "—",
+            "talla": d.variante.talla.nombre if d.variante and d.variante.talla else "—",
+            "color": d.variante.color.nombre if d.variante and d.variante.color else "—",
+            "cantidad": d.cantidad,
+            "estado_prenda": getattr(d, 'estado_prenda', 'reservada') or 'reservada',
+        } for d in r.detalles]
+    } for r in reservas]
 
 @router.patch("/{reserva_id}/preparar")
 def preparar_reserva(reserva_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
@@ -176,4 +220,99 @@ def checkin_qr(codigo: str, db: Session = Depends(get_db), current_user: dict = 
         raise HTTPException(status_code=400, detail="Esta reserva fue cancelada.")
     if reserva.estado == "completada":
         raise HTTPException(status_code=400, detail="Esta reserva ya fue completada.")
-    return {"valido": True, "reserva_id": reserva.id, "codigo": codigo, "cliente": f"{reserva.cliente.nombres} {reserva.cliente.apellidos}" if reserva.cliente else "—", "estado": reserva.estado, "fecha": str(reserva.fecha_reserva), "hora": str(reserva.horario_atencion), "items": [{"producto": d.variante.producto.nombre if d.variante and d.variante.producto else "—", "talla": d.variante.talla.nombre if d.variante and d.variante.talla else "—", "cantidad": d.cantidad} for d in reserva.detalles]}
+    return {
+        "valido": True,
+        "reserva_id": reserva.id,
+        "codigo": codigo,
+        "cliente": f"{reserva.cliente.nombres} {reserva.cliente.apellidos}" if reserva.cliente else "—",
+        "estado": reserva.estado,
+        "fecha": str(reserva.fecha_reserva),
+        "hora": str(reserva.horario_atencion),
+        "items": [{
+            "id": d.id,
+            "variante_id": d.variante_id,
+            "producto": d.variante.producto.nombre if d.variante and d.variante.producto else "—",
+            "talla": d.variante.talla.nombre if d.variante and d.variante.talla else "—",
+            "cantidad": d.cantidad,
+            "estado_prenda": getattr(d, 'estado_prenda', 'reservada') or 'reservada',
+        } for d in reserva.detalles]
+    }
+
+@router.put("/{reserva_id}/item/{detalle_id}/estado")
+def actualizar_estado_item_reserva(
+    reserva_id: int,
+    detalle_id: int,
+    data: ItemEstadoInput,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Permite cambiar el estado individual de una prenda en la reserva: reservada, disponible, vendida."""
+    nuevo_estado = data.estado_prenda.lower().strip()
+    if nuevo_estado not in ("reservada", "disponible", "vendida"):
+        raise HTTPException(status_code=400, detail="Estado inválido. Debe ser: 'reservada', 'disponible' o 'vendida'.")
+
+    detalle = db.query(ReservaDetalle).filter(
+        ReservaDetalle.id == detalle_id,
+        ReservaDetalle.reserva_id == reserva_id
+    ).first()
+    if not detalle:
+        raise HTTPException(status_code=404, detail="Detalle de la prenda en la reserva no encontrado.")
+
+    reserva = db.query(Reserva).filter(Reserva.id == reserva_id).first()
+    if not reserva:
+        raise HTTPException(status_code=404, detail="Reserva no encontrada.")
+
+    estado_anterior = getattr(detalle, "estado_prenda", "reservada") or "reservada"
+    if estado_anterior == nuevo_estado:
+        return {"message": f"La prenda ya se encuentra en estado '{nuevo_estado}'", "estado_prenda": nuevo_estado}
+
+    inv = db.query(InventarioSucursal).filter(
+        InventarioSucursal.variante_id == detalle.variante_id,
+        InventarioSucursal.sucursal_id == reserva.sucursal_id
+    ).with_for_update().first()
+
+    if inv:
+        # Si estaba reservada y pasa a disponible -> se libera de reserva
+        if estado_anterior == "reservada" and nuevo_estado == "disponible":
+            inv.cantidad_reservada = max(0, inv.cantidad_reservada - detalle.cantidad)
+            db.add(MovimientoInventario(
+                variante_id=detalle.variante_id,
+                sucursal_id=reserva.sucursal_id,
+                tipo_movimiento="liberacion_reserva",
+                cantidad=detalle.cantidad,
+                referencia_tipo="reserva",
+                referencia_id=reserva.id
+            ))
+        # Si estaba disponible y vuelve a reservada
+        elif estado_anterior == "disponible" and nuevo_estado == "reservada":
+            inv.cantidad_reservada += detalle.cantidad
+            db.add(MovimientoInventario(
+                variante_id=detalle.variante_id,
+                sucursal_id=reserva.sucursal_id,
+                tipo_movimiento="reserva",
+                cantidad=detalle.cantidad,
+                referencia_tipo="reserva",
+                referencia_id=reserva.id
+            ))
+        # Si pasa a vendida
+        elif nuevo_estado == "vendida":
+            if estado_anterior == "reservada":
+                inv.cantidad_reservada = max(0, inv.cantidad_reservada - detalle.cantidad)
+            inv.cantidad_disponible = max(0, inv.cantidad_disponible - detalle.cantidad)
+            db.add(MovimientoInventario(
+                variante_id=detalle.variante_id,
+                sucursal_id=reserva.sucursal_id,
+                tipo_movimiento="salida_venta",
+                cantidad=detalle.cantidad,
+                referencia_tipo="reserva",
+                referencia_id=reserva.id
+            ))
+
+    detalle.estado_prenda = nuevo_estado
+    db.commit()
+    return {
+        "message": f"Prenda actualizada a '{nuevo_estado}' exitosamente.",
+        "detalle_id": detalle.id,
+        "estado_prenda": detalle.estado_prenda
+    }
+

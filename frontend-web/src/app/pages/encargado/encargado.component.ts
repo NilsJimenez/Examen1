@@ -415,7 +415,7 @@ declare const Html5Qrcode: any;
                       <i class="fa-solid fa-shirt mr-1"></i> Prendas Apartadas para Probar:
                     </span>
                     <div class="flex flex-wrap gap-2">
-                      <div *ngFor="let it of r.items" class="item-pill">
+                      <div *ngFor="let it of r.items" class="item-pill flex flex-wrap items-center gap-1.5">
                         <span class="item-pill-name">{{ it.producto }}</span>
                         <span class="item-pill-attr">Talla {{ it.talla }}</span>
                         <span class="item-pill-attr flex items-center gap-1">
@@ -423,6 +423,19 @@ declare const Html5Qrcode: any;
                           {{ it.color }}
                         </span>
                         <span class="item-pill-qty">x{{ it.cantidad }}</span>
+                        <select 
+                          [ngModel]="it.estado_prenda || 'reservada'" 
+                          (ngModelChange)="cambiarEstadoItem(r.id, it, $event)"
+                          class="text-[11px] font-bold rounded px-1.5 py-0.5 border cursor-pointer"
+                          [style.background]="getItemEstadoBg(it.estado_prenda)"
+                          [style.color]="getItemEstadoColor(it.estado_prenda)"
+                          [style.border-color]="getItemEstadoColor(it.estado_prenda)"
+                          title="Estado individual de la prenda en la reserva"
+                        >
+                          <option value="reservada" style="background: #18181b; color: #f59e0b;">⏳ Reservada</option>
+                          <option value="disponible" style="background: #18181b; color: #22c55e;">✅ Disponible</option>
+                          <option value="vendida" style="background: #18181b; color: #3b82f6;">🏷️ Vendida</option>
+                        </select>
                       </div>
                     </div>
                   </div>
@@ -581,9 +594,20 @@ declare const Html5Qrcode: any;
                   <span class="font-bold block text-sm" style="color: var(--text-main);">{{ it.producto }}</span>
                   <span style="color: var(--text-muted);">Talla: <strong style="color: var(--text-main);">{{ it.talla }}</strong></span>
                 </div>
-                <span class="badge" style="background: rgba(245,158,11,0.15); color: var(--accent); font-weight: bold; font-size: 0.75rem;">
-                  {{ it.cantidad }} unidad{{ it.cantidad > 1 ? 'es' : '' }}
-                </span>
+                <div class="flex items-center gap-2">
+                  <span 
+                    class="badge text-[11px]" 
+                    [style.background]="getItemEstadoBg(it.estado_prenda)"
+                    [style.color]="getItemEstadoColor(it.estado_prenda)"
+                    [style.border]="'1px solid ' + getItemEstadoColor(it.estado_prenda)"
+                    style="text-transform: capitalize; font-weight: 700; padding: 0.2rem 0.5rem;"
+                  >
+                    {{ it.estado_prenda || 'reservada' }}
+                  </span>
+                  <span class="badge" style="background: rgba(245,158,11,0.15); color: var(--accent); font-weight: bold; font-size: 0.75rem;">
+                    {{ it.cantidad }} u.
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -1379,6 +1403,41 @@ export class EncargadoComponent implements OnInit, OnDestroy {
       error: (err) => {
         this.guardandoMovimiento = false;
         this.errorMessage = err.error?.detail || 'Error al registrar movimiento.';
+      }
+    });
+  }
+
+  getItemEstadoBg(estado?: string): string {
+    switch (estado?.toLowerCase()) {
+      case 'reservada': return 'rgba(245,158,11,0.15)';
+      case 'disponible': return 'rgba(34,197,94,0.15)';
+      case 'vendida': return 'rgba(59,130,246,0.15)';
+      default: return 'rgba(245,158,11,0.15)';
+    }
+  }
+
+  getItemEstadoColor(estado?: string): string {
+    switch (estado?.toLowerCase()) {
+      case 'reservada': return '#f59e0b';
+      case 'disponible': return '#22c55e';
+      case 'vendida': return '#3b82f6';
+      default: return '#f59e0b';
+    }
+  }
+
+  cambiarEstadoItem(reservaId: number, item: any, nuevoEstado: string): void {
+    if (!item.id) {
+      item.estado_prenda = nuevoEstado;
+      return;
+    }
+    this.reservaService.actualizarEstadoItem(reservaId, item.id, nuevoEstado).subscribe({
+      next: (res) => {
+        item.estado_prenda = nuevoEstado;
+        this.toastService.success('Estado Actualizado', `Prenda '${item.producto}' cambiada a '${nuevoEstado}'.`);
+        this.cargarInventario();
+      },
+      error: (err) => {
+        this.toastService.error('Error', err.error?.detail || 'No se pudo actualizar el estado de la prenda.');
       }
     });
   }

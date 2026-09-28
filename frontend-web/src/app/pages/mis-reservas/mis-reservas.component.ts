@@ -117,9 +117,21 @@ import { ToastService } from '../../services/toast.service';
                         </span>
                       </div>
                     </div>
-                    <span class="badge" style="background: var(--table-th-bg); color: var(--text-main); font-weight: 700;">
-                      {{ item.cantidad }} unidad(es)
-                    </span>
+                    <div class="flex items-center gap-2">
+                      <span 
+                        class="badge text-[11px]" 
+                        [style.background]="getItemEstadoBg(item.estado_prenda)"
+                        [style.color]="getItemEstadoColor(item.estado_prenda)"
+                        [style.border]="'1px solid ' + getItemEstadoColor(item.estado_prenda)"
+                        style="text-transform: capitalize; font-weight: 700; padding: 0.25rem 0.6rem;"
+                      >
+                        <i class="fa-solid" [class.fa-clock]="!item.estado_prenda || item.estado_prenda === 'reservada'" [class.fa-check]="item.estado_prenda === 'disponible'" [class.fa-bag-shopping]="item.estado_prenda === 'vendida'"></i>
+                        {{ item.estado_prenda || 'reservada' }}
+                      </span>
+                      <span class="badge" style="background: var(--table-th-bg); color: var(--text-main); font-weight: 700;">
+                        {{ item.cantidad }} u.
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -234,6 +246,24 @@ export class MisReservasComponent implements OnInit {
       case 'atendida': return '#22c55e';
       case 'cancelada': return '#ef4444';
       default: return 'var(--text-muted)';
+    }
+  }
+
+  getItemEstadoBg(estado?: string): string {
+    switch (estado?.toLowerCase()) {
+      case 'reservada': return 'rgba(245,158,11,0.15)';
+      case 'disponible': return 'rgba(34,197,94,0.15)';
+      case 'vendida': return 'rgba(59,130,246,0.15)';
+      default: return 'rgba(245,158,11,0.15)';
+    }
+  }
+
+  getItemEstadoColor(estado?: string): string {
+    switch (estado?.toLowerCase()) {
+      case 'reservada': return '#f59e0b';
+      case 'disponible': return '#22c55e';
+      case 'vendida': return '#3b82f6';
+      default: return '#f59e0b';
     }
   }
 

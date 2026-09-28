@@ -27,7 +27,7 @@ export class VentaService {
     return this.http.post<any>(`${this.apiUrl}/checkout`, data, { headers: this.headers });
   }
 
-  pagarVenta(ventaId: number, data: { metodo_pago: string; monto: number }): Observable<any> {
+  pagarVenta(ventaId: number, data: { metodo_pago: string; monto: number; simular_rechazo?: boolean; numero_tarjeta?: string }): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/pagar/${ventaId}`, data, { headers: this.headers });
   }
 

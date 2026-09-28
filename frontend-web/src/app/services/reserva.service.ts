@@ -1,4 +1,4 @@
-﻿import { Injectable, inject } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -55,5 +55,9 @@ export class ReservaService {
 
   checkinQR(codigo: string): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/qr/${encodeURIComponent(codigo)}`, { headers: this.headers });
+  }
+
+  actualizarEstadoItem(reservaId: number, detalleId: number, estadoPrenda: string): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/${reservaId}/item/${detalleId}/estado`, { estado_prenda: estadoPrenda }, { headers: this.headers });
   }
 }

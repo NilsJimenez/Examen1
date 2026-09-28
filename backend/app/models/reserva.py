@@ -35,6 +35,7 @@ class ReservaDetalle(Base):
     reserva_id: Mapped[int] = mapped_column(Integer, ForeignKey("reservas.id", ondelete="CASCADE"), nullable=False)
     variante_id: Mapped[int] = mapped_column(Integer, ForeignKey("producto_variantes.id"), nullable=False)
     cantidad: Mapped[int] = mapped_column(Integer, default=1)
+    estado_prenda: Mapped[str] = mapped_column(String(30), default="reservada")  # 'reservada', 'disponible', 'vendida'
 
     # Relaciones
     reserva: Mapped["Reserva"] = relationship("Reserva", back_populates="detalles")

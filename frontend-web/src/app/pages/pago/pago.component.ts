@@ -281,14 +281,45 @@ import { ToastService } from '../../services/toast.service';
                   </div>
                 </div>
 
+                <!-- Simulación de Pasarela: Aprobación vs Rechazo (Demostración de Examen) -->
+                <div class="p-3 rounded-xl flex items-center justify-between" style="background: rgba(239, 68, 68, 0.08); border: 1px dashed rgba(239, 68, 68, 0.35);">
+                  <div class="text-xs">
+                    <span class="font-bold flex items-center gap-1.5" style="color: #ef4444;">
+                      <i class="fa-solid fa-flask"></i> Simular Rechazo de Pasarela
+                    </span>
+                    <span class="block text-[11px]" style="color: var(--text-muted);">
+                      Modo Examen: Deniega la transacción por tarjeta o fondos insuficientes
+                    </span>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer ml-3">
+                    <input type="checkbox" [(ngModel)]="simularRechazo" class="sr-only peer">
+                    <div class="w-9 h-5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-500"></div>
+                  </label>
+                </div>
+
+                <!-- Banner de Transacción Rechazada -->
+                <div *ngIf="mensajeErrorRechazo" class="p-4 rounded-xl flex items-start gap-3 animate-fade-in" style="background: rgba(239, 68, 68, 0.12); border: 1px solid #ef4444; color: #ef4444;">
+                  <i class="fa-solid fa-triangle-exclamation text-lg mt-0.5"></i>
+                  <div class="text-xs">
+                    <strong class="block text-sm mb-0.5 font-bold">Transacción Declinada por la Pasarela</strong>
+                    <span>{{ mensajeErrorRechazo }}</span>
+                    <div class="mt-1.5 text-[11px] opacity-80">
+                      El inventario se mantiene intacto. Puedes desmarcar la simulación y reintentar la operación.
+                    </div>
+                  </div>
+                </div>
+
                 <button 
                   (click)="procesarPago()" 
                   [disabled]="loading" 
-                  class="btn btn-primary w-full mt-2"
+                  [class]="simularRechazo ? 'btn btn-outline w-full mt-2' : 'btn btn-primary w-full mt-2'"
+                  [style.border-color]="simularRechazo ? '#ef4444' : ''"
+                  [style.color]="simularRechazo ? '#ef4444' : ''"
                   style="padding: 0.85rem; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
                 >
                   <span *ngIf="loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Procesando Transacción Bancaria...</span>
-                  <span *ngIf="!loading"><i class="fa-solid fa-lock"></i> Pagar con Tarjeta Bs. {{ (monto > 0 ? monto : (orden?.total || 0)) | number:'1.2-2' }}</span>
+                  <span *ngIf="!loading && !simularRechazo"><i class="fa-solid fa-lock"></i> Pagar con Tarjeta Bs. {{ (monto > 0 ? monto : (orden?.total || 0)) | number:'1.2-2' }}</span>
+                  <span *ngIf="!loading && simularRechazo"><i class="fa-solid fa-flask"></i> Probar Rechazo de Pasarela (Bs. {{ (monto > 0 ? monto : (orden?.total || 0)) | number:'1.2-2' }})</span>
                 </button>
               </div>
 
@@ -410,6 +441,8 @@ export class PagoComponent implements OnInit {
   titular: string = 'CLIENTE FASHIONSTORE';
   expiracion: string = '12/28';
   cvv: string = '789';
+  simularRechazo: boolean = false;
+  mensajeErrorRechazo: string = '';
 
   ngOnInit(): void {
     // 1. Si la orden viene en history.state (desde el checkout directo del carrito)
@@ -560,14 +593,18 @@ export class PagoComponent implements OnInit {
     }
 
     this.loading = true;
+    this.mensajeErrorRechazo = '';
 
     this.ventaService.pagarVenta(this.ventaId, {
       metodo_pago: this.metodoPago,
-      monto: this.monto
+      monto: this.monto,
+      simular_rechazo: this.simularRechazo,
+      numero_tarjeta: this.numTarjeta
     }).subscribe({
       next: (res) => {
         this.loading = false;
         this.pagoExitoso = true;
+        this.mensajeErrorRechazo = '';
         this.comprobanteNumero = res.numero_comprobante || 'COMP-FS2026';
         try {
           sessionStorage.removeItem('orden_activa');
@@ -580,6 +617,7 @@ export class PagoComponent implements OnInit {
       error: (err) => {
         this.loading = false;
         const msg = err.error?.detail || 'Error al procesar la transacción.';
+        this.mensajeErrorRechazo = msg;
         this.toastService.error('Pago No Procesado', msg);
       }
     });

@@ -36,6 +36,8 @@ class PosVentaInput(BaseModel):
 class PagoInput(BaseModel):
     metodo_pago: str
     monto: float
+    simular_rechazo: Optional[bool] = False
+    numero_tarjeta: Optional[str] = None
 
 def get_cliente_obj(current_user: dict, db: Session) -> Cliente:
     if current_user["user_type"] != "cliente":
@@ -102,15 +104,50 @@ def checkout(data: CheckoutInput, db: Session = Depends(get_db), current_user: d
 
 @router.post("/pagar/{venta_id}")
 def pagar_venta(venta_id: int, data: PagoInput, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
-    """CU-20: Procesar pago (simulado) y descontar inventario."""
+    """CU-20: Procesar pago (simulado) y descontar inventario. Permite simular rechazo de pasarela."""
     venta = db.query(Venta).options(joinedload(Venta.detalles)).filter(Venta.id == venta_id).first()
     if not venta:
         raise HTTPException(status_code=404, detail="Orden no encontrada.")
     if venta.estado != "pendiente_pago":
         raise HTTPException(status_code=400, detail=f"La orden ya fue procesada: {venta.estado}")
+
+    # Simulación de aprobación / rechazo
+    es_rechazo = bool(data.simular_rechazo) or (
+        bool(data.numero_tarjeta) and (
+            data.numero_tarjeta.replace(" ", "").startswith("0000") or
+            data.numero_tarjeta.replace(" ", "").startswith("9999")
+        )
+    )
+
+    if es_rechazo:
+        ref_rechazo = "TXN-RECH-" + str(uuid.uuid4())[:8].upper()
+        pago_rechazado = Pago(
+            venta_id=venta.id,
+            metodo_pago=data.metodo_pago,
+            monto=float(data.monto or venta.total),
+            estado="rechazado",
+            pasarela="Simulado_FashionStore",
+            referencia_transaccion=ref_rechazo
+        )
+        db.add(pago_rechazado)
+        db.commit()
+        raise HTTPException(
+            status_code=400,
+            detail=f"Transacción Rechazada: La pasarela de pagos denegó la operación (Tarjeta declinada o fondos insuficientes). Ref: {ref_rechazo}"
+        )
+
     if round(float(data.monto), 2) < round(float(venta.total), 2) - 0.05:
         raise HTTPException(status_code=400, detail=f"Monto insuficiente. Se requiere al menos Bs. {float(venta.total):.2f}")
-    pago = Pago(venta_id=venta.id, metodo_pago=data.metodo_pago, monto=float(venta.total), estado="aprobado", pasarela="Simulado_FashionStore", referencia_transaccion="TXN-" + str(uuid.uuid4())[:8].upper())
+
+    ref_aprobada = "TXN-" + str(uuid.uuid4())[:8].upper()
+    pago = Pago(
+        venta_id=venta.id,
+        metodo_pago=data.metodo_pago,
+        monto=float(venta.total),
+        estado="aprobado",
+        pasarela="Simulado_FashionStore",
+        referencia_transaccion=ref_aprobada
+    )
     db.add(pago)
     venta.estado = "completada"
     for det in venta.detalles:
@@ -126,7 +163,7 @@ def pagar_venta(venta_id: int, data: PagoInput, db: Session = Depends(get_db), c
         if carrito:
             db.query(CarritoDetalle).filter(CarritoDetalle.carrito_id == carrito.id).delete()
     db.commit()
-    return {"mensaje": "Pago aprobado. Compra completada.", "numero_comprobante": num_comp, "venta_id": venta.id, "total_pagado": data.monto}
+    return {"mensaje": "Pago aprobado. Compra completada.", "numero_comprobante": num_comp, "venta_id": venta.id, "total_pagado": data.monto, "referencia_transaccion": ref_aprobada}
 
 @router.post("/pos", status_code=status.HTTP_201_CREATED)
 def venta_pos(data: PosVentaInput, db: Session = Depends(get_db), current_user: dict = Depends(require_roles(["administrador", "cajero", "encargado_sucursal"]))):
