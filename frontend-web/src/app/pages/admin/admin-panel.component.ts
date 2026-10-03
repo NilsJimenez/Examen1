@@ -225,11 +225,11 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
               <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: var(--accent); border: 1px solid rgba(245, 158, 11, 0.35);">
                 <i class="fa-solid fa-boxes-stacked mr-1"></i> Operaciones Comerciales
               </span>
-              <span class="text-xs" style="color: var(--text-muted);">Distribución Talla × Color</span>
+              <span class="text-xs" style="color: var(--text-muted);">Gestión Directa por Categoría</span>
             </div>
             <h2 class="font-serif text-2xl font-bold" style="color: var(--text-main);">Entrada de Mercadería por Categoría</h2>
             <p class="text-xs" style="color: var(--text-muted);">
-              Selecciona una categoría para cargar cantidades exactas de ropa por talla y color al inventario y Kardex.
+              Crea una nueva categoría o presiona una existente para ingresar de inmediato cuántas prendas entran por talla y color al stock.
             </p>
           </div>
 
@@ -246,52 +246,34 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
           </div>
         </div>
 
-        <!-- 1. SELECTOR DE CATEGORÍA DE ROPA (CHIPS INTERACTIVOS) -->
+        <!-- 1. BARRA DE CATEGORÍAS (BOTÓN + NUEVA Y CHIPS EXISTENTES) -->
         <div class="card p-5">
           <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
             <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-2" style="color: var(--accent);">
-              <i class="fa-solid fa-tags"></i> 1. Selecciona la Categoría de la Mercadería:
+              <i class="fa-solid fa-tags"></i> 1. Selecciona la Categoría o Crea una Nueva:
             </span>
-
-            <button 
-              type="button" 
-              (click)="mostrarCrearCategoriaRapida = !mostrarCrearCategoriaRapida"
-              class="text-xs font-bold hover:underline flex items-center gap-1"
-              style="color: var(--accent); background: none; border: none; cursor: pointer;"
-            >
-              <i class="fa-solid" [ngClass]="mostrarCrearCategoriaRapida ? 'fa-xmark' : 'fa-plus'"></i>
-              {{ mostrarCrearCategoriaRapida ? 'Cerrar' : '+ Nueva Categoría' }}
-            </button>
           </div>
 
-          <!-- Mini formulario en línea para crear categoría -->
-          <div *ngIf="mostrarCrearCategoriaRapida" class="flex gap-2 mb-4 p-3 rounded-xl animate-fade-in" style="background: rgba(245,158,11,0.08); border: 1px dashed var(--accent);">
-            <input 
-              type="text" 
-              [(ngModel)]="nuevaCategoriaRapidaNombre" 
-              placeholder="Nombre de la nueva categoría (ej: Trajes de Gala)..." 
-              class="form-input text-xs" 
-              style="flex: 1; padding: 0.45rem 0.8rem;"
-              (keyup.enter)="crearCategoriaRapida()"
-            />
+          <div class="flex flex-wrap items-center gap-2.5">
+            <!-- BOTÓN DESTACADO: + NUEVA CATEGORÍA -->
             <button 
-              type="button" 
-              (click)="crearCategoriaRapida()" 
-              class="btn btn-accent" 
-              style="font-size: 0.75rem; padding: 0.45rem 0.9rem;"
+              type="button"
+              (click)="iniciarCrearNuevaCategoria()"
+              class="btn"
+              [ngClass]="modoNuevaCategoria ? 'btn-primary' : 'btn-outline'"
+              style="padding: 0.6rem 1.25rem; font-size: 0.88rem; font-weight: 800; border-radius: 10px; border-width: 2px;"
             >
-              <i class="fa-solid fa-plus mr-1"></i> Crear y Usar
+              <i class="fa-solid fa-plus-circle mr-1.5" [style.color]="modoNuevaCategoria ? '#18181b' : 'var(--accent)'"></i>
+              + Nueva Categoría
             </button>
-          </div>
 
-          <!-- Lista de Categorías en Chips de Lujo con Icono y Contador -->
-          <div class="flex flex-wrap gap-2.5">
+            <!-- CHIPS DE CATEGORÍAS EXISTENTES -->
             <button 
               type="button"
               *ngFor="let c of categorias"
               (click)="seleccionarCategoriaMatriz(c.id)"
               class="category-tag-chip"
-              [class.selected]="categoriaMatrizId === c.id"
+              [class.selected]="!modoNuevaCategoria && categoriaMatrizId === c.id"
               style="padding: 0.6rem 1.1rem; font-size: 0.88rem;"
             >
               <i class="fa-solid mr-2 text-sm" [ngClass]="getCategoriaIcon(c.nombre)"></i>
@@ -301,190 +283,547 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
           </div>
         </div>
 
-        <!-- 2. PANEL OPERATIVO DE ENTRADA (SI HAY CATEGORÍA SELECCIONADA) -->
-        <div *ngIf="categoriaMatrizId !== null" class="flex flex-col gap-6 animate-fade-in">
+        <!-- 2. CASO MODO NUEVA CATEGORÍA: FORMULARIO UNIFICADO -->
+        <div *ngIf="modoNuevaCategoria" class="card p-5 animate-fade-in" style="border: 2px solid var(--accent); background: rgba(245, 158, 11, 0.03);">
+          <div class="flex items-center justify-between mb-3 pb-2 border-b" style="border-color: var(--border-color);">
+            <div class="flex items-center gap-2">
+              <span class="badge" style="background: var(--accent); color: #18181b; font-weight: 800;">
+                NUEVA CATEGORÍA
+              </span>
+              <h3 class="font-serif text-lg font-bold" style="color: var(--text-main);">
+                Crear Categoría e Ingresar sus Prendas
+              </h3>
+            </div>
+            <button type="button" (click)="cancelarModoNuevaCategoria()" class="btn btn-outline" style="padding: 0.3rem 0.7rem; font-size: 0.75rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">
+              <i class="fa-solid fa-xmark mr-1"></i> Cancelar
+            </button>
+          </div>
+
+          <div>
+            <label class="form-label text-xs font-bold uppercase mb-1 block" style="color: var(--accent);">
+              Nombre de la Nueva Categoría: *
+            </label>
+            <input 
+              type="text" 
+              [(ngModel)]="nuevaCategoriaInputNombre" 
+              placeholder="Ej: Poleras Oversize, Blusas de Seda, Casacas de Invierno, Trajes Formales..." 
+              class="form-input text-base font-bold" 
+              style="width: 100%; padding: 0.65rem 0.9rem;"
+            />
+            <p class="text-xs mt-1" style="color: var(--text-muted);">
+              Define abajo directamente cuántas prendas ingresarán de cada talla y color.
+            </p>
+          </div>
+        </div>
+
+        <!-- 3. PANEL OPERATIVO DE ENTRADA (SI ESTÁ EN MODO NUEVA O CATEGORÍA SELECCIONADA) -->
+        <!-- 3. PANEL OPERATIVO GUIADO EN ORDEN (CANTIDAD -> TALLAS -> COLORES -> GUARDAR LOTE) -->
+        <div *ngIf="modoNuevaCategoria || categoriaMatrizId !== null" class="flex flex-col gap-6 animate-fade-in">
           
-          <!-- Selección de Prenda dentro de la categoría y Parámetros de Destino -->
+          <!-- TARJETA CABECERA: DESTINO Y SUCURSAL -->
           <div class="card p-5" style="background: var(--card-bg); border: 1.5px solid var(--border-color);">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-center">
               
-              <!-- Selector de Prenda -->
+              <!-- Destino de Mercadería -->
               <div>
-                <label class="form-label text-xs font-bold uppercase mb-1.5 block" style="color: var(--accent);">
-                  <i class="fa-solid fa-shirt mr-1"></i> Prenda a Recibir Mercadería:
+                <label class="form-label text-xs font-bold uppercase mb-1 block" style="color: var(--accent);">
+                  <i class="fa-solid fa-tag mr-1"></i> Destino de Mercadería:
                 </label>
-                
-                <div *ngIf="getPrendasDeCategoriaMatriz().length > 0">
-                  <select 
-                    [(ngModel)]="productoMatrizId" 
-                    (ngModelChange)="onProductoMatrizChange($event)"
-                    class="form-select text-sm font-semibold"
-                    style="width: 100%; padding: 0.55rem 0.75rem;"
-                  >
-                    <option *ngFor="let p of getPrendasDeCategoriaMatriz()" [value]="p.id">
-                      {{ p.nombre }} - Bs. {{ p.precio_base | number:'1.2-2' }}
-                    </option>
-                  </select>
+                <div class="p-3 rounded-xl flex items-center justify-between" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+                  <div>
+                    <span class="text-xs font-bold text-muted uppercase block">Categoría:</span>
+                    <span class="font-serif text-lg font-bold" style="color: var(--text-main);">
+                      {{ modoNuevaCategoria ? (nuevaCategoriaInputNombre || 'Nueva Categoría') : getCategoriaNombre(categoriaMatrizId) }}
+                    </span>
+                  </div>
+                  
+                  <div *ngIf="!modoNuevaCategoria && getPrendasDeCategoriaMatriz().length > 1" style="min-width: 170px;">
+                    <select 
+                      [(ngModel)]="productoMatrizId" 
+                      (ngModelChange)="onProductoMatrizChange($event)"
+                      class="form-select text-xs font-semibold"
+                      style="width: 100%; padding: 0.35rem 0.6rem;"
+                    >
+                      <option *ngFor="let p of getPrendasDeCategoriaMatriz()" [value]="p.id">
+                        {{ p.nombre }}
+                      </option>
+                    </select>
+                  </div>
                 </div>
-
-                <div *ngIf="getPrendasDeCategoriaMatriz().length === 0" class="p-3 rounded-lg text-xs" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25);">
-                  No hay prendas registradas en esta categoría aún.
-                </div>
-
-                <button 
-                  type="button" 
-                  (click)="abrirModalPrenda(categoriaMatrizId)" 
-                  class="btn btn-outline mt-2 text-xs" 
-                  style="width: 100%; padding: 0.4rem 0.75rem; color: var(--accent); border-color: rgba(245, 158, 11, 0.4);"
-                >
-                  <i class="fa-solid fa-plus mr-1"></i> + Registrar Nueva Prenda en esta Categoría
-                </button>
               </div>
 
               <!-- Selector de Sucursal Destino -->
               <div>
-                <label class="form-label text-xs font-bold uppercase mb-1.5 block" style="color: var(--accent);">
+                <label class="form-label text-xs font-bold uppercase mb-1 block" style="color: var(--accent);">
                   <i class="fa-solid fa-warehouse mr-1"></i> Sucursal Destino:
                 </label>
                 <select 
                   [(ngModel)]="sucursalMatrizId" 
                   class="form-select text-sm font-semibold"
-                  style="width: 100%; padding: 0.55rem 0.75rem;"
+                  style="width: 100%; padding: 0.6rem 0.75rem;"
                 >
-                  <option *ngFor="let s of sucursales" [value]="s.id">
-                    {{ s.nombre }} ({{ s.ciudad.nombre || 'Bolivia' }})
+                  <option *ngFor="let s of sucursales" [ngValue]="s.id">
+                    {{ s.nombre }} ({{ s.ciudad?.nombre || 'Bolivia' }})
                   </option>
                 </select>
-                <p class="text-xs mt-2" style="color: var(--text-muted);">
-                  El stock ingresará de inmediato al Kardex de la tienda seleccionada.
-                </p>
-              </div>
-
-              <!-- Botones de Lote Rápido -->
-              <div>
-                <label class="form-label text-xs font-bold uppercase mb-1.5 block" style="color: var(--accent);">
-                  <i class="fa-solid fa-bolt mr-1"></i> Llenar Lote Parejo:
-                </label>
-                <div class="flex flex-wrap items-center gap-1.5">
-                  <button type="button" (click)="llenarLoteParejo(5)" class="batch-preset-btn">+5 Uds</button>
-                  <button type="button" (click)="llenarLoteParejo(10)" class="batch-preset-btn">+10 Uds</button>
-                  <button type="button" (click)="llenarLoteParejo(15)" class="batch-preset-btn">+15 Uds</button>
-                  <button type="button" (click)="llenarLoteParejo(20)" class="batch-preset-btn">+20 Uds</button>
-                  <button type="button" (click)="llenarLoteParejo(30)" class="batch-preset-btn">+30 Uds</button>
-                  <button type="button" (click)="llenarLoteParejo(0)" class="batch-preset-btn" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">Limpiar</button>
-                </div>
-                <p class="text-xs mt-2" style="color: var(--text-muted);">
-                  Rellena todas las casillas de la matriz con un solo clic.
-                </p>
               </div>
 
             </div>
           </div>
 
-          <!-- 3. LA MATRIZ VISUAL INTERACTIVA (TALLA × COLOR) -->
-          <div *ngIf="productoMatrizId !== null" class="card p-6" style="border: 1.5px solid var(--accent); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);">
+          <!-- BARRA STEPPER DEL PROCESO EN ORDEN -->
+          <div class="p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4" style="background: var(--table-th-bg); border: 1.5px solid var(--border-color);">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-4">
+              
+              <!-- Paso 1 -->
+              <button 
+                type="button" 
+                (click)="irAPaso(1)" 
+                class="stepper-nav-btn"
+                [style.opacity]="pasoLote === 1 ? '1' : '0.7'"
+              >
+                <span class="step-badge" 
+                      [style.background]="pasoLote === 1 ? 'var(--accent)' : (loteFijado ? '#22c55e' : 'var(--card-bg)')"
+                      [style.color]="pasoLote === 1 || loteFijado ? '#ffffff' : 'var(--text-muted)'">
+                  <i *ngIf="loteFijado && pasoLote > 1" class="fa-solid fa-check"></i>
+                  <span *ngIf="!loteFijado || pasoLote === 1">1</span>
+                </span>
+                <div>
+                  <span class="text-xs font-bold uppercase block" style="color: var(--text-muted);">Paso 1</span>
+                  <span class="text-xs font-extrabold" [style.color]="pasoLote === 1 ? 'var(--accent)' : 'var(--text-main)'">
+                    Cantidad Total
+                  </span>
+                </div>
+              </button>
+
+              <i class="fa-solid fa-chevron-right text-xs" style="color: var(--border-color);"></i>
+
+              <!-- Paso 2 -->
+              <button 
+                type="button" 
+                (click)="irAPaso(2)" 
+                [disabled]="!loteFijado"
+                class="stepper-nav-btn"
+                [style.opacity]="pasoLote === 2 ? '1' : (loteFijado ? '0.7' : '0.4')"
+              >
+                <span class="step-badge"
+                      [style.background]="pasoLote === 2 ? 'var(--accent)' : (pasoLote > 2 ? '#22c55e' : 'var(--card-bg)')"
+                      [style.color]="pasoLote >= 2 ? '#ffffff' : 'var(--text-muted)'">
+                  <i *ngIf="pasoLote > 2" class="fa-solid fa-check"></i>
+                  <span *ngIf="pasoLote <= 2">2</span>
+                </span>
+                <div>
+                  <span class="text-xs font-bold uppercase block" style="color: var(--text-muted);">Paso 2</span>
+                  <span class="text-xs font-extrabold" [style.color]="pasoLote === 2 ? 'var(--accent)' : 'var(--text-main)'">
+                    Repartir en Tallas
+                  </span>
+                </div>
+              </button>
+
+              <i class="fa-solid fa-chevron-right text-xs" style="color: var(--border-color);"></i>
+
+              <!-- Paso 3 -->
+              <button 
+                type="button" 
+                (click)="irAPaso(3)" 
+                [disabled]="!loteFijado || getTotalAsignadoTallas() !== cantidadTotalLote"
+                class="stepper-nav-btn"
+                [style.opacity]="pasoLote === 3 ? '1' : (todosLosColoresCompletos() ? '0.7' : '0.4')"
+              >
+                <span class="step-badge"
+                      [style.background]="pasoLote === 3 ? 'var(--accent)' : (todosLosColoresCompletos() ? '#22c55e' : 'var(--card-bg)')"
+                      [style.color]="pasoLote === 3 || todosLosColoresCompletos() ? '#ffffff' : 'var(--text-muted)'">
+                  <i *ngIf="todosLosColoresCompletos()" class="fa-solid fa-check"></i>
+                  <span *ngIf="!todosLosColoresCompletos()">3</span>
+                </span>
+                <div>
+                  <span class="text-xs font-bold uppercase block" style="color: var(--text-muted);">Paso 3</span>
+                  <span class="text-xs font-extrabold" [style.color]="pasoLote === 3 ? 'var(--accent)' : 'var(--text-main)'">
+                    Colores por Talla
+                  </span>
+                </div>
+              </button>
+
+            </div>
+
+            <!-- Resumen flotante de lote -->
+            <div *ngIf="loteFijado" class="px-3.5 py-1.5 rounded-xl text-right" style="background: rgba(245, 158, 11, 0.12); border: 1.5px solid var(--accent);">
+              <span class="text-xs font-bold uppercase block" style="color: var(--text-muted);">LOTE FIJADO:</span>
+              <span class="font-serif text-xl font-black" style="color: var(--accent);">
+                {{ cantidadTotalLote }} <span class="text-xs font-sans font-bold">Prendas</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- ========================================== -->
+          <!-- VISTA PASO 1: FIJAR CANTIDAD TOTAL DEL LOTE -->
+          <!-- ========================================== -->
+          <div *ngIf="pasoLote === 1" class="card p-8 animate-fade-in text-center" style="border: 1.5px solid var(--accent); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);">
+            <div class="max-w-md mx-auto">
+              <div class="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-4" style="background: rgba(245, 158, 11, 0.15); color: var(--accent); font-size: 1.8rem;">
+                <i class="fa-solid fa-boxes-stacked"></i>
+              </div>
+              
+              <h3 class="font-serif text-2xl font-bold mb-2" style="color: var(--text-main);">
+                Paso 1: Cantidad Total que Ingresará
+              </h3>
+              <p class="text-xs mb-6" style="color: var(--text-muted);">
+                Escribe cuántas prendas en total han llegado de esta categoría. Luego le das <strong>OK</strong> y el sistema te guiará en vivo para distribuirlas en tallas y colores sin pasarte de ese número.
+              </p>
+
+              <div class="flex items-center gap-3 justify-center mb-6">
+                <input 
+                  type="number" 
+                  min="1" 
+                  [(ngModel)]="cantidadTotalLoteInput" 
+                  placeholder="Ej: 50" 
+                  class="form-input text-center text-2xl font-black"
+                  style="width: 170px; padding: 0.75rem 1rem; border: 2px solid var(--accent); border-radius: 12px;"
+                  (keyup.enter)="fijarCantidadLote()"
+                  autofocus
+                />
+                <button 
+                  type="button" 
+                  (click)="fijarCantidadLote()" 
+                  class="btn btn-primary"
+                  style="padding: 0.85rem 1.6rem; font-size: 1rem; font-weight: 800; border-radius: 12px;"
+                >
+                  <i class="fa-solid fa-check mr-2"></i> OK / Siguiente
+                </button>
+              </div>
+
+              <!-- Si ya había fijado previamente un lote y vuelve al paso 1 -->
+              <div *ngIf="loteFijado" class="mt-4 p-3 rounded-xl inline-block" style="background: var(--table-th-bg); border: 1px dashed var(--accent);">
+                <span class="text-xs" style="color: var(--text-muted);">
+                  Actualmente fijado en <strong>{{ cantidadTotalLote }} prendas</strong>. Si cambias el número y das OK, reajustarás el lote.
+                </span>
+                <button 
+                  type="button" 
+                  (click)="pasoLote = 2" 
+                  class="btn btn-outline ml-3" 
+                  style="font-size: 0.75rem; padding: 0.3rem 0.6rem;"
+                >
+                  Mantener y seguir a Tallas <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ============================================== -->
+          <!-- VISTA PASO 2: ASIGNAR PRENDAS A CADA TALLA (EN VIVO) -->
+          <!-- ============================================== -->
+          <div *ngIf="pasoLote === 2" class="card p-6 animate-fade-in" style="border: 1.5px solid var(--accent); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);">
             
+            <!-- Banner de Control de Distribución en Tallas -->
+            <div class="mb-6 p-4 rounded-xl flex flex-wrap items-center justify-between gap-3 animate-fade-in"
+                 [style.background]="getTotalAsignadoTallas() === cantidadTotalLote ? 'rgba(34, 197, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)'"
+                 [style.border]="'1.5px solid ' + (getTotalAsignadoTallas() === cantidadTotalLote ? '#22c55e' : 'var(--accent)')">
+              
+              <div class="flex items-center gap-3">
+                <i class="fa-solid text-2xl" 
+                   [ngClass]="getTotalAsignadoTallas() === cantidadTotalLote ? 'fa-circle-check text-green-500' : 'fa-hourglass-half text-amber-500'"></i>
+                <div>
+                  <div class="font-bold text-base" style="color: var(--text-main);">
+                    <span *ngIf="getTotalAsignadoTallas() === cantidadTotalLote" style="color: #22c55e;">
+                      ¡Tallas Completadas! Has distribuido exactamente las {{ cantidadTotalLote }} prendas.
+                    </span>
+                    <span *ngIf="getTotalAsignadoTallas() < cantidadTotalLote" style="color: var(--accent);">
+                      Paso 2: Asigna cuántas prendas van a cada talla ({{ getTotalAsignadoTallas() }} de {{ cantidadTotalLote }} Uds asignadas).
+                    </span>
+                  </div>
+                  <div class="text-xs mt-0.5" style="color: var(--text-muted);">
+                    <span *ngIf="getTotalAsignadoTallas() < cantidadTotalLote">
+                      El sistema no te deja pasarte. Faltan <strong>{{ getPendienteTallas() }} prendas</strong> por asignar a las tallas.
+                    </span>
+                    <span *ngIf="getTotalAsignadoTallas() === cantidadTotalLote">
+                      Distribución exacta alcanzada. Ya puedes presionar <strong>"Siguiente: Asignar Colores"</strong>.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Indicadores Numéricos -->
+              <div class="flex items-center gap-3">
+                <div class="text-center px-4 py-2 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+                  <span class="text-xs font-bold block" style="color: var(--text-muted);">TOTAL LOTE:</span>
+                  <span class="font-serif text-xl font-bold" style="color: var(--text-main);">
+                    {{ cantidadTotalLote }} Uds
+                  </span>
+                </div>
+                <div class="text-center px-4 py-2 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+                  <span class="text-xs font-bold block" style="color: var(--text-muted);">FALTAN EN TALLAS:</span>
+                  <span class="font-serif text-2xl font-black" [style.color]="getPendienteTallas() === 0 ? '#22c55e' : 'var(--accent)'">
+                    {{ getPendienteTallas() }} <span class="text-xs font-sans font-bold">Uds</span>
+                  </span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Título y Cuadrícula de Tallas -->
+            <div class="mb-4">
+              <h3 class="font-serif text-lg font-bold" style="color: var(--text-main);">
+                <i class="fa-solid fa-ruler mr-2" style="color: var(--accent);"></i>
+                Tallas Predeterminadas Disponibles
+              </h3>
+              <p class="text-xs mt-0.5" style="color: var(--text-muted);">
+                Escribe manualmente cuántas prendas irán a cada talla (control en vivo):
+              </p>
+            </div>
+
+            <!-- Tarjetas de Tallas con Ingreso Manual -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6">
+              <div 
+                *ngFor="let t of tallasMatrizActivas" 
+                class="talla-card flex flex-col items-center justify-between text-center gap-2"
+                [class.has-quantity]="getCantidadTalla(t.id) > 0"
+                [class.opacity-40]="getPendienteTallas() === 0 && getCantidadTalla(t.id) === 0"
+              >
+                <!-- Nombre de Talla -->
+                <div>
+                  <span class="text-xs font-bold uppercase block" style="color: var(--text-muted);">Talla</span>
+                  <span class="font-serif text-2xl font-black" style="color: var(--accent);">
+                    {{ t.nombre }}
+                  </span>
+                </div>
+
+                <!-- Ingreso Manual de Cantidad de la Talla -->
+                <div class="w-full flex items-center justify-center my-1">
+                  <input 
+                    type="number" 
+                    min="0" 
+                    [max]="cantidadTotalLote"
+                    [disabled]="getPendienteTallas() === 0 && getCantidadTalla(t.id) === 0"
+                    [value]="getCantidadTalla(t.id) === 0 ? '' : getCantidadTalla(t.id)" 
+                    (input)="onTallaInput($event, t.id)"
+                    placeholder="0"
+                    class="matrix-cell-input font-black text-center"
+                    [class.cursor-not-allowed]="getPendienteTallas() === 0 && getCantidadTalla(t.id) === 0"
+                    style="width: 76px; font-size: 1.15rem; padding: 0.45rem 0.5rem; border-radius: 10px;"
+                  />
+                </div>
+
+                <!-- Badge Informativo de esa Talla -->
+                <span class="text-xs font-bold" [style.color]="getCantidadTalla(t.id) > 0 ? 'var(--accent)' : 'var(--text-muted)'">
+                  {{ getCantidadTalla(t.id) }} Uds asignadas
+                </span>
+              </div>
+            </div>
+
+            <!-- Botones de Navegación del Paso 2 -->
+            <div class="flex flex-wrap items-center justify-between gap-4 pt-4 border-t" style="border-color: var(--border-color);">
+              <button 
+                type="button" 
+                (click)="irAPaso(1)" 
+                class="btn btn-outline"
+                style="padding: 0.65rem 1.2rem; font-size: 0.85rem;"
+              >
+                <i class="fa-solid fa-arrow-left mr-1.5"></i> Cambiar Cantidad Total
+              </button>
+
+              <div class="flex items-center gap-3">
+                <span *ngIf="getTotalAsignadoTallas() < cantidadTotalLote" class="text-xs font-bold" style="color: var(--accent);">
+                  <i class="fa-solid fa-info-circle mr-1"></i> Faltan {{ getPendienteTallas() }} prendas por asignar para avanzar
+                </span>
+
+                <button 
+                  type="button" 
+                  (click)="avanzarAColores()" 
+                  [disabled]="getTotalAsignadoTallas() !== cantidadTotalLote"
+                  class="btn"
+                  [style.background]="getTotalAsignadoTallas() === cantidadTotalLote ? 'var(--accent)' : 'var(--border-color)'"
+                  [style.color]="getTotalAsignadoTallas() === cantidadTotalLote ? '#18181b' : 'var(--text-muted)'"
+                  style="padding: 0.8rem 1.8rem; font-size: 0.95rem; font-weight: 800; border-radius: 10px; cursor: pointer;"
+                >
+                  <span>Siguiente: Asignar Colores</span>
+                  <i class="fa-solid fa-arrow-right ml-2"></i>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ============================================== -->
+          <!-- VISTA PASO 3: ASIGNAR COLORES A CADA TALLA (EN VIVO) -->
+          <!-- ============================================== -->
+          <div *ngIf="pasoLote === 3" class="card p-6 animate-fade-in" style="border: 1.5px solid var(--accent); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);">
+            
+            <!-- Barra Superior: Estado General de Colores + Botón + Otro Color -->
             <div class="flex flex-wrap items-center justify-between gap-4 mb-5 pb-3 border-b" style="border-color: var(--border-color);">
               <div>
-                <div class="flex items-center gap-2">
-                  <h3 class="font-serif text-xl font-bold" style="color: var(--text-main);">
-                    <i class="fa-solid fa-table-cells mr-2" style="color: var(--accent);"></i>
-                    Matriz de Cantidades: {{ getProductoMatrizNombre() }}
-                  </h3>
-                </div>
+                <h3 class="font-serif text-xl font-bold" style="color: var(--text-main);">
+                  <i class="fa-solid fa-palette mr-2" style="color: var(--accent);"></i>
+                  Paso 3: Asignar Colores para Cada Talla
+                </h3>
                 <p class="text-xs mt-0.5" style="color: var(--text-muted);">
-                  Tallas filtradas para <strong>{{ getCategoriaNombre(categoriaMatrizId) }}</strong>. Ajusta las cantidades que entran para cada talla y color:
+                  Reparte las prendas de cada talla entre los colores. El sistema controla en vivo que no te pases de la cuota de cada talla:
                 </p>
               </div>
 
-              <!-- Gran Total Destacado -->
+              <!-- Botón + Otro Color con Paleta -->
               <div class="flex items-center gap-3">
+                <button 
+                  type="button" 
+                  (click)="mostrarModalOtroColor = !mostrarModalOtroColor" 
+                  class="btn btn-outline flex items-center gap-2"
+                  style="border-color: var(--accent); color: var(--accent); font-size: 0.82rem; padding: 0.5rem 1rem;"
+                >
+                  <i class="fa-solid fa-palette"></i>
+                  <span>{{ mostrarModalOtroColor ? 'Cerrar Paleta' : '+ Otro Color' }}</span>
+                </button>
+
                 <div class="px-4 py-2 rounded-xl text-center" style="background: rgba(245, 158, 11, 0.15); border: 1.5px solid var(--accent);">
-                  <span class="text-xs font-bold block" style="color: var(--text-muted);">TOTAL LOTE A INGRESAR:</span>
-                  <span class="font-serif text-2xl font-extrabold" style="color: var(--accent);">
-                    {{ getGranTotalMatriz() }} <span class="text-sm font-sans font-bold">Uds</span>
+                  <span class="text-xs font-bold block" style="color: var(--text-muted);">TOTAL COLORES:</span>
+                  <span class="font-serif text-xl font-extrabold" style="color: var(--accent);">
+                    {{ getGranTotalMatriz() }} / {{ cantidadTotalLote }} <span class="text-xs font-sans font-bold">Uds</span>
                   </span>
                 </div>
               </div>
             </div>
 
-            <!-- Tabla Matriz con Scroll Horizontal si es necesario -->
-            <div class="overflow-x-auto pb-2">
-              <table class="matrix-table" style="width: 100%; border-collapse: separate; border-spacing: 6px;">
-                <thead>
-                  <tr>
-                    <th style="text-align: left; padding: 0.75rem 1rem; background: var(--table-th-bg); border-radius: 8px; font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">
-                      Color de la Prenda
-                    </th>
-                    <th *ngFor="let t of tallasMatrizActivas" style="text-align: center; padding: 0.75rem 0.5rem; background: var(--table-th-bg); border-radius: 8px; font-size: 0.82rem; color: var(--accent); font-weight: 800; min-width: 85px;">
-                      Talla {{ t.nombre }}
-                    </th>
-                    <th style="text-align: center; padding: 0.75rem 0.75rem; background: rgba(245, 158, 11, 0.1); border-radius: 8px; font-size: 0.75rem; color: var(--accent); font-weight: 800; text-transform: uppercase; min-width: 100px;">
-                      Total Color
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let col of coloresMatrizActivos">
-                    <!-- Celda Color -->
-                    <td style="padding: 0.65rem 1rem; background: var(--table-th-bg); border-radius: 8px; font-weight: 700; color: var(--text-main); font-size: 0.85rem;">
-                      <div class="flex items-center gap-2.5">
-                        <span class="color-dot-indicator" [style.background-color]="col.codigo_hex || '#000'" style="width: 18px; height: 18px; min-width: 18px; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></span>
-                        <span>{{ col.nombre }}</span>
-                      </div>
-                    </td>
+            <!-- PANEL INTERACTIVO: AGREGAR OTRO COLOR CON PALETA -->
+            <div *ngIf="mostrarModalOtroColor" class="p-5 mb-5 rounded-2xl animate-fade-in" style="background: var(--table-th-bg); border: 1.5px dashed var(--accent);">
+              <div class="flex items-center justify-between mb-3 pb-2 border-b" style="border-color: var(--border-color);">
+                <div class="flex items-center gap-2">
+                  <i class="fa-solid fa-eye-dropper" style="color: var(--accent);"></i>
+                  <h4 class="text-sm font-bold" style="color: var(--text-main);">Agregar Color Personalizado con Paleta</h4>
+                </div>
+                <button type="button" (click)="mostrarModalOtroColor = false" class="btn btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;"><i class="fa-solid fa-xmark"></i></button>
+              </div>
 
-                    <!-- Celdas de Cantidad por Talla -->
-                    <td *ngFor="let t of tallasMatrizActivas" style="text-align: center; padding: 0.4rem; background: var(--card-bg); border: 1.5px solid var(--border-color); border-radius: 8px;">
-                      <div class="flex items-center justify-center gap-1">
-                        <button 
-                          type="button" 
-                          (click)="incrementarCantidad(col.id, t.id, -1)" 
-                          class="matrix-btn-minus"
-                          title="Restar 1"
-                        >-</button>
-                        
-                        <input 
-                          type="number" 
-                          min="0" 
-                          [ngModel]="getCantidadMatriz(col.id, t.id)" 
-                          (ngModelChange)="setCantidadMatriz(col.id, t.id, $event)"
-                          class="matrix-cell-input"
-                        />
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-center">
+                <div>
+                  <label class="form-label text-xs font-bold uppercase mb-1 block">Nombre del Color:</label>
+                  <div class="flex items-center gap-2">
+                    <input 
+                      type="color" 
+                      [(ngModel)]="nuevoOtroColorHex" 
+                      style="width: 44px; height: 38px; border: 1.5px solid var(--border-color); border-radius: 8px; cursor: pointer; background: transparent; padding: 2px;"
+                      title="Haz clic para abrir el selector de color"
+                    />
+                    <input 
+                      type="text" 
+                      [(ngModel)]="nuevoOtroColorNombre" 
+                      placeholder="Ej: Verde Militar, Mostaza, Lila..." 
+                      class="form-input text-xs font-semibold"
+                      style="flex: 1; padding: 0.55rem 0.8rem;"
+                      (keyup.enter)="agregarOtroColorMatriz()"
+                    />
+                    <button 
+                      type="button" 
+                      (click)="agregarOtroColorMatriz()" 
+                      class="btn btn-primary"
+                      style="padding: 0.55rem 1rem; font-size: 0.8rem; font-weight: 700;"
+                    >
+                      <i class="fa-solid fa-plus mr-1"></i> Agregar a la Lista
+                    </button>
+                  </div>
+                </div>
 
-                        <button 
-                          type="button" 
-                          (click)="incrementarCantidad(col.id, t.id, 1)" 
-                          class="matrix-btn-plus"
-                          title="Sumar 1"
-                        >+</button>
-                      </div>
-                    </td>
-
-                    <!-- Total de ese Color -->
-                    <td style="text-align: center; padding: 0.65rem; background: rgba(245, 158, 11, 0.08); border-radius: 8px; font-weight: 800; color: var(--accent); font-size: 0.95rem;">
-                      {{ getTotalPorColor(col.id) }} <span class="text-xs font-normal" style="color: var(--text-muted);">Uds</span>
-                    </td>
-                  </tr>
-
-                  <!-- Fila de Totales por Talla al Pie -->
-                  <tr>
-                    <td style="padding: 0.75rem 1rem; background: rgba(245, 158, 11, 0.1); border-radius: 8px; font-weight: 800; font-size: 0.8rem; color: var(--accent); text-transform: uppercase;">
-                      Total por Talla
-                    </td>
-                    <td *ngFor="let t of tallasMatrizActivas" style="text-align: center; padding: 0.65rem; background: rgba(245, 158, 11, 0.08); border-radius: 8px; font-weight: 800; color: var(--accent); font-size: 0.92rem;">
-                      {{ getTotalPorTalla(t.id) }} <span class="text-xs font-normal" style="color: var(--text-muted);">Uds</span>
-                    </td>
-                    <td style="text-align: center; padding: 0.75rem; background: var(--accent); border-radius: 8px; font-weight: 900; color: #18181b; font-size: 1.1rem;">
-                      {{ getGranTotalMatriz() }} Uds
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                <div>
+                  <label class="form-label text-xs font-bold uppercase mb-1 block" style="color: var(--accent);">
+                    Paleta de Sugerencias Rápidas:
+                  </label>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <button 
+                      type="button" 
+                      *ngFor="let p of coloresPaletaRapida" 
+                      (click)="seleccionarColorPaleta(p)"
+                      class="color-swatch-btn" 
+                      [style.background-color]="p.hex" 
+                      [title]="p.nombre + ' (' + p.hex + ')'"
+                    ></button>
+                  </div>
+                  <p class="text-xs mt-1" style="color: var(--text-muted);">Haz clic en un tono para autocompletar.</p>
+                </div>
+              </div>
             </div>
 
-            <!-- Fila de Observaciones y Botón de Envío -->
-            <div class="flex flex-wrap items-center justify-between gap-4 mt-6 pt-5 border-t" style="border-color: var(--border-color);">
+            <!-- SECCIONES DE ASIGNACIÓN: UNA POR CADA TALLA CON PRENDAS ASIGNADAS -->
+            <div class="flex flex-col gap-5 mb-6">
+              <div 
+                *ngFor="let t of tallasConCantidad" 
+                class="p-4 rounded-xl"
+                [style.background]="getPendienteColorTalla(t.id) === 0 ? 'rgba(34, 197, 94, 0.05)' : 'var(--table-th-bg)'"
+                [style.border]="'1.5px solid ' + (getPendienteColorTalla(t.id) === 0 ? '#22c55e' : 'var(--border-color)')"
+              >
+                <!-- Cabecera de la Talla -->
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-3 pb-2 border-b" style="border-color: var(--border-color);">
+                  <div class="flex items-center gap-3">
+                    <span class="w-9 h-9 rounded-lg flex items-center justify-center font-serif text-lg font-black" style="background: var(--card-bg); border: 1.5px solid var(--accent); color: var(--accent);">
+                      {{ t.nombre }}
+                    </span>
+                    <div>
+                      <span class="font-serif text-base font-bold" style="color: var(--text-main);">
+                        Talla {{ t.nombre }}
+                      </span>
+                      <span class="text-xs ml-2 font-bold px-2 py-0.5 rounded-md" style="background: rgba(245, 158, 11, 0.15); color: var(--accent);">
+                        Cuota: {{ getCantidadTalla(t.id) }} Uds
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Estado de Asignación de esa Talla -->
+                  <div class="flex items-center gap-2">
+                    <span *ngIf="getPendienteColorTalla(t.id) > 0" class="text-xs font-bold" style="color: var(--accent);">
+                      <i class="fa-solid fa-hourglass-half mr-1"></i> Faltan {{ getPendienteColorTalla(t.id) }} Uds por asignar en colores
+                    </span>
+                    <span *ngIf="getPendienteColorTalla(t.id) === 0" class="text-xs font-bold" style="color: #22c55e;">
+                      <i class="fa-solid fa-circle-check mr-1"></i> ¡Colores completos para Talla {{ t.nombre }}!
+                    </span>
+
+                    <div class="px-2.5 py-1 rounded-lg text-xs font-black" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+                      {{ getTotalColorDeTalla(t.id) }} / {{ getCantidadTalla(t.id) }} Uds
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Lista de Colores de esta Talla -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                  <div 
+                    *ngFor="let col of coloresMatrizActivos" 
+                    class="p-2.5 rounded-lg flex items-center justify-between gap-2"
+                    [style.background]="getCantidadMatriz(col.id, t.id) > 0 ? 'rgba(245, 158, 11, 0.08)' : 'var(--card-bg)'"
+                    [style.border]="'1px solid ' + (getCantidadMatriz(col.id, t.id) > 0 ? 'var(--accent)' : 'var(--border-color)')"
+                    [class.opacity-40]="getPendienteColorTalla(t.id) === 0 && getCantidadMatriz(col.id, t.id) === 0"
+                  >
+                    <!-- Muestra de Color y Nombre -->
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span 
+                        class="color-dot-indicator" 
+                        [style.background-color]="col.codigo_hex || '#000'" 
+                        style="width: 16px; height: 16px; min-width: 16px; border-radius: 50%; box-shadow: 0 1px 4px rgba(0,0,0,0.3);"
+                      ></span>
+                      <span class="text-xs font-bold truncate" style="color: var(--text-main);" [title]="col.nombre">
+                        {{ col.nombre }}
+                      </span>
+                    </div>
+
+                    <!-- Ingreso Manual de Cantidad del Color -->
+                    <div class="flex items-center gap-1.5">
+                      <input 
+                        type="number" 
+                        min="0" 
+                        [max]="getCantidadTalla(t.id)"
+                        [disabled]="getPendienteColorTalla(t.id) === 0 && getCantidadMatriz(col.id, t.id) === 0"
+                        [value]="getCantidadMatriz(col.id, t.id) === 0 ? '' : getCantidadMatriz(col.id, t.id)" 
+                        (input)="onColorInput($event, col.id, t.id)"
+                        placeholder="0"
+                        class="matrix-cell-input font-bold text-center"
+                        [class.cursor-not-allowed]="getPendienteColorTalla(t.id) === 0 && getCantidadMatriz(col.id, t.id) === 0"
+                        style="width: 58px; padding: 0.35rem 0.3rem; font-size: 0.95rem; border-radius: 8px;"
+                      />
+                      <span class="text-xs font-semibold" style="color: var(--text-muted);">Uds</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Fila de Observaciones y Botón Final [ Guardar Lote ] -->
+            <div class="flex flex-wrap items-center justify-between gap-4 pt-5 border-t" style="border-color: var(--border-color);">
               <div class="flex-1" style="min-width: 260px;">
                 <label class="form-label text-xs block mb-1">Observaciones / Guía de Remisión (Opcional):</label>
                 <input 
@@ -496,16 +835,40 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
                 />
               </div>
 
-              <button 
-                type="button" 
-                (click)="guardarEntradaMercaderiaMatriz()" 
-                [disabled]="guardandoMatriz || getGranTotalMatriz() <= 0" 
-                class="btn btn-primary"
-                style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800; letter-spacing: 0.04em;"
-              >
-                <span *ngIf="guardandoMatriz"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Registrando en Kardex...</span>
-                <span *ngIf="!guardandoMatriz"><i class="fa-solid fa-boxes-packing mr-2"></i> Registrar Entrada de Mercadería al Kardex</span>
-              </button>
+              <!-- Acciones Finales -->
+              <div class="flex items-center gap-3">
+                <button 
+                  type="button" 
+                  (click)="irAPaso(2)" 
+                  class="btn btn-outline"
+                  style="padding: 0.75rem 1.2rem; font-size: 0.85rem;"
+                >
+                  <i class="fa-solid fa-arrow-left mr-1.5"></i> Volver a Tallas
+                </button>
+
+                <!-- Estado: Faltan colores -->
+                <div *ngIf="!todosLosColoresCompletos()" 
+                     class="px-4 py-3 rounded-xl flex items-center gap-2" 
+                     style="background: rgba(245, 158, 11, 0.12); border: 1.5px dashed var(--accent); color: var(--accent); font-weight: 700; font-size: 0.85rem;">
+                  <i class="fa-solid fa-hourglass-half"></i>
+                  <span>Faltan {{ cantidadTotalLote - getGranTotalMatriz() }} prendas por asignar en colores para habilitar "Guardar Lote"</span>
+                </div>
+
+                <!-- BOTÓN PRINCIPAL: GUARDAR LOTE (UNA VEZ LLEGUES AL FINAL) -->
+                <button 
+                  *ngIf="todosLosColoresCompletos()" 
+                  type="button" 
+                  (click)="guardarIngresoDirecto()" 
+                  [disabled]="guardandoMatriz" 
+                  class="btn animate-fade-in"
+                  style="background: #22c55e; border: 2px solid #16a34a; color: #ffffff; padding: 0.85rem 2.2rem; font-size: 1.05rem; font-weight: 900; letter-spacing: 0.04em; border-radius: 12px; box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4); cursor: pointer;"
+                >
+                  <span *ngIf="guardandoMatriz"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Registrando en Kardex...</span>
+                  <span *ngIf="!guardandoMatriz">
+                    <i class="fa-solid fa-boxes-packing mr-2"></i> Guardar Lote ({{ cantidadTotalLote }} Uds)
+                  </span>
+                </button>
+              </div>
             </div>
 
           </div>
@@ -589,7 +952,7 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
             <div>
               <div class="flex items-center justify-between mb-3">
                 <h3 class="font-serif text-xl font-bold" style="color: var(--text-main);">{{ s.nombre }}</h3>
-                <span class="badge" style="background:#dbeafe; color:#1e40af;">{{ s.ciudad.nombre || 'Bolivia' }}</span>
+                <span class="badge" style="background:#dbeafe; color:#1e40af;">{{ s.ciudad?.nombre || 'Bolivia' }}</span>
               </div>
               <p class="text-sm mb-2" style="color: var(--text-muted);"><i class="fa-solid fa-map-pin text-amber-600 mr-2"></i> {{ s.direccion }}</p>
               <p *ngIf="s.telefono" class="text-sm" style="color: var(--text-muted);"><i class="fa-solid fa-phone text-amber-600 mr-2"></i> {{ s.telefono }}</p>
@@ -1448,6 +1811,69 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
       color: var(--accent);
       border-color: var(--accent);
     }
+    .color-swatch-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .color-swatch-btn:hover {
+      transform: scale(1.25);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Estilos del Asistente Guiado de Lotes */
+    .step-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.85rem;
+      transition: all 0.2s ease;
+    }
+    .talla-card {
+      padding: 1rem;
+      border-radius: 14px;
+      background: var(--table-th-bg);
+      border: 1.5px solid var(--border-color);
+      transition: all 0.2s ease;
+    }
+    .talla-card.has-quantity {
+      border-color: var(--accent);
+      background: rgba(245, 158, 11, 0.08);
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.15);
+    }
+    .stepper-nav-btn {
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 10px;
+      transition: all 0.15s ease;
+    }
+    .stepper-nav-btn:hover:not(:disabled) {
+      background: var(--card-bg);
+    }
+
+    /* Quitar flechas arriba y abajo de los inputs de número (solo ingreso manual) */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+      -webkit-appearance: none !important; 
+      margin: 0 !important; 
+    }
+    input[type=number] {
+      -moz-appearance: textfield !important;
+      appearance: textfield !important;
+    }
   `]
 })
 export class AdminPanelComponent implements OnInit {
@@ -1467,7 +1893,32 @@ export class AdminPanelComponent implements OnInit {
   nombrePlaceholderPrenda: string = 'Ej: Polera Heavy Cotton Oversize';
   sugerenciaEstiloPrenda: string = '';
 
-  // --- Matriz de Mercadería por Categoría ---
+  // --- Matriz de Mercadería por Categoría & Flujo Unificado ---
+  modoNuevaCategoria: boolean = false;
+  nuevaCategoriaInputNombre: string = '';
+  mostrarModalOtroColor: boolean = false;
+  nuevoOtroColorNombre: string = '';
+  nuevoOtroColorHex: string = '#10B981';
+  coloresPaletaRapida = [
+    { nombre: 'Verde Esmeralda', hex: '#10B981' },
+    { nombre: 'Azul Celeste', hex: '#38BDF8' },
+    { nombre: 'Amarillo Mostaza', hex: '#F59E0B' },
+    { nombre: 'Rosado Pastel', hex: '#F472B6' },
+    { nombre: 'Morado Lavanda', hex: '#A855F7' },
+    { nombre: 'Naranja Cobre', hex: '#F97316' },
+    { nombre: 'Marrón Café', hex: '#78350F' },
+    { nombre: 'Verde Olivo', hex: '#4D7C0F' },
+    { nombre: 'Vino Tinto', hex: '#881337' },
+    { nombre: 'Turquesa', hex: '#14B8A6' }
+  ];
+
+  // Fijar Cantidad Total de Prendas del Lote (Distribución Controlada en Pasos)
+  pasoLote: 1 | 2 | 3 = 1;
+  cantidadTotalLoteInput: number | null = null;
+  cantidadTotalLote: number = 0;
+  loteFijado: boolean = false;
+  cantidadesPorTalla: { [tallaId: number]: number } = {};
+
   categoriaMatrizId: number | null = null;
   productoMatrizId: number | null = null;
   sucursalMatrizId: number = 1;
@@ -1487,7 +1938,11 @@ export class AdminPanelComponent implements OnInit {
   categorias: Categoria[] = [];
   tallas: Talla[] = [];
   colores: Color[] = [];
-  sucursales: Sucursal[] = [];
+  sucursales: any[] = [
+    { id: 1, nombre: 'Sucursal Central La Paz', direccion: 'Av. 16 de Julio #1234, El Prado', ciudad: { id: 1, nombre: 'La Paz', pais: 'Bolivia' } },
+    { id: 2, nombre: 'Sucursal Equipetrol Santa Cruz', direccion: 'Av. San Martín #456, Equipetrol', ciudad: { id: 2, nombre: 'Santa Cruz', pais: 'Bolivia' } },
+    { id: 3, nombre: 'Sucursal Cine Center Cochabamba', direccion: 'Av. Ramón Rivero #250', ciudad: { id: 3, nombre: 'Cochabamba', pais: 'Bolivia' } }
+  ];
   proveedores: any[] = [];
   temporadas: any[] = [];
   roles: any[] = [];
@@ -1670,11 +2125,16 @@ export class AdminPanelComponent implements OnInit {
     });
     this.productoService.getSucursales().subscribe({ 
       next: data => {
-        this.sucursales = data || [];
+        if (data && data.length > 0) {
+          this.sucursales = data;
+        }
         if (this.sucursales.length > 0 && !this.sucursalMatrizId) {
           this.sucursalMatrizId = this.sucursales[0].id;
         }
-      } 
+      },
+      error: (err) => {
+        console.warn('No se pudo conectar con el endpoint de sucursales, usando sucursales locales:', err);
+      }
     });
     this.adminService.getProveedores().subscribe({ 
       next: data => {
@@ -1766,7 +2226,35 @@ export class AdminPanelComponent implements OnInit {
     return p ? p.nombre : 'Prenda Seleccionada';
   }
 
+  iniciarCrearNuevaCategoria(): void {
+    this.modoNuevaCategoria = true;
+    this.categoriaMatrizId = null;
+    this.productoMatrizId = null;
+    this.nuevaCategoriaInputNombre = '';
+    this.pasoLote = 1;
+    this.loteFijado = false;
+    this.cantidadTotalLote = 0;
+    this.cantidadTotalLoteInput = null;
+    this.cantidadesPorTalla = {};
+    this.actualizarTallasYColoresMatriz();
+    this.llenarLoteParejo(0);
+  }
+
+  cancelarModoNuevaCategoria(): void {
+    this.modoNuevaCategoria = false;
+    this.nuevaCategoriaInputNombre = '';
+    this.pasoLote = 1;
+    this.loteFijado = false;
+    this.cantidadTotalLote = 0;
+    this.cantidadTotalLoteInput = null;
+    this.cantidadesPorTalla = {};
+    if (this.categorias.length > 0) {
+      this.seleccionarCategoriaMatriz(this.categorias[0].id);
+    }
+  }
+
   seleccionarCategoriaMatriz(catId: number): void {
+    this.modoNuevaCategoria = false;
     this.categoriaMatrizId = catId;
     const prods = this.getPrendasDeCategoriaMatriz();
     if (prods.length > 0) {
@@ -1774,46 +2262,334 @@ export class AdminPanelComponent implements OnInit {
     } else {
       this.productoMatrizId = null;
     }
+    this.pasoLote = 1;
+    this.loteFijado = false;
+    this.cantidadTotalLote = 0;
+    this.cantidadTotalLoteInput = null;
+    this.cantidadesPorTalla = {};
     this.actualizarTallasYColoresMatriz(catId);
+    this.llenarLoteParejo(0);
   }
 
   onProductoMatrizChange(prodId: number): void {
     this.productoMatrizId = Number(prodId);
   }
 
-  actualizarTallasYColoresMatriz(catId: number): void {
-    const cat = this.categorias.find(c => c.id === catId);
-    const catNombre = cat ? cat.nombre.toLowerCase() : '';
+  // --- PASO 1: FIJAR CANTIDAD TOTAL DEL LOTE ---
+  fijarCantidadLote(): void {
+    const cant = Number(this.cantidadTotalLoteInput);
+    if (!cant || cant <= 0) {
+      this.toastService.warning('Cantidad Inválida', 'Escribe una cantidad total mayor a 0 para el lote de prendas.');
+      return;
+    }
+    this.cantidadTotalLote = cant;
+    this.loteFijado = true;
+    this.pasoLote = 2;
 
-    if (catNombre.includes('pantal') || catNombre.includes('jean') || catNombre.includes('short') || catNombre.includes('bermuda')) {
-      const waists = ['28', '30', '32', '34', '36', '38'];
-      this.tallasMatrizActivas = this.tallas.filter(t => waists.includes(t.nombre.trim()));
-      if (this.tallasMatrizActivas.length === 0) {
-        this.tallasMatrizActivas = this.tallas.slice(0, 6);
-      }
-    } else if (catNombre.includes('calzad') || catNombre.includes('zapato') || catNombre.includes('zapatill') || catNombre.includes('bota')) {
-      const shoes = ['38', '39', '40', '41', '42', '43'];
-      this.tallasMatrizActivas = this.tallas.filter(t => shoes.includes(t.nombre.trim()));
-      if (this.tallasMatrizActivas.length === 0) {
-        this.tallasMatrizActivas = this.tallas.slice(0, 6);
-      }
-    } else {
-      const std = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'];
-      this.tallasMatrizActivas = this.tallas.filter(t => std.includes(t.nombre.trim().toUpperCase()));
-      if (this.tallasMatrizActivas.length === 0) {
-        this.tallasMatrizActivas = this.tallas.slice(0, 6);
+    if (!this.cantidadesPorTalla) this.cantidadesPorTalla = {};
+    for (const t of this.tallasMatrizActivas) {
+      if (this.cantidadesPorTalla[t.id] === undefined) {
+        this.cantidadesPorTalla[t.id] = 0;
       }
     }
+    this.toastService.success('Cantidad Fijada', `Lote fijado en ${cant} prendas. Asigna cuántas van a cada talla sin pasarte de este número.`);
+  }
 
-    this.coloresMatrizActivos = this.colores.length > 0 ? this.colores : [];
+  editarCantidadLote(): void {
+    this.pasoLote = 1;
+  }
 
-    this.matrizCantidades = {};
+  irAPaso(paso: 1 | 2 | 3): void {
+    if (paso === 1) {
+      this.pasoLote = 1;
+    } else if (paso === 2) {
+      if (!this.loteFijado) {
+        this.toastService.warning('Paso 1 pendiente', 'Fija la cantidad total del lote primero.');
+        return;
+      }
+      this.pasoLote = 2;
+    } else if (paso === 3) {
+      if (this.getTotalAsignadoTallas() !== this.cantidadTotalLote) {
+        this.toastService.warning('Tallas incompletas', `Debes distribuir exactamente las ${this.cantidadTotalLote} prendas en las tallas antes de pasar a colores.`);
+        return;
+      }
+      this.pasoLote = 3;
+    }
+  }
+
+  // --- PASO 2: ASIGNACIÓN DE PRENDAS A TALLAS CON TOPE EN VIVO ---
+  getTotalAsignadoTallas(): number {
+    let sum = 0;
+    for (const t of this.tallasMatrizActivas) {
+      sum += Number(this.cantidadesPorTalla[t.id]) || 0;
+    }
+    return sum;
+  }
+
+  getPendienteTallas(): number {
+    return Math.max(0, this.cantidadTotalLote - this.getTotalAsignadoTallas());
+  }
+
+  getCantidadTalla(tallaId: number): number {
+    return Number(this.cantidadesPorTalla[tallaId]) || 0;
+  }
+
+  setCantidadTalla(tallaId: number, val: any): void {
+    if (val === '' || val === null || val === undefined) {
+      this.cantidadesPorTalla[tallaId] = 0;
+      return;
+    }
+    const parsed = Math.max(0, parseInt(val, 10) || 0);
+    const sumaOtras = this.getTotalAsignadoTallas() - this.getCantidadTalla(tallaId);
+    const maxPermitido = Math.max(0, this.cantidadTotalLote - sumaOtras);
+    const finalVal = parsed > maxPermitido ? maxPermitido : parsed;
+    this.cantidadesPorTalla[tallaId] = finalVal;
+
+    // Si la cuota de la talla disminuyó por debajo de lo asignado en colores, recortar colores
+    const sumColores = this.getTotalColorDeTalla(tallaId);
+    if (sumColores > finalVal) {
+      this.reajustarColoresDeTallaAlMaximo(tallaId, finalVal);
+    }
+  }
+
+  onTallaInput(event: any, tallaId: number): void {
+    const input = event.target as HTMLInputElement;
+    const rawVal = input.value;
+    if (rawVal === '' || rawVal === null || rawVal === undefined) {
+      this.cantidadesPorTalla[tallaId] = 0;
+      return;
+    }
+    const parsed = Math.max(0, parseInt(rawVal, 10) || 0);
+    const sumaOtras = this.getTotalAsignadoTallas() - this.getCantidadTalla(tallaId);
+    const maxPermitido = Math.max(0, this.cantidadTotalLote - sumaOtras);
+    const finalVal = parsed > maxPermitido ? maxPermitido : parsed;
+    
+    this.cantidadesPorTalla[tallaId] = finalVal;
+    input.value = finalVal === 0 ? '' : finalVal.toString();
+
+    const sumColores = this.getTotalColorDeTalla(tallaId);
+    if (sumColores > finalVal) {
+      this.reajustarColoresDeTallaAlMaximo(tallaId, finalVal);
+    }
+  }
+
+  incrementarTalla(tallaId: number, delta: number): void {
+    const actual = this.getCantidadTalla(tallaId);
+    this.setCantidadTalla(tallaId, actual + delta);
+  }
+
+  avanzarAColores(): void {
+    if (this.getTotalAsignadoTallas() !== this.cantidadTotalLote) {
+      this.toastService.warning('Tallas Incompletas', `Debes asignar exactamente las ${this.cantidadTotalLote} prendas en las tallas para continuar.`);
+      return;
+    }
+    this.pasoLote = 3;
+    this.toastService.success('Tallas Completadas', 'Ahora asigna los colores correspondientes para cada talla.');
+  }
+
+  // --- PASO 3: ASIGNACIÓN DE COLORES POR CADA TALLA CON TOPE EN VIVO ---
+  get tallasConCantidad(): Talla[] {
+    return this.tallasMatrizActivas.filter(t => (this.cantidadesPorTalla[t.id] || 0) > 0);
+  }
+
+  getTotalColorDeTalla(tallaId: number): number {
+    let sum = 0;
     for (const col of this.coloresMatrizActivos) {
-      this.matrizCantidades[col.id] = {};
-      for (const t of this.tallasMatrizActivas) {
-        this.matrizCantidades[col.id][t.id] = 0;
+      sum += this.getCantidadMatriz(col.id, tallaId);
+    }
+    return sum;
+  }
+
+  getPendienteColorTalla(tallaId: number): number {
+    const cuota = this.getCantidadTalla(tallaId);
+    return Math.max(0, cuota - this.getTotalColorDeTalla(tallaId));
+  }
+
+  setCantidadColorTalla(colorId: number, tallaId: number, val: any): void {
+    if (val === '' || val === null || val === undefined) {
+      this.setCantidadMatriz(colorId, tallaId, 0);
+      return;
+    }
+    const parsed = Math.max(0, parseInt(val, 10) || 0);
+    const cuotaTalla = this.getCantidadTalla(tallaId);
+    const sumaOtrosColores = this.getTotalColorDeTalla(tallaId) - this.getCantidadMatriz(colorId, tallaId);
+    const maxPermitido = Math.max(0, cuotaTalla - sumaOtrosColores);
+    const finalVal = parsed > maxPermitido ? maxPermitido : parsed;
+    this.setCantidadMatriz(colorId, tallaId, finalVal);
+  }
+
+  onColorInput(event: any, colorId: number, tallaId: number): void {
+    const input = event.target as HTMLInputElement;
+    const rawVal = input.value;
+    if (rawVal === '' || rawVal === null || rawVal === undefined) {
+      this.setCantidadMatriz(colorId, tallaId, 0);
+      return;
+    }
+    const parsed = Math.max(0, parseInt(rawVal, 10) || 0);
+    const cuotaTalla = this.getCantidadTalla(tallaId);
+    const sumaOtrosColores = this.getTotalColorDeTalla(tallaId) - this.getCantidadMatriz(colorId, tallaId);
+    const maxPermitido = Math.max(0, cuotaTalla - sumaOtrosColores);
+    const finalVal = parsed > maxPermitido ? maxPermitido : parsed;
+    
+    this.setCantidadMatriz(colorId, tallaId, finalVal);
+    input.value = finalVal === 0 ? '' : finalVal.toString();
+  }
+
+  incrementarColorTalla(colorId: number, tallaId: number, delta: number): void {
+    const actual = this.getCantidadMatriz(colorId, tallaId);
+    this.setCantidadColorTalla(colorId, tallaId, actual + delta);
+  }
+
+  private reajustarColoresDeTallaAlMaximo(tallaId: number, maxPermitido: number): void {
+    let acumulado = 0;
+    for (const col of this.coloresMatrizActivos) {
+      const cant = this.getCantidadMatriz(col.id, tallaId);
+      if (acumulado + cant <= maxPermitido) {
+        acumulado += cant;
+      } else {
+        const resto = Math.max(0, maxPermitido - acumulado);
+        this.setCantidadMatriz(col.id, tallaId, resto);
+        acumulado += resto;
       }
     }
+  }
+
+  todosLosColoresCompletos(): boolean {
+    if (!this.loteFijado || this.cantidadTotalLote <= 0) return false;
+    if (this.tallasConCantidad.length === 0) return false;
+    for (const t of this.tallasConCantidad) {
+      if (this.getTotalColorDeTalla(t.id) !== this.getCantidadTalla(t.id)) {
+        return false;
+      }
+    }
+    return this.getGranTotalMatriz() === this.cantidadTotalLote;
+  }
+
+  actualizarTallasYColoresMatriz(catId?: number): void {
+    // Si la lista de tallas de la BD aún no ha cargado, usamos las base
+    if (!this.tallas || this.tallas.length === 0) {
+      this.tallas = [
+        { id: 2, nombre: 'S', orden: 1 },
+        { id: 3, nombre: 'M', orden: 2 },
+        { id: 4, nombre: 'L', orden: 3 },
+        { id: 17, nombre: 'XL', orden: 4 },
+        { id: 18, nombre: '3XL', orden: 5 },
+      ];
+    }
+
+    // 1. TALLAS PREDETERMINADAS MÁS NORMALES (XS, S, M, L, XL, 2XL, 3XL)
+    const std = ['XS', 'S', 'M', 'L', 'XL', '2XL', 'XXL', '3XL'];
+    let matchedTallas = this.tallas.filter(t => std.includes(t.nombre.trim().toUpperCase()));
+    if (matchedTallas.length === 0) {
+      matchedTallas = this.tallas.slice(0, 6);
+    }
+    matchedTallas.sort((a, b) => {
+      const idxA = std.indexOf(a.nombre.trim().toUpperCase());
+      const idxB = std.indexOf(b.nombre.trim().toUpperCase());
+      return (idxA !== -1 ? idxA : 99) - (idxB !== -1 ? idxB : 99);
+    });
+    this.tallasMatrizActivas = matchedTallas;
+
+    // Si la lista de colores de la BD aún no ha cargado, usamos los base
+    if (!this.colores || this.colores.length === 0) {
+      this.colores = [
+        { id: 1, nombre: 'Negro', codigo_hex: '#000000' },
+        { id: 2, nombre: 'Blanco', codigo_hex: '#FFFFFF' },
+        { id: 3, nombre: 'Azul Marino', codigo_hex: '#0F172A' },
+        { id: 16, nombre: 'Gris Plomo', codigo_hex: '#4B5563' },
+        { id: 15, nombre: 'Beige Arena', codigo_hex: '#D4B996' },
+        { id: 12, nombre: 'Rojo', codigo_hex: '#EF4444' },
+      ];
+    }
+
+    // 2. COLORES PREDETERMINADOS MÁS NORMALES
+    const normalesNombres = ['negro', 'blanco', 'azul marino', 'gris', 'beige', 'rojo'];
+    const normales = this.colores.filter(c => {
+      const n = (c.nombre || '').trim().toLowerCase();
+      return normalesNombres.some(norm => n.includes(norm));
+    });
+
+    const listaBase = normales.length > 0 ? normales : this.colores.slice(0, 6);
+
+    // Mantener también los colores agregados manualmente con "+ Otro Color"
+    const idsExistentes = new Set(listaBase.map(c => c.id));
+    for (const c of this.coloresMatrizActivos) {
+      if (!idsExistentes.has(c.id)) {
+        listaBase.push(c);
+        idsExistentes.add(c.id);
+      }
+    }
+
+    this.coloresMatrizActivos = listaBase;
+
+    // 3. Inicializar matriz de cantidades y mapa de tallas
+    if (!this.cantidadesPorTalla) this.cantidadesPorTalla = {};
+    for (const t of this.tallasMatrizActivas) {
+      if (this.cantidadesPorTalla[t.id] === undefined) {
+        this.cantidadesPorTalla[t.id] = 0;
+      }
+    }
+
+    if (!this.matrizCantidades) this.matrizCantidades = {};
+    for (const col of this.coloresMatrizActivos) {
+      if (!this.matrizCantidades[col.id]) {
+        this.matrizCantidades[col.id] = {};
+      }
+      for (const t of this.tallasMatrizActivas) {
+        if (this.matrizCantidades[col.id][t.id] === undefined) {
+          this.matrizCantidades[col.id][t.id] = 0;
+        }
+      }
+    }
+  }
+
+  // --- Selección de Color desde Paleta y Botón Otro Color ---
+  seleccionarColorPaleta(color: { nombre: string; hex: string }): void {
+    this.nuevoOtroColorNombre = color.nombre;
+    this.nuevoOtroColorHex = color.hex;
+  }
+
+  agregarOtroColorMatriz(): void {
+    if (!this.nuevoOtroColorNombre.trim()) {
+      this.toastService.warning('Nombre requerido', 'Escribe el nombre del nuevo color.');
+      return;
+    }
+    const nombre = this.nuevoOtroColorNombre.trim();
+    const hex = this.nuevoOtroColorHex || '#10B981';
+
+    // Si ya existe en la lista general de colores
+    const existente = this.colores.find(c => c.nombre.toLowerCase() === nombre.toLowerCase());
+    if (existente) {
+      if (!this.coloresMatrizActivos.some(c => c.id === existente.id)) {
+        this.coloresMatrizActivos.push(existente);
+        if (!this.matrizCantidades[existente.id]) this.matrizCantidades[existente.id] = {};
+        for (const t of this.tallasMatrizActivas) {
+          this.matrizCantidades[existente.id][t.id] = 0;
+        }
+      }
+      this.mostrarModalOtroColor = false;
+      this.nuevoOtroColorNombre = '';
+      this.toastService.success('Color Activado', `Color "${nombre}" añadido a la tabla.`);
+      return;
+    }
+
+    // Si no existe, crearlo en la BD mediante adminService
+    this.adminService.crearColor({ nombre, codigo_hex: hex }).subscribe({
+      next: (colorCreado) => {
+        this.colores.push(colorCreado);
+        this.coloresMatrizActivos.push(colorCreado);
+        if (!this.matrizCantidades[colorCreado.id]) this.matrizCantidades[colorCreado.id] = {};
+        for (const t of this.tallasMatrizActivas) {
+          this.matrizCantidades[colorCreado.id][t.id] = 0;
+        }
+        this.mostrarModalOtroColor = false;
+        this.nuevoOtroColorNombre = '';
+        this.toastService.success('¡Color Creado!', `Color "${nombre}" agregado a la tabla con su tono.`);
+      },
+      error: (err) => {
+        this.toastService.error('Error al Crear Color', err.error?.detail || 'No se pudo registrar el color.');
+      }
+    });
   }
 
   getCantidadMatriz(colorId: number, tallaId: number): number {
@@ -1870,15 +2646,16 @@ export class AdminPanelComponent implements OnInit {
     return total;
   }
 
-  guardarEntradaMercaderiaMatriz(): void {
-    if (!this.productoMatrizId) {
-      this.toastService.warning('Selecciona una Prenda', 'Debes seleccionar una prenda para recibir la mercadería.');
+  // --- Guardado Unificado (Para Nueva Categoría o Categoría Existente) ---
+  guardarIngresoDirecto(): void {
+    const total = this.getGranTotalMatriz();
+    if (total <= 0) {
+      this.toastService.warning('Cantidades Vacías', 'Ingresa al menos una cantidad mayor a 0 en la tabla.');
       return;
     }
 
-    const total = this.getGranTotalMatriz();
-    if (total <= 0) {
-      this.toastService.warning('Cantidades Vacías', 'Ingresa al menos una cantidad mayor a 0 en la matriz.');
+    if (this.loteFijado && !this.todosLosColoresCompletos()) {
+      this.toastService.warning('Distribución Incompleta', `Debes completar la asignación exacta de las ${this.cantidadTotalLote} prendas en los colores.`);
       return;
     }
 
@@ -1893,16 +2670,123 @@ export class AdminPanelComponent implements OnInit {
     }
 
     this.guardandoMatriz = true;
-    this.adminService.registrarIngresoMatriz(this.productoMatrizId, {
+
+    // CASO 1: Modo Nueva Categoría
+    if (this.modoNuevaCategoria) {
+      if (!this.nuevaCategoriaInputNombre.trim()) {
+        this.guardandoMatriz = false;
+        this.toastService.warning('Nombre requerido', 'Escribe el nombre de la nueva categoría.');
+        return;
+      }
+
+      const nombreCat = this.nuevaCategoriaInputNombre.trim();
+      this.adminService.crearCategoria({ nombre: nombreCat }).subscribe({
+        next: (catCreada) => {
+          this.categorias.push(catCreada);
+          this.categoriaMatrizId = catCreada.id;
+
+          const provId = this.proveedores.length > 0 ? this.proveedores[0].id : 1;
+          this.adminService.crearProducto({
+            nombre: nombreCat,
+            categoria_id: catCreada.id,
+            proveedor_id: provId,
+            precio_base: 120.0,
+            descripcion: `Prendas de la categoría ${nombreCat}`,
+            genero: 'Unisex',
+            imagen_url: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600',
+            variantes: []
+          }).subscribe({
+            next: (prodCreado) => {
+              this.productos.push(prodCreado);
+              this.productoMatrizId = prodCreado.id;
+              this.ejecutarRegistroMatriz(
+                prodCreado.id,
+                items,
+                total,
+                `¡Categoría "${nombreCat}" creada y +${total} prendas ingresadas con éxito!`
+              );
+              this.modoNuevaCategoria = false;
+              this.nuevaCategoriaInputNombre = '';
+            },
+            error: (errProd) => {
+              this.guardandoMatriz = false;
+              this.toastService.error('Error al registrar prenda base', errProd.error?.detail || 'No se pudo crear la prenda.');
+            }
+          });
+        },
+        error: (errCat) => {
+          this.guardandoMatriz = false;
+          this.toastService.error('Error al crear categoría', errCat.error?.detail || 'No se pudo crear la categoría.');
+        }
+      });
+      return;
+    }
+
+    // CASO 2: Categoría Existente
+    if (this.categoriaMatrizId === null) {
+      this.guardandoMatriz = false;
+      this.toastService.warning('Categoría no seleccionada', 'Selecciona una categoría primero.');
+      return;
+    }
+
+    // Si la categoría existente no tiene prenda aún, la creamos automáticamente
+    if (!this.productoMatrizId) {
+      const cat = this.categorias.find(c => c.id === this.categoriaMatrizId);
+      const catNom = cat ? cat.nombre : 'Prenda General';
+      const provId = this.proveedores.length > 0 ? this.proveedores[0].id : 1;
+
+      this.adminService.crearProducto({
+        nombre: catNom,
+        categoria_id: this.categoriaMatrizId,
+        proveedor_id: provId,
+        precio_base: 120.0,
+        descripcion: `Prendas de la categoría ${catNom}`,
+        genero: 'Unisex',
+        imagen_url: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600',
+        variantes: []
+      }).subscribe({
+        next: (prodCreado) => {
+          this.productos.push(prodCreado);
+          this.productoMatrizId = prodCreado.id;
+          this.ejecutarRegistroMatriz(
+            prodCreado.id,
+            items,
+            total,
+            `¡+${total} prendas ingresadas a "${catNom}" con éxito!`
+          );
+        },
+        error: (err) => {
+          this.guardandoMatriz = false;
+          this.toastService.error('Error al registrar', err.error?.detail || 'No se pudo crear la prenda base.');
+        }
+      });
+    } else {
+      const prodNom = this.getProductoMatrizNombre();
+      this.ejecutarRegistroMatriz(
+        this.productoMatrizId,
+        items,
+        total,
+        `¡+${total} prendas ingresadas para "${prodNom}" con éxito!`
+      );
+    }
+  }
+
+  private ejecutarRegistroMatriz(productoId: number, items: any[], total: number, mensajeExito: string): void {
+    this.adminService.registrarIngresoMatriz(productoId, {
       sucursal_id: Number(this.sucursalMatrizId),
       items: items,
       observaciones: this.observacionesMatriz ? this.observacionesMatriz.trim() : undefined
     }).subscribe({
       next: (res) => {
         this.guardandoMatriz = false;
-        this.toastService.success('¡Mercadería Ingresada!', res.message || `+${total} prendas registradas en el Kardex.`);
+        this.toastService.success('¡Lote Registrado con Éxito!', mensajeExito);
         this.llenarLoteParejo(0);
         this.observacionesMatriz = '';
+        this.loteFijado = false;
+        this.cantidadTotalLote = 0;
+        this.cantidadTotalLoteInput = null;
+        this.cantidadesPorTalla = {};
+        this.pasoLote = 1;
         this.cargarDatosGenerales();
       },
       error: (err) => {
