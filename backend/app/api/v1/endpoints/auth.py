@@ -1,14 +1,20 @@
+import uuid
+import random
+from datetime import datetime, timedelta
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.db.session import get_db
 from app.core.security import verify_password, get_password_hash, create_access_token
 from app.models.usuario import Usuario, Cliente, Rol
+from app.models.saas import Tenant, Plan, Suscripcion
 from app.schemas.auth import (
     LoginRequest, TokenResponse, ClienteRegisterRequest,
     UsuarioRegisterRequest, UserProfileResponse
 )
 from app.api.deps import get_current_user, require_roles
+from app.services.email_service import send_reset_code_email
 
 router = APIRouter()
 
@@ -21,11 +27,10 @@ def register_cliente(data: ClienteRegisterRequest, db: Session = Depends(get_db)
     """
     CU-01: Registrar Cliente.
     Permite el autoregistro de clientes desde la Web o App Móvil.
-    - Valida que el correo electrónico no esté previamente registrado (Excepción 1).
+    - Valida que el correo electrónico no esté previamente registrado.
     - Encripta la contraseña usando algoritmo seguro bcrypt.
-    - Genera y retorna un Token JWT de acceso inmediato.
+    - Asigna tenant_id opcionalmente si se registra en el portal de una empresa.
     """
-    # Verificar si el correo ya existe
     existing_cliente = db.query(Cliente).filter(Cliente.email == data.email).first()
     if existing_cliente:
         raise HTTPException(
@@ -33,8 +38,15 @@ def register_cliente(data: ClienteRegisterRequest, db: Session = Depends(get_db)
             detail="Ya existe una cuenta registrada con este correo electrónico."
         )
 
-    # Crear el nuevo cliente con contraseña encriptada
+    tenant_uuid: Optional[uuid.UUID] = None
+    if data.tenant_id:
+        try:
+            tenant_uuid = uuid.UUID(data.tenant_id)
+        except ValueError:
+            pass
+
     nuevo_cliente = Cliente(
+        tenant_id=tenant_uuid,
         nombres=data.nombres,
         apellidos=data.apellidos,
         email=data.email,
@@ -47,11 +59,11 @@ def register_cliente(data: ClienteRegisterRequest, db: Session = Depends(get_db)
     db.commit()
     db.refresh(nuevo_cliente)
 
-    # Generar Token JWT de acceso inmediato
     token = create_access_token(
         subject=nuevo_cliente.id,
         role="cliente",
-        user_type="cliente"
+        user_type="cliente",
+        tenant_id=str(tenant_uuid) if tenant_uuid else None
     )
 
     return TokenResponse(
@@ -61,37 +73,66 @@ def register_cliente(data: ClienteRegisterRequest, db: Session = Depends(get_db)
         user_type="cliente",
         user_id=nuevo_cliente.id,
         nombre_completo=f"{nuevo_cliente.nombres} {nuevo_cliente.apellidos}",
-        email=nuevo_cliente.email
+        email=nuevo_cliente.email,
+        tenant_id=str(tenant_uuid) if tenant_uuid else None
     )
 
 
 # =============================================================================
-# CU-02: GESTIONAR INICIO DE SESIÓN
+# CU-02: GESTIONAR INICIO DE SESIÓN CON AISLAMIENTO SAAS (RN02, RN05)
 # =============================================================================
 @router.post("/login", response_model=TokenResponse)
 def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     """
-    CU-02: Gestionar Inicio de Sesión.
-    Autenticación unificada para Clientes, Administradores, Encargados y Cajeros.
-    - Valida credenciales contra las tablas 'usuarios' y 'clientes'.
-    - Verifica si la cuenta se encuentra activa (Excepción 2).
-    - Genera un Token de acceso seguro (JWT) con el rol y privilegios correspondientes.
+    CU-02: Gestionar Inicio de Sesión Multi-tenant.
+    - Valida credenciales contra 'usuarios' y 'clientes'.
+    - Verifica si la cuenta o la empresa (Tenant) están activas (RN05).
+    - Carga suscripción y plan activo para determinar límites (sucursales, IA).
+    - Emite JWT con 'tid' (tenant_id) y rol.
     """
-    # 1. Normalizar correo (minúsculas y sin espacios)
     clean_email = credentials.email.strip().lower() if credentials.email else ''
-    # 2. Buscar primero en empleados internos
+
+    # 1. Buscar en empleados internos
     usuario = db.query(Usuario).filter(func.lower(Usuario.email) == clean_email).first()
     if usuario:
         if not usuario.activo:
             raise HTTPException(status_code=400, detail="Esta cuenta de usuario ha sido desactivada.")
         if not verify_password(credentials.password, usuario.password_hash):
             raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
-        
+
         rol_nombre = usuario.rol.nombre if usuario.rol else "usuario"
+        tenant_id_str = str(usuario.tenant_id) if usuario.tenant_id else None
+        tenant_nombre = None
+        plan_nombre = "SuperAdmin" if rol_nombre.lower() == "superadmin" else "Basico"
+        permite_ia = True if rol_nombre.lower() == "superadmin" else False
+        max_suc = 999 if rol_nombre.lower() == "superadmin" else 2
+
+        if usuario.tenant_id:
+            tenant = db.query(Tenant).filter(Tenant.id == usuario.tenant_id).first()
+            if tenant:
+                if tenant.estado == "SUSPENDIDA":
+                    raise HTTPException(
+                        status_code=403,
+                        detail="La cuenta de la empresa se encuentra suspendida por falta de pago o decisión comercial (RN05)."
+                    )
+                tenant_nombre = tenant.razon_social
+                sub = (
+                    db.query(Suscripcion)
+                    .join(Plan, Suscripcion.plan_id == Plan.id)
+                    .filter(Suscripcion.tenant_id == usuario.tenant_id, Suscripcion.estado == "ACTIVA")
+                    .order_by(Suscripcion.fecha_vencimiento.desc())
+                    .first()
+                )
+                if sub and sub.plan:
+                    plan_nombre = sub.plan.nombre
+                    permite_ia = sub.plan.permite_reportes_ia
+                    max_suc = sub.plan.max_sucursales
+
         token = create_access_token(
             subject=usuario.id,
             role=rol_nombre,
-            user_type="usuario"
+            user_type="usuario",
+            tenant_id=tenant_id_str
         )
         return TokenResponse(
             access_token=token,
@@ -100,10 +141,15 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
             user_type="usuario",
             user_id=usuario.id,
             nombre_completo=f"{usuario.nombres} {usuario.apellidos}",
-            email=usuario.email
+            email=usuario.email,
+            tenant_id=tenant_id_str,
+            tenant_nombre=tenant_nombre,
+            plan=plan_nombre,
+            permite_reportes_ia=permite_ia,
+            max_sucursales=max_suc
         )
 
-    # 3. Si no es empleado, buscar en clientes
+    # 2. Si no es empleado interno, buscar en clientes
     cliente = db.query(Cliente).filter(func.lower(Cliente.email) == clean_email).first()
     if cliente:
         if not cliente.activo:
@@ -111,10 +157,12 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
         if not verify_password(credentials.password, cliente.password_hash):
             raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
 
+        tenant_id_str = str(cliente.tenant_id) if cliente.tenant_id else None
         token = create_access_token(
             subject=cliente.id,
             role="cliente",
-            user_type="cliente"
+            user_type="cliente",
+            tenant_id=tenant_id_str
         )
         return TokenResponse(
             access_token=token,
@@ -123,17 +171,18 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
             user_type="cliente",
             user_id=cliente.id,
             nombre_completo=f"{cliente.nombres} {cliente.apellidos}",
-            email=cliente.email
+            email=cliente.email,
+            tenant_id=tenant_id_str
         )
 
     raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
 
 
+# =============================================================================
+# RECUPERACIÓN DE CONTRASEÑA
+# =============================================================================
 @router.post("/forgot-password")
 def forgot_password(email_data: dict, db: Session = Depends(get_db)):
-    """
-    CU-03: Genera y envia un código OTP de 6 dígitos al correo del usuario.
-    """
     email = email_data.get("email")
     if not email:
         raise HTTPException(status_code=400, detail="El correo es requerido.")
@@ -144,18 +193,11 @@ def forgot_password(email_data: dict, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="No se encontró una cuenta con ese correo.")
 
-    import random
-    from datetime import datetime, timedelta
-    from app.services.email_service import send_reset_code_email
-
-    # Generar código de 6 dígitos
     code = f"{random.randint(100000, 999999)}"
-    
     user.reset_code = code
     user.reset_code_expires = datetime.utcnow() + timedelta(minutes=15)
     db.commit()
     
-    # Enviar correo
     send_reset_code_email(email, code)
 
     return {
@@ -163,11 +205,9 @@ def forgot_password(email_data: dict, db: Session = Depends(get_db)):
         "status": "success"
     }
 
+
 @router.post("/verify-code")
 def verify_code(data: dict, db: Session = Depends(get_db)):
-    """
-    Verifica que el código ingresado sea válido y no haya expirado.
-    """
     email = data.get("email")
     code = data.get("code")
     
@@ -180,17 +220,14 @@ def verify_code(data: dict, db: Session = Depends(get_db)):
     if not user or user.reset_code != code:
         raise HTTPException(status_code=400, detail="Código inválido o incorrecto.")
         
-    from datetime import datetime
     if not user.reset_code_expires or user.reset_code_expires < datetime.utcnow():
         raise HTTPException(status_code=400, detail="El código ha expirado. Solicita uno nuevo.")
         
     return {"message": "Código verificado correctamente.", "status": "success"}
 
+
 @router.post("/reset-password")
 def reset_password(data: dict, db: Session = Depends(get_db)):
-    """
-    CU-03: Restablecimiento de la contraseña usando el código verificado.
-    """
     email = data.get("email")
     code = data.get("code")
     new_password = data.get("new_password")
@@ -204,25 +241,44 @@ def reset_password(data: dict, db: Session = Depends(get_db)):
     if not user or user.reset_code != code:
         raise HTTPException(status_code=400, detail="Código inválido.")
         
-    from datetime import datetime
     if not user.reset_code_expires or user.reset_code_expires < datetime.utcnow():
         raise HTTPException(status_code=400, detail="El código ha expirado.")
 
     user.password_hash = get_password_hash(new_password)
-    # Limpiar código usado
     user.reset_code = None
     user.reset_code_expires = None
     db.commit()
     
     return {"message": "Contraseña actualizada con éxito."}
 
-@router.get("/me", response_model=UserProfileResponse)
-def get_current_user_profile(current: dict = Depends(get_current_user)):
 
-    """
-    Obtiene los datos del usuario autenticado a partir del Token JWT.
-    """
+@router.get("/me", response_model=UserProfileResponse)
+def get_current_user_profile(
+    current: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     user_obj = current["user"]
+    tenant_id_str = str(user_obj.tenant_id) if getattr(user_obj, "tenant_id", None) else None
+    tenant_nombre = None
+    plan_nombre = None
+    permite_ia = False
+    max_suc = 1
+
+    if getattr(user_obj, "tenant_id", None):
+        tenant = db.query(Tenant).filter(Tenant.id == user_obj.tenant_id).first()
+        if tenant:
+            tenant_nombre = tenant.razon_social
+            sub = (
+                db.query(Suscripcion)
+                .join(Plan, Suscripcion.plan_id == Plan.id)
+                .filter(Suscripcion.tenant_id == user_obj.tenant_id, Suscripcion.estado == "ACTIVA")
+                .first()
+            )
+            if sub and sub.plan:
+                plan_nombre = sub.plan.nombre
+                permite_ia = sub.plan.permite_reportes_ia
+                max_suc = sub.plan.max_sucursales
+
     return UserProfileResponse(
         id=user_obj.id,
         nombres=user_obj.nombres,
@@ -230,6 +286,9 @@ def get_current_user_profile(current: dict = Depends(get_current_user)):
         email=user_obj.email,
         rol=current["role"],
         user_type=current["user_type"],
-        sucursal_id=getattr(user_obj, "sucursal_id", None),
-        activo=user_obj.activo
+        tenant_id=tenant_id_str,
+        tenant_nombre=tenant_nombre,
+        plan=plan_nombre,
+        permite_reportes_ia=permite_ia,
+        max_sucursales=max_suc
     )

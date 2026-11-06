@@ -15,7 +15,8 @@ def get_current_user(
     token: str = Depends(oauth2_scheme)
 ) -> dict:
     """
-    Decodifica el Token JWT y retorna el usuario autenticado desde la base de datos.
+    Decodifica el Token JWT y retorna el usuario autenticado desde la base de datos,
+    incluyendo su tenant_id para aislamiento SaaS.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -46,17 +47,20 @@ def get_current_user(
         "role": role,
         "user_type": user_type,
         "id": user.id,
-        "email": user.email
+        "email": user.email,
+        "tenant_id": getattr(user, "tenant_id", None)
     }
 
 
 def require_roles(allowed_roles: list[str]):
     """Decorador / Dependencia para restringir endpoints según el rol del usuario."""
     def role_checker(current_user: dict = Depends(get_current_user)):
-        if current_user["role"] not in allowed_roles:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Permiso denegado. Se requiere uno de los roles: {allowed_roles}"
-            )
-        return current_user
+        rol_lower = current_user["role"].lower()
+        allowed_lower = [r.lower() for r in allowed_roles]
+        if rol_lower in ["superadmin", "admin_plataforma"] or rol_lower in allowed_lower:
+            return current_user
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Permiso denegado. Se requiere uno de los roles: {allowed_roles}"
+        )
     return role_checker

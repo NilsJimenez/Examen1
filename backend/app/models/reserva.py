@@ -1,6 +1,8 @@
+import uuid
 from datetime import datetime, date, time
 from typing import Optional
 from sqlalchemy import String, Integer, Boolean, Text, DateTime, Date, Time, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base_class import Base
 
@@ -9,6 +11,9 @@ class Reserva(Base):
     __tablename__ = "reservas"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     cliente_id: Mapped[int] = mapped_column(Integer, ForeignKey("clientes.id"), nullable=False)
     sucursal_id: Mapped[int] = mapped_column(Integer, ForeignKey("sucursales.id"), nullable=False)
     codigo_reserva: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
@@ -17,6 +22,8 @@ class Reserva(Base):
     horario_atencion: Mapped[time] = mapped_column(Time, nullable=False)
     vestidor_asignado: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     estado: Mapped[str] = mapped_column(String(30), default="pendiente")  # 'pendiente', 'preparada', 'atendida', 'cancelada', 'expirada'
+    estado_sync: Mapped[str] = mapped_column(String(30), default="CONFIRMADA")
+    fecha_local: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     notificado: Mapped[bool] = mapped_column(Boolean, default=False)
     fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     fecha_atencion: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -32,6 +39,9 @@ class ReservaDetalle(Base):
     __tablename__ = "reserva_detalle"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     reserva_id: Mapped[int] = mapped_column(Integer, ForeignKey("reservas.id", ondelete="CASCADE"), nullable=False)
     variante_id: Mapped[int] = mapped_column(Integer, ForeignKey("producto_variantes.id"), nullable=False)
     cantidad: Mapped[int] = mapped_column(Integer, default=1)

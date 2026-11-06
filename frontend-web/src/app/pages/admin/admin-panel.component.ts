@@ -806,7 +806,10 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
                         type="number" 
                         min="0" 
                         [max]="getCantidadTalla(t.id)"
-                        [disabled]="getPendienteColorTalla(t.id) === 0 && getCantidadMatriz(col.id, t.id) === 0"
+                        [disabled]="getMaxPermitidoColor(col.id, t.id) === 0 && getCantidadMatriz(col.id, t.id) === 0"
+                        [readonly]="getMaxPermitidoColor(col.id, t.id) === 0 && getCantidadMatriz(col.id, t.id) === 0"
+                        (blur)="onColorBlur($event, col.id, t.id)"
+                        (keydown)="onColorKeyDown($event, col.id, t.id)"
                         [value]="getCantidadMatriz(col.id, t.id) === 0 ? '' : getCantidadMatriz(col.id, t.id)" 
                         (input)="onColorInput($event, col.id, t.id)"
                         placeholder="0"
@@ -2416,6 +2419,34 @@ export class AdminPanelComponent implements OnInit {
     const maxPermitido = Math.max(0, cuotaTalla - sumaOtrosColores);
     const finalVal = parsed > maxPermitido ? maxPermitido : parsed;
     this.setCantidadMatriz(colorId, tallaId, finalVal);
+  }
+
+  getMaxPermitidoColor(colorId: number, tallaId: number): number {
+    const cuota = this.getCantidadTalla(tallaId);
+    const sumaOtros = this.getTotalColorDeTalla(tallaId) - this.getCantidadMatriz(colorId, tallaId);
+    return Math.max(0, cuota - sumaOtros);
+  }
+
+  onColorKeyDown(event: KeyboardEvent, colorId: number, tallaId: number): void {
+    const maxPermitido = this.getMaxPermitidoColor(colorId, tallaId);
+    if (maxPermitido <= 0 && this.getCantidadMatriz(colorId, tallaId) <= 0) {
+      if (/^[0-9]$/.test(event.key) || event.key === 'ArrowUp') {
+        event.preventDefault();
+      }
+    }
+  }
+
+  onColorBlur(event: any, colorId: number, tallaId: number): void {
+    const input = event.target as HTMLInputElement;
+    const maxPermitido = this.getMaxPermitidoColor(colorId, tallaId);
+    let val = parseInt(input.value, 10);
+    if (isNaN(val) || val <= 0) {
+      this.setCantidadMatriz(colorId, tallaId, 0);
+      input.value = '';
+    } else if (val > maxPermitido) {
+      this.setCantidadMatriz(colorId, tallaId, maxPermitido);
+      input.value = maxPermitido === 0 ? '' : maxPermitido.toString();
+    }
   }
 
   onColorInput(event: any, colorId: number, tallaId: number): void {

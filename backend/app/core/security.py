@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Union, Optional
 from jose import jwt
@@ -23,9 +24,10 @@ def create_access_token(
     subject: Union[str, Any],
     role: str,
     user_type: str = "usuario",  # "usuario" (personal) o "cliente"
+    tenant_id: Optional[Union[str, uuid.UUID]] = None,
     expires_delta: Optional[timedelta] = None
 ) -> str:
-    """Genera un Token JWT firmado digitalmente con ID, rol y tiempo de expiración."""
+    """Genera un Token JWT firmado digitalmente con ID, rol, tenant_id y tiempo de expiración."""
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
@@ -37,5 +39,8 @@ def create_access_token(
         "user_type": user_type,
         "exp": expire
     }
+    if tenant_id:
+        to_encode["tid"] = str(tenant_id)
+        
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt

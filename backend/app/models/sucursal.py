@@ -1,5 +1,7 @@
+import uuid
 from typing import Optional
 from sqlalchemy import String, Integer, Boolean, Numeric, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base_class import Base
 
@@ -16,9 +18,17 @@ class Ciudad(Base):
 
 
 class Sucursal(Base):
+    """
+    Sucursal física de una empresa.
+    En SaaS Multi-tenant, cada sucursal pertenece estrictamente a un tenant_id (RF06).
+    El número máximo de sucursales activas está restringido por el plan contratado (RN04, RF07).
+    """
     __tablename__ = "sucursales"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     nombre: Mapped[str] = mapped_column(String(150), nullable=False)
     ciudad_id: Mapped[int] = mapped_column(Integer, ForeignKey("ciudades.id"), nullable=False)
     direccion: Mapped[str] = mapped_column(String(255), nullable=False)

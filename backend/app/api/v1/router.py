@@ -1,10 +1,14 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, productos, sucursales, admin, inventario, reservas, carrito, ventas, recomendaciones, chatbot, alertas, reportes, lookbook
+from app.api.v1.endpoints import (
+    auth, productos, sucursales, admin, inventario, reservas,
+    carrito, ventas, recomendaciones, chatbot, alertas, reportes, lookbook, saas
+)
 
 api_router = APIRouter()
 
 # Registro de routers por módulo
 api_router.include_router(auth.router, prefix="/auth", tags=["Autenticación"])
+api_router.include_router(saas.router, prefix="/saas", tags=["SaaS Multi-tenant (CU01-CU04)"])
 api_router.include_router(productos.router, prefix="/productos", tags=["Catálogo de Productos"])
 api_router.include_router(sucursales.router, prefix="/sucursales", tags=["Sucursales"])
 api_router.include_router(admin.router, prefix="/admin", tags=["Panel de Administración"])

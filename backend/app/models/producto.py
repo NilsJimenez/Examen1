@@ -1,6 +1,8 @@
+import uuid
 from datetime import datetime, date
 from typing import Optional
 from sqlalchemy import String, Integer, Boolean, Text, Numeric, DateTime, Date, ForeignKey, UniqueConstraint
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base_class import Base
 
@@ -9,8 +11,11 @@ class Proveedor(Base):
     __tablename__ = "proveedores"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     nombre: Mapped[str] = mapped_column(String(150), nullable=False)
-    ruc_nit: Mapped[Optional[str]] = mapped_column(String(50), unique=True, nullable=True)
+    ruc_nit: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     contacto_nombre: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     telefono: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     email: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
@@ -25,7 +30,10 @@ class Categoria(Base):
     __tablename__ = "categorias"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    nombre: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    nombre: Mapped[str] = mapped_column(String(100), nullable=False)
     descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
 
@@ -37,6 +45,9 @@ class Temporada(Base):
     __tablename__ = "temporadas"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     nombre: Mapped[str] = mapped_column(String(100), nullable=False)
     tipo: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     fecha_inicio: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
@@ -51,6 +62,9 @@ class Coleccion(Base):
     __tablename__ = "colecciones"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     nombre: Mapped[str] = mapped_column(String(150), nullable=False)
     temporada_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("temporadas.id"), nullable=True)
     descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -65,7 +79,10 @@ class Talla(Base):
     __tablename__ = "tallas"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    nombre: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    nombre: Mapped[str] = mapped_column(String(20), nullable=False)
     orden: Mapped[int] = mapped_column(Integer, default=0)
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
 
@@ -77,7 +94,10 @@ class Color(Base):
     __tablename__ = "colores"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    nombre: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    nombre: Mapped[str] = mapped_column(String(50), nullable=False)
     codigo_hex: Mapped[Optional[str]] = mapped_column(String(7), nullable=True)
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
 
@@ -86,9 +106,15 @@ class Color(Base):
 
 
 class Producto(Base):
+    """
+    Catálogo de prendas con aislamiento Multi-tenant estricto (RN02, RF06).
+    """
     __tablename__ = "productos"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     nombre: Mapped[str] = mapped_column(String(200), nullable=False)
     descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     categoria_id: Mapped[int] = mapped_column(Integer, ForeignKey("categorias.id"), nullable=False)
@@ -97,7 +123,6 @@ class Producto(Base):
     precio_base: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     imagen_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     modelo_ar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    genero: Mapped[Optional[str]] = mapped_column(String(20), default="Unisex")
     genero: Mapped[Optional[str]] = mapped_column(String(20), default="Unisex")
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
     fecha_creacion: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

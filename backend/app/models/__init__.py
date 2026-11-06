@@ -1,11 +1,14 @@
 # Exportar todos los modelos para registro en SQLAlchemy
 from app.db.base_class import Base
+from app.models.saas import (
+    Tenant, Plan, Suscripcion, OperacionSync, CambioPrenda, SolicitudReporte, MlModelo
+)
 from app.models.usuario import Rol, Usuario, Cliente
 from app.models.sucursal import Ciudad, Sucursal
 from app.models.producto import (
     Proveedor, Categoria, Temporada, Coleccion, Talla, Color, Producto, ProductoVariante
 )
-from app.models.inventario import InventarioSucursal, MovimientoInventario
+from app.models.inventario import InventarioSucursal, MovimientoInventario, AlertaReabastecimiento
 from app.models.reserva import Reserva, ReservaDetalle
 from app.models.venta import Venta, VentaDetalle, Pago, Comprobante
 from app.models.interacciones import (
@@ -15,6 +18,13 @@ from app.models.interacciones import (
 
 __all__ = [
     "Base",
+    "Tenant",
+    "Plan",
+    "Suscripcion",
+    "OperacionSync",
+    "CambioPrenda",
+    "SolicitudReporte",
+    "MlModelo",
     "Rol",
     "Usuario",
     "Cliente",
@@ -30,6 +40,7 @@ __all__ = [
     "ProductoVariante",
     "InventarioSucursal",
     "MovimientoInventario",
+    "AlertaReabastecimiento",
     "Reserva",
     "ReservaDetalle",
     "Venta",

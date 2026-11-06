@@ -575,8 +575,18 @@ def listar_sucursales_admin(db: Session = Depends(get_db)):
     ]
 
 @router.post("/sucursales")
-def crear_sucursal(data: SucursalCreate, db: Session = Depends(get_db)):
+def crear_sucursal(
+    data: SucursalCreate, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["administrador"]))
+):
+    tenant_id = current_user.get("tenant_id")
+    if tenant_id:
+        from app.services.subscription_service import SubscriptionService
+        SubscriptionService.verificar_limite_sucursales(tenant_id, db)
+
     sucursal = Sucursal(
+        tenant_id=tenant_id,
         nombre=data.nombre,
         ciudad_id=data.ciudad_id,
         direccion=data.direccion,

@@ -1,6 +1,8 @@
+import uuid
 from datetime import datetime
 from typing import Optional
 from sqlalchemy import String, Integer, Boolean, DateTime, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base_class import Base
 
@@ -16,10 +18,17 @@ class Rol(Base):
 
 
 class Usuario(Base):
-    """Personal interno de la empresa: Administradores, Encargados, Cajeros."""
+    """
+    Personal interno de la empresa: Administradores, Encargados, Cajeros.
+    En entorno SaaS, tenant_id vincula al usuario con su empresa.
+    Para el Super Administrador de la plataforma (CU01-CU04), tenant_id es None.
+    """
     __tablename__ = "usuarios"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     nombres: Mapped[str] = mapped_column(String(100), nullable=False)
     apellidos: Mapped[str] = mapped_column(String(100), nullable=False)
     email: Mapped[str] = mapped_column(String(150), unique=True, index=True, nullable=False)
@@ -38,13 +47,19 @@ class Usuario(Base):
 
 
 class Cliente(Base):
-    """Clientes que compran por web/móvil o reservan prendas para vestidores."""
+    """
+    Clientes que compran por web/móvil o reservan prendas para vestidores.
+    Aislados por tenant_id en modelo Multi-tenant.
+    """
     __tablename__ = "clientes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     nombres: Mapped[str] = mapped_column(String(100), nullable=False)
     apellidos: Mapped[str] = mapped_column(String(100), nullable=False)
-    email: Mapped[str] = mapped_column(String(150), unique=True, index=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(150), index=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     telefono: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     direccion: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)

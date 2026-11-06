@@ -4,12 +4,12 @@ from pydantic import BaseModel, EmailStr
 
 class LoginRequest(BaseModel):
     """Esquema para recibir datos de inicio de sesión."""
-    email: EmailStr
+    email: str
     password: str
 
 
 class TokenResponse(BaseModel):
-    """Esquema de respuesta exitosa tras autenticación con Token JWT."""
+    """Esquema de respuesta exitosa tras autenticación con Token JWT en entorno SaaS."""
     access_token: str
     token_type: str = "bearer"
     role: str
@@ -17,6 +17,11 @@ class TokenResponse(BaseModel):
     user_id: int
     nombre_completo: str
     email: str
+    tenant_id: Optional[str] = None
+    tenant_nombre: Optional[str] = None
+    plan: Optional[str] = None
+    permite_reportes_ia: Optional[bool] = None
+    max_sucursales: Optional[int] = None
 
 
 class ClienteRegisterRequest(BaseModel):
@@ -27,6 +32,7 @@ class ClienteRegisterRequest(BaseModel):
     password: str
     telefono: Optional[str] = None
     direccion: Optional[str] = None
+    tenant_id: Optional[str] = None
 
 
 class UsuarioRegisterRequest(BaseModel):
@@ -38,6 +44,7 @@ class UsuarioRegisterRequest(BaseModel):
     rol_id: int
     sucursal_id: Optional[int] = None
     telefono: Optional[str] = None
+    tenant_id: Optional[str] = None
 
 
 class UserProfileResponse(BaseModel):
@@ -48,5 +55,8 @@ class UserProfileResponse(BaseModel):
     email: str
     rol: str
     user_type: str
-    sucursal_id: Optional[int] = None
-    activo: bool
+    tenant_id: Optional[str] = None
+    tenant_nombre: Optional[str] = None
+    plan: Optional[str] = None
+    permite_reportes_ia: Optional[bool] = None
+    max_sucursales: Optional[int] = None

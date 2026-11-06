@@ -257,10 +257,15 @@ def reporte_generativo_ia(
     current_user: dict = Depends(require_roles(["administrador"]))
 ):
     """
-    CU-27: Generación de Reportes Inteligentes por Voz o Texto (IA Gemini).
+    CU-27 / CU-28: Generación de Reportes Inteligentes por Voz o Texto (IA Gemini).
     Interpreta consultas en lenguaje natural (ej: 'Ventas de la sucursal Centro del mes pasado')
     y utiliza la IA para extraer sucursal, fechas y filtrar automáticamente la data del Dashboard.
+    Verifica suscripción con soporte para IA (RN23, RF59).
     """
+    tenant_id = current_user.get("tenant_id")
+    if tenant_id:
+        from app.services.subscription_service import SubscriptionService
+        SubscriptionService.exigir_reportes_ia(tenant_id, db)
     import requests
     import json
     from app.core.config import settings
