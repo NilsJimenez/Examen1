@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.db.session import get_db
 from app.core.security import verify_password, get_password_hash, create_access_token
 from app.models.usuario import Usuario, Cliente, Rol
@@ -76,8 +77,10 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     - Verifica si la cuenta se encuentra activa (Excepción 2).
     - Genera un Token de acceso seguro (JWT) con el rol y privilegios correspondientes.
     """
-    # 1. Buscar primero en empleados internos
-    usuario = db.query(Usuario).filter(Usuario.email == credentials.email).first()
+    # 1. Normalizar correo (minúsculas y sin espacios)
+    clean_email = credentials.email.strip().lower() if credentials.email else ''
+    # 2. Buscar primero en empleados internos
+    usuario = db.query(Usuario).filter(func.lower(Usuario.email) == clean_email).first()
     if usuario:
         if not usuario.activo:
             raise HTTPException(status_code=400, detail="Esta cuenta de usuario ha sido desactivada.")
@@ -100,8 +103,8 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
             email=usuario.email
         )
 
-    # 2. Si no es empleado, buscar en clientes
-    cliente = db.query(Cliente).filter(Cliente.email == credentials.email).first()
+    # 3. Si no es empleado, buscar en clientes
+    cliente = db.query(Cliente).filter(func.lower(Cliente.email) == clean_email).first()
     if cliente:
         if not cliente.activo:
             raise HTTPException(status_code=400, detail="Esta cuenta de cliente se encuentra suspendida.")

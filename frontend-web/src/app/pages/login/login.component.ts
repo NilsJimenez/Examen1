@@ -112,7 +112,7 @@ import { ToastService } from '../../services/toast.service';
                 title="Cargar credenciales de Administrador"
               >
                 <i class="fa-solid fa-shield-halved mr-2" style="color: var(--accent);"></i>
-                <span>Admin Demo</span>
+                <span>Admin</span>
               </button>
 
               <button 
@@ -122,7 +122,17 @@ import { ToastService } from '../../services/toast.service';
                 title="Cargar credenciales de Encargado de Sucursal"
               >
                 <i class="fa-solid fa-warehouse mr-2" style="color: #818cf8;"></i>
-                <span>Encargado Demo</span>
+                <span>Encargado</span>
+              </button>
+
+              <button 
+                type="button" 
+                (click)="fillCredentials('cliente')" 
+                class="demo-access-btn"
+                title="Cargar credenciales de Cliente"
+              >
+                <i class="fa-solid fa-user mr-2" style="color: #34d399;"></i>
+                <span>Cliente</span>
               </button>
             </div>
 
@@ -623,8 +633,8 @@ import { ToastService } from '../../services/toast.service';
     /* Botones Rápidos Demo */
     .demo-buttons-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
     }
 
     .demo-access-btn {
@@ -804,14 +814,19 @@ export class LoginComponent {
     this.mostrarPassword = !this.mostrarPassword;
   }
 
-  fillCredentials(role: 'admin' | 'encargado'): void {
+  fillCredentials(role: 'admin' | 'encargado' | 'cliente'): void {
     if (role === 'admin') {
       this.email = 'admin@fashionstore.com';
       this.password = 'Admin123!';
-    } else {
+    } else if (role === 'encargado') {
       this.email = 'encargado@fashionstore.com';
       this.password = 'Encargado123!';
+    } else if (role === 'cliente') {
+      this.email = 'cliente@fashionstore.com';
+      this.password = 'Cliente123!';
     }
+    // Iniciar sesión inmediatamente al pulsar el botón demo
+    this.onSubmit();
   }
 
   cerrarModal(): void {
@@ -819,6 +834,7 @@ export class LoginComponent {
   }
 
   onSubmit(): void {
+    this.email = (this.email || '').trim();
     if (!this.email || !this.password) {
       this.errorMessage = 'Por favor ingresa tu correo electrónico y contraseña.';
       this.toastService.error('Campos Requeridos', this.errorMessage);
@@ -845,7 +861,11 @@ export class LoginComponent {
       },
       error: (err) => {
         this.loading = false;
-        this.errorMessage = err.error?.detail || 'Credenciales incorrectas. Verifica tu usuario y contraseña.';
+        if (err.status === 0) {
+          this.errorMessage = 'No se pudo conectar con el servidor Backend en http://localhost:8000. Por favor ejecuta start_backend.bat';
+        } else {
+          this.errorMessage = err.error?.detail || 'Credenciales incorrectas. Verifica tu usuario y contraseña.';
+        }
         this.toastService.error('Error de Acceso', this.errorMessage);
       }
     });
