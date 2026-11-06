@@ -47,12 +47,11 @@ def seed_database():
             db.flush()
             print(" [+] Ciudad creada: Santa Cruz")
 
-        # 3. Planes SaaS Oficiales (4 Niveles: Básico, Estándar, Profesional, Especial)
+        # 3. Planes SaaS Oficiales (3 Niveles: Básico, Estándar, Profesional)
         planes_config = [
             ("Basico", 2, False),
             ("Estandar", 4, False),
             ("Profesional", 10, True),
-            ("Especial", 25, True),
         ]
         planes_map = {}
         for p_nom, max_suc, permite_ia in planes_config:

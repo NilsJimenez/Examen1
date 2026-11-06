@@ -1,24 +1,33 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { SaasService, CrearTenantDto } from '../../services/saas.service';
-import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../services/toast.service';
 
-export interface PlanCardUI {
-  id: 'Basico' | 'Estandar' | 'Profesional' | 'Especial';
-  etiqueta: string;
-  precioEntero: string;
-  precioCentavos: string;
-  precioBs: string;
+interface PlanFeature {
+  texto: string;
+  incluido: boolean;
+}
+
+interface PlanCardConfig {
+  id_plan: 'Basico' | 'Estandar' | 'Profesional';
+  etiqueta_ribbon: string;
+  precio_entero: string;
+  precio_centavos: string;
+  periodo: string;
   descripcion: string;
-  colorPrimario: string;
-  colorSecundario: string;
-  colorSombraPliegue: string;
-  maxSucursales: number;
-  incluyeIA: boolean;
-  beneficios: { texto: string; incluido: boolean }[];
+  ribbon_bg: string;
+  ribbon_fold: string;
+  ribbon_text: string;
+  check_color: string;
+  check_bg: string;
+  btn_bg: string;
+  btn_text: string;
+  card_border: string;
+  destacado?: boolean;
+  beneficios: PlanFeature[];
 }
 
 @Component({
@@ -26,106 +35,118 @@ export interface PlanCardUI {
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <div class="pricing-landing-wrapper">
-      <!-- Formas decorativas curvas de fondo (idénticas a la referencia) -->
-      <div class="bg-wave-shape shape-1"></div>
-      <div class="bg-wave-shape shape-2"></div>
-
-      <!-- Contenedor Principal Estilo Tarjeta Panorámica SaaS -->
-      <div class="pricing-main-stage animate-fade-in">
+    <div class="pricing-showcase-wrapper">
+      
+      <!-- Contenedor Principal con Ondas y Paleta FashionStore (Obsidiana, Carbón y Oro) -->
+      <div class="pricing-board">
         
+        <!-- Ondas Decorativas en Tonos Oro / Ámbar de Nuestra Paleta -->
+        <div class="wave-shape wave-top-right"></div>
+        <div class="wave-shape wave-bottom-left"></div>
+        <div class="wave-shape wave-center-glow"></div>
+
         <!-- Barra Superior Interna -->
-        <div class="stage-top-bar">
+        <header class="board-topbar">
           <div class="brand-logo">
-            <span class="logo-dash"></span>
-            <i class="fa-solid fa-vest-patches mr-2"></i>
-            <span>FashionStore <strong>SaaS</strong></span>
+            <span class="logo-icon"><i class="fa-solid fa-vest-patches"></i></span>
+            <div>
+              <span class="logo-text font-serif">FashionStore</span>
+              <span class="logo-sub">CLOUD SAAS MULTI-TENANT</span>
+            </div>
           </div>
 
-          <div class="stage-nav-links">
-            <a routerLink="/planes" class="stage-link active">Planes</a>
-            <a routerLink="/catalogo" class="stage-link">Tienda &amp; Catálogo</a>
-            <a routerLink="/sucursales" class="stage-link">Sucursales</a>
-            <a *ngIf="!authService.isLoggedIn" routerLink="/login" class="stage-link-btn">
-              <i class="fa-regular fa-user mr-1.5"></i> Iniciar Sesión
+          <nav class="board-nav">
+            <a routerLink="/planes" class="board-nav-link active">Planes</a>
+            <a routerLink="/catalogo" class="board-nav-link">Catálogo</a>
+            <a routerLink="/sucursales" class="board-nav-link">Sucursales</a>
+            <a routerLink="/login" class="board-nav-link">Iniciar Sesión</a>
+            <a routerLink="/login" class="board-user-icon" title="Acceso Empresas / SuperAdmin">
+              <i class="fa-solid fa-user"></i>
             </a>
-            <a *ngIf="authService.isLoggedIn && authService.isAdmin" routerLink="/admin" class="stage-link-btn">
-              <i class="fa-solid fa-sliders mr-1.5"></i> Ir a Mi Panel
-            </a>
-          </div>
-        </div>
+          </nav>
+        </header>
 
-        <!-- Cabecera Central: Price List -->
-        <div class="pricing-header">
-          <h1 class="pricing-title">Planes de Suscripción</h1>
-          <p class="pricing-subtitle">
-            Digitaliza tu marca de moda o cadena de boutiques en nuestra plataforma Multi-Tenant.
-            Elige el plan que mejor se adapte a tu empresa, obtén aislamiento seguro de datos, punto de venta Offline-First
-            e Inteligencia Artificial para potenciar tus ventas.
+        <!-- Encabezado Central "Price List" con Tipografía Editorial -->
+        <div class="board-header">
+          <span class="board-eyebrow">
+            <i class="fa-solid fa-crown mr-1.5"></i> SUSCRIPCIONES EMPRESARIALES
+          </span>
+          <h1 class="board-title font-serif">Planes de Suscripción</h1>
+          <p class="board-subtitle">
+            Elige el plan ideal para tu tienda o cadena de ropa. Digitaliza tu inventario por talla y color,
+            opera con punto de venta Offline-First, vestidores virtuales AR e Inteligencia Artificial.
           </p>
         </div>
 
-        <!-- Grid de las 4 Tarjetas de Suscripción -->
+        <!-- Grilla de 3 Tarjetas Verticales (Básico, Estándar, Profesional) -->
         <div class="pricing-cards-grid">
           
           <div 
-            *ngFor="let plan of planesUI" 
+            *ngFor="let plan of planesCards" 
             class="price-card"
+            [class.price-card-featured]="plan.destacado"
+            [style.border-color]="plan.card_border"
           >
-            <!-- Cinta / Ribbon Superior Izquierda con Pliegue 3D -->
+            <!-- Listón 3D Superior Izquierdo (Ribbon Tab) -->
             <div 
-              class="card-ribbon"
-              [style.background]="'linear-gradient(135deg, ' + plan.colorPrimario + ', ' + plan.colorSecundario + ')'"
+              class="card-ribbon" 
+              [style.background]="plan.ribbon_bg"
+              [style.color]="plan.ribbon_text"
             >
-              <span class="ribbon-text">{{ plan.etiqueta }}</span>
-              <span class="ribbon-fold" [style.border-top-color]="plan.colorSombraPliegue"></span>
+              <span>{{ plan.etiqueta_ribbon }}</span>
+              <div class="ribbon-fold" [style.border-top-color]="plan.ribbon_fold"></div>
             </div>
 
-            <!-- Bloque de Precio Grande -->
-            <div class="price-value-block">
-              <span class="currency-symbol">$</span>
-              <span class="price-integer">{{ plan.precioEntero }}</span>
-              <div class="price-Right-meta">
-                <span class="price-cents">.{{ plan.precioCentavos }}</span>
-                <span class="price-period">/ Por Mes</span>
+            <!-- Distintivo sutil en el Plan Profesional -->
+            <div *ngIf="plan.destacado" class="popular-chip">
+              <i class="fa-solid fa-star mr-1"></i> RECOMENDADO
+            </div>
+
+            <!-- Bloque de Precio Grande ($19.99 /Por Mes) -->
+            <div class="card-price-block">
+              <span class="price-symbol">$</span>
+              <span class="price-main">{{ plan.precio_entero }}</span>
+              <div class="price-right-stack">
+                <span class="price-cents">.{{ plan.precio_centavos }}</span>
+                <span class="price-period">{{ plan.periodo }}</span>
               </div>
             </div>
-            <div class="price-bs-tag">Equivalente a {{ plan.precioBs }} / mes</div>
 
-            <!-- Descripción del Plan -->
+            <!-- Descripción Corta del Plan -->
             <p class="card-description">
               {{ plan.descripcion }}
             </p>
 
-            <!-- Lista de Beneficios con Checkmarks de Color y Cruces Grises -->
-            <ul class="benefits-list">
-              <li *ngFor="let b of plan.beneficios" class="benefit-item" [class.disabled-benefit]="!b.incluido">
-                <!-- Icono Incluido -->
+            <!-- Lista de Beneficios con Checkmarks (✓) y Cruces (✕) -->
+            <ul class="card-features-list">
+              <li *ngFor="let feat of plan.beneficios" class="feature-row" [class.feature-disabled]="!feat.incluido">
                 <span 
-                  *ngIf="b.incluido" 
-                  class="benefit-icon included"
-                  [style.background]="plan.colorPrimario"
+                  *ngIf="feat.incluido" 
+                  class="feature-icon-circle" 
+                  [style.background]="plan.check_bg"
+                  [style.color]="plan.check_color"
+                  [style.border-color]="plan.check_color"
                 >
                   <i class="fa-solid fa-check"></i>
                 </span>
-                <!-- Icono No Incluido -->
                 <span 
-                  *ngIf="!b.incluido" 
-                  class="benefit-icon excluded"
+                  *ngIf="!feat.incluido" 
+                  class="feature-icon-circle feature-icon-cross"
                 >
                   <i class="fa-solid fa-xmark"></i>
                 </span>
-                <span class="benefit-text">{{ b.texto }}</span>
+                <span class="feature-label">{{ feat.texto }}</span>
               </li>
             </ul>
 
-            <!-- Botón Inferior Redondeado: ADQUIRIR AHORA -->
+            <!-- Botón Inferior Píldora "ADQUIRIR AHORA" -->
             <div class="card-action-footer">
               <button 
-                type="button" 
-                (click)="abrirModalAdquirir(plan)" 
-                class="buy-now-btn"
-                [style.background]="'linear-gradient(90deg, ' + plan.colorPrimario + ', ' + plan.colorSecundario + ')'"
+                type="button"
+                (click)="abrirModalSuscripcion(plan)"
+                class="buy-now-pill-btn"
+                [style.background]="plan.btn_bg"
+                [style.color]="plan.btn_text"
               >
                 ADQUIRIR AHORA
               </button>
@@ -134,84 +155,110 @@ export interface PlanCardUI {
 
         </div>
 
-        <!-- Pie de Página Rápido para SuperAdmin y Empresas Registradas -->
-        <div class="stage-bottom-bar">
-          <span>¿Tu empresa ya cuenta con una suscripción activa o eres el SuperAdmin de la plataforma?</span>
-          <a routerLink="/login" class="bottom-login-link">
-            Acceder al Panel de Control <i class="fa-solid fa-arrow-right ml-1"></i>
+        <!-- Pie informativo -->
+        <div class="board-footer-note">
+          <span>
+            <i class="fa-solid fa-shield-halved mr-1" style="color: var(--accent);"></i> 
+            Aislamiento Multi-Tenant garantizado · Activación inmediata con sucursal principal incluida
+          </span>
+          <a routerLink="/catalogo" class="explore-catalog-link">
+            Ir al Catálogo de Prendas <i class="fa-solid fa-arrow-right ml-1"></i>
           </a>
         </div>
 
       </div>
 
-      <!-- =================================================================== -->
-      <!-- MODAL LIMPIO DE ADQUISICIÓN DE SUSCRIPCIÓN (CU01 ONBOARDING)        -->
-      <!-- =================================================================== -->
-      <div *ngIf="mostrarModal && planElegido" class="modal-backdrop-saas" (click)="cerrarModal($event)">
-        <div class="modal-card-saas animate-fade-in" (click)="$event.stopPropagation()">
+      <!-- ========================================================================= -->
+      <!-- MODAL DE ADQUISICIÓN Y ALTA AUTOMÁTICA DE EMPRESA (ONBOARDING SAAS)       -->
+      <!-- ========================================================================= -->
+      <div *ngIf="mostrarModal" class="modal-backdrop" (click)="cerrarModal()">
+        <div class="onboarding-modal" (click)="$event.stopPropagation()">
           
-          <!-- Botón Cerrar -->
-          <button type="button" (click)="mostrarModal = false" class="modal-close-btn">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-
-          <!-- Cabecera con el color del Plan Elegido -->
-          <div class="modal-plan-header" [style.background]="'linear-gradient(135deg, ' + planElegido.colorPrimario + ', ' + planElegido.colorSecundario + ')'">
-            <div class="modal-plan-badge">SUSCRIPCIÓN EMPRESARIAL SAAS</div>
-            <div class="flex items-baseline justify-between flex-wrap gap-2 mt-1">
-              <h2 class="modal-plan-title">Plan {{ planElegido.etiqueta }}</h2>
-              <div class="modal-plan-price">
-                <span>\${{ planElegido.precioEntero }}.{{ planElegido.precioCentavos }}</span>
-                <small>/ mes ({{ planElegido.precioBs }})</small>
-              </div>
+          <!-- Cabecera con el color del Plan elegido -->
+          <div class="modal-top-banner" [style.border-bottom]="'2px solid ' + (planSeleccionado?.check_color || '#f59e0b')">
+            <div>
+              <span 
+                class="modal-plan-pill"
+                [style.background]="planSeleccionado?.ribbon_bg"
+                [style.color]="planSeleccionado?.ribbon_text"
+              >
+                PLAN {{ planSeleccionado?.etiqueta_ribbon?.toUpperCase() }} — &#36;{{ planSeleccionado?.precio_entero }}.{{ planSeleccionado?.precio_centavos }} / Mes
+              </span>
+              <h3 class="modal-title font-serif">Suscribir mi Empresa</h3>
+              <p class="modal-subtitle">
+                Registra los datos de tu empresa para activar tu suscripción y acceder directamente a tu panel de administración.
+              </p>
             </div>
-            <p class="modal-plan-summary">
-              Incluye hasta {{ planElegido.maxSucursales }} sucursales activas
-              {{ planElegido.incluyeIA ? ' + Reportes IA Gemini y Machine Learning' : ' + Punto de Venta Offline-First' }}
-            </p>
+            <button type="button" (click)="cerrarModal()" class="modal-close-btn">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
           </div>
 
-          <!-- Formulario de Registro de Empresa -->
           <form (ngSubmit)="confirmarSuscripcion()" class="modal-form-body">
             
+            <!-- Selector rápido entre los 3 planes -->
+            <div class="plan-switcher-bar">
+              <button 
+                *ngFor="let p of planesCards"
+                type="button"
+                (click)="cambiarPlanEnModal(p)"
+                class="plan-switch-chip"
+                [class.active]="form.plan_nombre === p.id_plan"
+                [style.border-color]="form.plan_nombre === p.id_plan ? p.check_color : 'var(--border-color)'"
+              >
+                <span class="chip-name">{{ p.etiqueta_ribbon }}</span>
+                <span class="chip-price" [style.color]="form.plan_nombre === p.id_plan ? p.check_color : 'var(--text-muted)'">
+                  &#36;{{ p.precio_entero }}.{{ p.precio_centavos }}
+                </span>
+              </button>
+            </div>
+
+            <!-- Datos de la Empresa -->
+            <div class="form-section-label">
+              <i class="fa-solid fa-building mr-1" style="color: var(--accent);"></i> 1. Datos de la Empresa
+            </div>
+
             <div class="form-row-2">
-              <div class="field-box">
-                <label>Razón Social de la Empresa *</label>
+              <div class="form-field">
+                <label>Razón Social / Nombre de Tienda *</label>
                 <input 
                   type="text" 
                   [(ngModel)]="form.razon_social" 
                   name="razon_social" 
                   required 
-                  placeholder="Ej: Boutique Aurora S.R.L." 
+                  placeholder="Ej: Boutique Elegance S.R.L." 
                 />
               </div>
-
-              <div class="field-box">
-                <label>NIT Empresarial *</label>
+              <div class="form-field">
+                <label>NIT Corporativo *</label>
                 <input 
                   type="text" 
                   [(ngModel)]="form.nit" 
                   name="nit" 
                   required 
-                  placeholder="Ej: 1023451010" 
+                  placeholder="Ej: 3049581015" 
                 />
               </div>
             </div>
 
+            <!-- Datos del Administrador -->
+            <div class="form-section-label mt-2">
+              <i class="fa-solid fa-user-shield mr-1" style="color: var(--accent);"></i> 2. Cuenta del Administrador de la Empresa
+            </div>
+
             <div class="form-row-2">
-              <div class="field-box">
-                <label>Nombre del Administrador *</label>
+              <div class="form-field">
+                <label>Nombres *</label>
                 <input 
                   type="text" 
                   [(ngModel)]="form.admin_nombre" 
                   name="admin_nombre" 
                   required 
-                  placeholder="Ej: Jorge" 
+                  placeholder="Ej: Gabriel" 
                 />
               </div>
-
-              <div class="field-box">
-                <label>Apellidos del Administrador *</label>
+              <div class="form-field">
+                <label>Apellidos *</label>
                 <input 
                   type="text" 
                   [(ngModel)]="form.admin_apellido" 
@@ -222,20 +269,19 @@ export interface PlanCardUI {
               </div>
             </div>
 
-            <div class="field-box">
-              <label>Correo Corporativo de Acceso *</label>
-              <input 
-                type="email" 
-                [(ngModel)]="form.admin_email" 
-                name="admin_email" 
-                required 
-                placeholder="admin@tuempresa.com" 
-              />
-            </div>
-
             <div class="form-row-2">
-              <div class="field-box">
-                <label>Contraseña del Administrador *</label>
+              <div class="form-field">
+                <label>Correo Electrónico de Acceso *</label>
+                <input 
+                  type="email" 
+                  [(ngModel)]="form.admin_email" 
+                  name="admin_email" 
+                  required 
+                  placeholder="admin@miempresa.com" 
+                />
+              </div>
+              <div class="form-field">
+                <label>Contraseña *</label>
                 <input 
                   type="password" 
                   [(ngModel)]="form.admin_password" 
@@ -244,238 +290,285 @@ export interface PlanCardUI {
                   placeholder="Mínimo 6 caracteres" 
                 />
               </div>
-
-              <div class="field-box">
-                <label>Duración de Suscripción</label>
-                <select [(ngModel)]="form.meses_vigencia" name="meses_vigencia">
-                  <option [ngValue]="1">1 Mes</option>
-                  <option [ngValue]="6">6 Meses</option>
-                  <option [ngValue]="12">12 Meses (1 Año)</option>
-                  <option [ngValue]="24">24 Meses (2 Años)</option>
-                </select>
-              </div>
             </div>
 
             <!-- Botón de Confirmación -->
-            <button 
-              type="submit" 
-              [disabled]="enviando" 
-              class="modal-submit-btn"
-              [style.background]="'linear-gradient(90deg, ' + planElegido.colorPrimario + ', ' + planElegido.colorSecundario + ')'"
-            >
-              <span *ngIf="enviando">
-                <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Creando entorno empresarial...
-              </span>
-              <span *ngIf="!enviando">
-                <i class="fa-solid fa-check-circle mr-2"></i> ACTIVAR SUSCRIPCIÓN Y ENTRAR AL PANEL
-              </span>
-            </button>
+            <div class="modal-footer-actions">
+              <button type="button" (click)="cerrarModal()" class="btn-cancel">
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                [disabled]="enviando" 
+                class="btn-confirm-buy"
+                [style.background]="planSeleccionado?.btn_bg"
+                [style.color]="planSeleccionado?.btn_text"
+              >
+                <i class="fa-solid" [class.fa-spinner]="enviando" [class.fa-spin]="enviando" [class.fa-check-circle]="!enviando"></i>
+                <span>{{ enviando ? 'Activando Empresa...' : 'Activar Suscripción e Ingresar' }}</span>
+              </button>
+            </div>
 
           </form>
-
         </div>
       </div>
 
     </div>
   `,
   styles: [`
-    /* Lienzo Principal con Gradiente Moderno Azul-Violeta como la imagen */
-    .pricing-landing-wrapper {
+    /* ==========================================================================
+       PRICE LIST SAAS - PALETA DE LUJO FASHIONSTORE (ZINC OBSIDIANA & ORO/ÁMBAR)
+       ========================================================================== */
+    .pricing-showcase-wrapper {
       min-height: calc(100vh - 74px);
       width: 100%;
-      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%);
-      padding: 2.5rem 1.25rem;
+      background-color: var(--bg-main);
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative;
-      overflow: hidden;
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      padding: 2rem 1.25rem;
     }
 
-    /* Ondas Decorativas Suaves de Fondo */
-    .bg-wave-shape {
+    .pricing-board {
+      position: relative;
+      width: 100%;
+      max-width: 1220px;
+      background: linear-gradient(145deg, #09090b 0%, #141418 55%, #1c1917 100%);
+      border: 1px solid #27272a;
+      border-radius: 24px;
+      padding: 2.5rem 2.75rem 2.75rem;
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    /* Ondas suaves en tonos Oro / Ámbar / Bronce de FashionStore */
+    .wave-shape {
       position: absolute;
-      border-radius: 50%;
       pointer-events: none;
       z-index: 0;
     }
-    .shape-1 {
-      width: 850px;
-      height: 850px;
-      background: linear-gradient(180deg, rgba(56, 189, 248, 0.35) 0%, rgba(99, 102, 241, 0.1) 100%);
-      top: -250px;
-      left: -200px;
-      filter: blur(2px);
-    }
-    .shape-2 {
-      width: 750px;
-      height: 750px;
-      background: linear-gradient(180deg, rgba(236, 72, 153, 0.28) 0%, rgba(139, 92, 246, 0.1) 100%);
-      bottom: -250px;
-      right: -150px;
+
+    .wave-top-right {
+      top: -140px;
+      right: -100px;
+      width: 580px;
+      height: 580px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.14) 0%, rgba(217, 119, 6, 0.05) 55%, transparent 75%);
     }
 
-    /* Contenedor Panorámico Interior */
-    .pricing-main-stage {
+    .wave-bottom-left {
+      bottom: -200px;
+      left: -120px;
+      width: 560px;
+      height: 560px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, rgba(24, 24, 27, 0.05) 65%, transparent 80%);
+    }
+
+    .wave-center-glow {
+      top: 15%;
+      left: 48%;
+      width: 650px;
+      height: 650px;
+      border-radius: 45%;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, rgba(217, 119, 6, 0.02) 100%);
+      transform: rotate(-18deg);
+    }
+
+    /* Barra Superior Interna */
+    .board-topbar {
       position: relative;
-      z-index: 1;
-      max-width: 1280px;
-      width: 100%;
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.78) 0%, rgba(124, 58, 237, 0.85) 55%, rgba(56, 189, 248, 0.75) 100%);
-      backdrop-filter: blur(16px);
-      border-radius: 28px;
-      padding: 2.5rem 2.5rem 3rem;
-      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    @media (max-width: 640px) {
-      .pricing-main-stage {
-        padding: 1.5rem 1.2rem 2rem;
-      }
-    }
-
-    /* Barra Superior dentro del Stage */
-    .stage-top-bar {
+      z-index: 2;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
       flex-wrap: wrap;
       gap: 1rem;
-      margin-bottom: 2.5rem;
     }
 
     .brand-logo {
       display: flex;
       align-items: center;
+      gap: 0.75rem;
+      color: #f4f4f5;
+    }
+
+    .logo-icon {
+      font-size: 1.5rem;
+      color: #f59e0b;
+    }
+
+    .logo-text {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
       color: #ffffff;
-      font-size: 1.15rem;
-      letter-spacing: 0.02em;
+      display: block;
+      line-height: 1.1;
     }
 
-    .logo-dash {
-      display: inline-block;
-      width: 18px;
-      height: 4px;
-      background: #ffffff;
-      border-radius: 4px;
-      margin-right: 8px;
+    .logo-sub {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: #f59e0b;
+      display: block;
     }
 
-    .stage-nav-links {
+    .board-nav {
       display: flex;
       align-items: center;
       gap: 1.75rem;
-      flex-wrap: wrap;
     }
 
-    .stage-link {
-      color: rgba(255, 255, 255, 0.85);
-      text-decoration: none;
-      font-size: 0.88rem;
+    .board-nav-link {
+      color: #a1a1aa;
+      font-size: 0.85rem;
       font-weight: 600;
-      transition: all 0.2s;
+      text-decoration: none;
       padding-bottom: 4px;
       border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
     }
 
-    .stage-link:hover, .stage-link.active {
-      color: #ffffff;
-      border-bottom-color: #ffffff;
+    .board-nav-link:hover,
+    .board-nav-link.active {
+      color: #f59e0b;
+      border-bottom-color: #f59e0b;
     }
 
-    .stage-link-btn {
-      background: rgba(255, 255, 255, 0.2);
-      color: #ffffff;
+    .board-user-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #f59e0b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
       text-decoration: none;
-      font-size: 0.82rem;
-      font-weight: 700;
-      padding: 0.45rem 1rem;
-      border-radius: 9999px;
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      transition: all 0.2s;
+      transition: transform 0.2s ease, background 0.2s ease;
     }
 
-    .stage-link-btn:hover {
-      background: #ffffff;
-      color: #4f46e5;
+    .board-user-icon:hover {
+      transform: scale(1.08);
+      background: #f59e0b;
+      color: #18181b;
     }
 
-    /* Cabecera Price List */
-    .pricing-header {
+    /* Encabezado "Planes de Suscripción" */
+    .board-header {
+      position: relative;
+      z-index: 2;
       text-align: center;
-      max-width: 720px;
-      margin: 0 auto 3.25rem;
+      max-width: 680px;
+      margin: 0 auto 2.75rem;
     }
 
-    .pricing-title {
+    .board-eyebrow {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #f59e0b;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      padding: 0.3rem 0.9rem;
+      border-radius: 999px;
+      margin-bottom: 0.75rem;
+    }
+
+    .board-title {
       color: #ffffff;
       font-size: 2.6rem;
       font-weight: 800;
       letter-spacing: -0.02em;
-      margin: 0 0 0.85rem;
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+      margin-bottom: 0.65rem;
     }
 
-    .pricing-subtitle {
-      color: rgba(255, 255, 255, 0.88);
+    .board-subtitle {
+      color: #a1a1aa;
       font-size: 0.86rem;
-      line-height: 1.65;
-      margin: 0;
+      line-height: 1.6;
     }
 
-    /* Grid de 4 Columnas */
+    /* Grilla de 3 Tarjetas Verticales */
     .pricing-cards-grid {
+      position: relative;
+      z-index: 2;
       display: grid;
-      grid-template-columns: repeat(1, 1fr);
-      gap: 1.75rem;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+      max-width: 1040px;
+      margin: 0 auto;
       align-items: stretch;
     }
 
-    @media (min-width: 680px) {
+    @media (max-width: 990px) {
       .pricing-cards-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 1fr;
+        max-width: 420px;
       }
     }
 
-    @media (min-width: 1120px) {
-      .pricing-cards-grid {
-        grid-template-columns: repeat(4, 1fr);
-      }
-    }
-
-    /* Tarjeta Blanca Vertical */
+    /* Tarjeta Vertical con la Paleta de FashionStore */
     .price-card {
-      background: #ffffff;
-      border-radius: 22px;
-      padding: 4.5rem 1.6rem 2rem;
       position: relative;
+      background: #18181b;
+      border: 1.5px solid #27272a;
+      border-radius: 20px;
+      padding: 4.4rem 1.85rem 2rem;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease, border-color 0.28s ease;
     }
 
     .price-card:hover {
       transform: translateY(-8px);
-      box-shadow: 0 26px 55px rgba(15, 23, 42, 0.28);
+      box-shadow: 0 26px 55px rgba(0, 0, 0, 0.65);
     }
 
-    /* Cinta / Ribbon en la esquina superior izquierda */
+    .price-card-featured {
+      background: linear-gradient(165deg, #1f1f23 0%, #18181b 60%, rgba(245, 158, 11, 0.07) 100%);
+      box-shadow: 0 22px 50px rgba(245, 158, 11, 0.14);
+    }
+
+    .popular-chip {
+      position: absolute;
+      top: 1.35rem;
+      right: 1.35rem;
+      background: rgba(245, 158, 11, 0.16);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      color: #fbbf24;
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      padding: 0.22rem 0.65rem;
+      border-radius: 999px;
+    }
+
+    /* Listón 3D Superior Izquierdo (Ribbon Tab) */
     .card-ribbon {
       position: absolute;
-      top: 22px;
-      left: -10px;
-      padding: 0.48rem 1.65rem 0.48rem 1.35rem;
-      color: #ffffff;
+      top: 1.25rem;
+      left: -8px;
+      padding: 0.42rem 1.65rem 0.42rem 1.25rem;
+      font-size: 0.88rem;
       font-weight: 800;
-      font-size: 0.92rem;
-      letter-spacing: 0.02em;
-      clip-path: polygon(0 0, 100% 0, 86% 100%, 0% 100%);
-      border-top-left-radius: 6px;
-      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+      letter-spacing: 0.03em;
+      clip-path: polygon(0 0, 90% 0, 100% 100%, 0 100%);
+      border-top-left-radius: 4px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
     }
 
     .ribbon-fold {
@@ -484,35 +577,37 @@ export interface PlanCardUI {
       left: 0;
       width: 0;
       height: 0;
-      border-top: 8px solid #0e7490;
-      border-left: 10px solid transparent;
+      border-top: 8px solid #09090b;
+      border-left: 8px solid transparent;
     }
 
-    /* Bloque del Precio */
-    .price-value-block {
+    /* Bloque de Precio Grande */
+    .card-price-block {
       display: flex;
       align-items: baseline;
       justify-content: center;
-      color: #1e1b4b;
-      margin-top: 0.5rem;
+      color: #f4f4f5;
+      margin: 0.35rem 0 0.9rem;
     }
 
-    .currency-symbol {
+    .price-symbol {
       font-size: 1.75rem;
       font-weight: 800;
       margin-right: 2px;
-      color: #1e1b4b;
+      align-self: flex-start;
+      margin-top: 0.55rem;
+      color: #f59e0b;
     }
 
-    .price-integer {
-      font-size: 3.7rem;
+    .price-main {
+      font-size: 3.6rem;
       font-weight: 900;
       line-height: 1;
-      letter-spacing: -0.04em;
-      color: #1e1b4b;
+      letter-spacing: -0.03em;
+      color: #ffffff;
     }
 
-    .price-Right-meta {
+    .price-right-stack {
       display: flex;
       flex-direction: column;
       align-items: flex-start;
@@ -523,138 +618,145 @@ export interface PlanCardUI {
       font-size: 1.45rem;
       font-weight: 800;
       line-height: 1;
-      color: #1e1b4b;
+      color: #f4f4f5;
     }
 
     .price-period {
       font-size: 0.65rem;
       font-weight: 600;
-      color: #64748b;
-      margin-top: 2px;
+      color: #a1a1aa;
+      margin-top: 3px;
       white-space: nowrap;
     }
 
-    .price-bs-tag {
-      text-align: center;
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: #6366f1;
-      margin-top: 0.25rem;
-      margin-bottom: 1rem;
-    }
-
-    /* Descripción corta */
+    /* Descripción Corta */
     .card-description {
       text-align: center;
-      font-size: 0.75rem;
+      font-size: 0.78rem;
       line-height: 1.5;
-      color: #64748b;
-      margin: 0 0 1.35rem;
-      min-height: 52px;
+      color: #a1a1aa;
+      margin-bottom: 1.35rem;
+      padding-bottom: 1.15rem;
+      border-bottom: 1px solid #27272a;
+      min-height: 58px;
     }
 
     /* Lista de Beneficios */
-    .benefits-list {
+    .card-features-list {
       list-style: none;
       padding: 0;
       margin: 0 0 1.8rem;
       display: flex;
       flex-direction: column;
-      gap: 0.7rem;
-      border-top: 1px solid #f1f5f9;
-      padding-top: 1.15rem;
+      gap: 0.78rem;
+      flex-grow: 1;
     }
 
-    .benefit-item {
+    .feature-row {
       display: flex;
       align-items: center;
-      gap: 0.65rem;
-      font-size: 0.76rem;
+      gap: 0.7rem;
+      font-size: 0.8rem;
       font-weight: 600;
-      color: #334155;
+      color: #e4e4e7;
+      line-height: 1.35;
     }
 
-    .benefit-item.disabled-benefit {
-      color: #94a3b8;
+    .feature-row.feature-disabled {
+      color: #52525b;
       text-decoration: line-through;
-      opacity: 0.75;
     }
 
-    .benefit-icon {
-      width: 20px;
-      height: 20px;
-      min-width: 20px;
+    .feature-icon-circle {
+      width: 21px;
+      height: 21px;
       border-radius: 50%;
+      border: 1px solid transparent;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       font-size: 0.65rem;
-      color: #ffffff;
+      flex-shrink: 0;
     }
 
-    .benefit-icon.excluded {
-      background: #cbd5e1;
-      color: #ffffff;
+    .feature-icon-cross {
+      background: #27272a;
+      color: #71717a;
+      border-color: #3f3f46;
     }
 
-    .benefit-text {
-      line-height: 1.3;
+    .feature-label {
+      flex: 1;
     }
 
-    /* Botón BUY NOW / ADQUIRIR AHORA */
+    /* Botón Píldora "ADQUIRIR AHORA" */
     .card-action-footer {
       text-align: center;
       margin-top: auto;
     }
 
-    .buy-now-btn {
+    .buy-now-pill-btn {
       width: 100%;
-      max-width: 185px;
-      padding: 0.72rem 1.2rem;
-      border-radius: 9999px;
+      max-width: 200px;
+      padding: 0.72rem 1.4rem;
+      border-radius: 999px;
       border: none;
-      color: #ffffff;
       font-size: 0.76rem;
       font-weight: 800;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
       cursor: pointer;
-      box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
-      transition: all 0.25s ease;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+      transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
     }
 
-    .buy-now-btn:hover {
-      transform: scale(1.05);
-      box-shadow: 0 12px 26px rgba(99, 102, 241, 0.5);
-      filter: brightness(1.06);
+    .buy-now-pill-btn:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.08);
+      box-shadow: 0 12px 24px rgba(245, 158, 11, 0.25);
     }
 
-    /* Barra Inferior del Stage */
-    .stage-bottom-bar {
-      margin-top: 2.5rem;
+    /* Pie del Tablero */
+    .board-footer-note {
+      position: relative;
+      z-index: 2;
+      margin-top: 2.25rem;
       padding-top: 1.25rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
       flex-wrap: wrap;
-      gap: 0.75rem;
-      color: rgba(255, 255, 255, 0.9);
-      font-size: 0.85rem;
+      gap: 1rem;
+      color: #a1a1aa;
+      font-size: 0.8rem;
+      font-weight: 500;
     }
 
-    .bottom-login-link {
-      color: #ffffff;
-      font-weight: 800;
-      text-decoration: underline;
+    .explore-catalog-link {
+      color: #f59e0b;
+      font-weight: 700;
+      text-decoration: none;
+      padding: 0.45rem 1rem;
+      border-radius: 999px;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      transition: background 0.2s ease, color 0.2s ease;
     }
 
-    /* Modal de Suscripción */
-    .modal-backdrop-saas {
+    .explore-catalog-link:hover {
+      background: #f59e0b;
+      color: #18181b;
+    }
+
+    /* ==========================================================================
+       MODAL DE SUSCRIPCIÓN Y ONBOARDING (PALETA FASHIONSTORE)
+       ========================================================================== */
+    .modal-backdrop {
       position: fixed;
       inset: 0;
-      z-index: 999;
-      background: rgba(15, 23, 42, 0.75);
+      z-index: 100;
+      background: rgba(9, 9, 11, 0.8);
       backdrop-filter: blur(8px);
       display: flex;
       align-items: center;
@@ -662,154 +764,209 @@ export interface PlanCardUI {
       padding: 1rem;
     }
 
-    .modal-card-saas {
-      background: #ffffff;
-      color: #1e293b;
-      max-width: 540px;
+    .onboarding-modal {
       width: 100%;
-      border-radius: 24px;
+      max-width: 600px;
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: 1.5px solid var(--border-color);
+      border-radius: 20px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
       overflow: hidden;
-      position: relative;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-top-banner {
+      padding: 1.25rem 1.5rem;
+      background: var(--table-th-bg);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .modal-plan-pill {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.4rem;
+    }
+
+    .modal-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin: 0;
+    }
+
+    .modal-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
     }
 
     .modal-close-btn {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      width: 34px;
-      height: 34px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.2);
-      border: none;
-      color: #ffffff;
-      font-size: 1rem;
+      color: var(--text-muted);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.2s;
-    }
-
-    .modal-close-btn:hover {
-      background: rgba(255, 255, 255, 0.35);
-    }
-
-    .modal-plan-header {
-      padding: 1.75rem 2rem;
-      color: #ffffff;
-    }
-
-    .modal-plan-badge {
-      display: inline-block;
-      font-size: 0.65rem;
-      font-weight: 800;
-      letter-spacing: 0.1em;
-      background: rgba(255, 255, 255, 0.22);
-      padding: 3px 10px;
-      border-radius: 9999px;
-    }
-
-    .modal-plan-title {
-      font-size: 1.65rem;
-      font-weight: 900;
-      margin: 0;
-    }
-
-    .modal-plan-price span {
-      font-size: 1.5rem;
-      font-weight: 900;
-    }
-
-    .modal-plan-price small {
-      font-size: 0.75rem;
-      opacity: 0.9;
-      margin-left: 4px;
-    }
-
-    .modal-plan-summary {
-      font-size: 0.78rem;
-      opacity: 0.92;
-      margin: 0.5rem 0 0;
+      font-size: 0.95rem;
     }
 
     .modal-form-body {
-      padding: 1.75rem 2rem 2rem;
+      padding: 1.25rem 1.5rem 1.5rem;
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 0.85rem;
+    }
+
+    .plan-switcher-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.6rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .plan-switch-chip {
+      background: var(--table-th-bg);
+      border: 1.5px solid var(--border-color);
+      border-radius: 10px;
+      padding: 0.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .plan-switch-chip.active {
+      background: rgba(245, 158, 11, 0.1);
+      transform: translateY(-1px);
+    }
+
+    .chip-name {
+      display: block;
+      font-size: 0.74rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .chip-price {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    .form-section-label {
+      font-size: 0.74rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-main);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.3rem;
     }
 
     .form-row-2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 1rem;
+      gap: 0.75rem;
     }
 
-    @media (max-width: 520px) {
+    @media (max-width: 540px) {
       .form-row-2 {
         grid-template-columns: 1fr;
       }
     }
 
-    .field-box {
+    .form-field {
       display: flex;
       flex-direction: column;
-      gap: 0.35rem;
+      gap: 0.25rem;
     }
 
-    .field-box label {
-      font-size: 0.72rem;
+    .form-field label {
+      font-size: 0.7rem;
       font-weight: 700;
+      color: var(--text-muted);
       text-transform: uppercase;
-      color: #475569;
     }
 
-    .field-box input, .field-box select {
-      padding: 0.68rem 0.9rem;
-      border-radius: 10px;
-      border: 1.5px solid #cbd5e1;
-      font-size: 0.85rem;
-      color: #0f172a;
-      background: #f8fafc;
+    .form-field input,
+    .form-field select {
+      padding: 0.58rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      font-size: 0.82rem;
+      color: var(--text-main);
+      background: var(--input-bg);
       outline: none;
-      transition: border-color 0.2s;
     }
 
-    .field-box input:focus, .field-box select:focus {
-      border-color: #6366f1;
-      background: #ffffff;
+    .form-field input:focus,
+    .form-field select:focus {
+      border-color: var(--accent);
     }
 
-    .modal-submit-btn {
+    .modal-footer-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.75rem;
       margin-top: 0.5rem;
-      padding: 0.9rem;
-      border-radius: 9999px;
-      border: none;
-      color: #ffffff;
-      font-weight: 800;
-      font-size: 0.85rem;
-      letter-spacing: 0.04em;
-      cursor: pointer;
-      box-shadow: 0 10px 25px rgba(99, 102, 241, 0.35);
-      transition: all 0.2s;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--border-color);
     }
 
-    .modal-submit-btn:hover:not(:disabled) {
-      transform: translateY(-2px);
-      filter: brightness(1.05);
+    .btn-cancel {
+      padding: 0.62rem 1.15rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-color);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-confirm-buy {
+      padding: 0.68rem 1.5rem;
+      border-radius: 999px;
+      border: none;
+      font-size: 0.8rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-confirm-buy:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
   `]
 })
-export class PlanesSaasComponent {
+export class PlanesSaasComponent implements OnInit {
   private saasService = inject(SaasService);
+  private authService = inject(AuthService);
   private toastService = inject(ToastService);
-  public authService = inject(AuthService);
   private router = inject(Router);
 
   mostrarModal = false;
   enviando = false;
-  planElegido: PlanCardUI | null = null;
+  planSeleccionado: PlanCardConfig | null = null;
 
   form: CrearTenantDto = {
     razon_social: '',
@@ -818,159 +975,131 @@ export class PlanesSaasComponent {
     admin_nombre: '',
     admin_apellido: '',
     admin_email: '',
-    admin_password: '',
-    meses_vigencia: 12
+    admin_password: ''
   };
 
-  planesUI: PlanCardUI[] = [
+  // 3 Planes Oficiales con la Paleta de Lujo de FashionStore (Platino/Carbón, Ámbar/Bronce y Oro Imperial)
+  planesCards: PlanCardConfig[] = [
     {
-      id: 'Basico',
-      etiqueta: 'Básico',
-      precioEntero: '19',
-      precioCentavos: '99',
-      precioBs: 'Bs 140',
-      descripcion: 'Ideal para boutiques independientes que inician su digitalización con inventario y punto de venta offline.',
-      colorPrimario: '#06b6d4',
-      colorSecundario: '#22d3ee',
-      colorSombraPliegue: '#0e7490',
-      maxSucursales: 2,
-      incluyeIA: false,
+      id_plan: 'Basico',
+      etiqueta_ribbon: 'Básico',
+      precio_entero: '19',
+      precio_centavos: '99',
+      periodo: '/Por Mes',
+      descripcion: 'Ideal para boutiques independientes que inician la digitalización de su inventario y caja.',
+      ribbon_bg: 'linear-gradient(135deg, #52525b, #3f3f46)',
+      ribbon_fold: '#18181b',
+      ribbon_text: '#f4f4f5',
+      check_color: '#d4d4d8',
+      check_bg: 'rgba(212, 212, 216, 0.12)',
+      btn_bg: 'linear-gradient(135deg, #52525b, #3f3f46)',
+      btn_text: '#ffffff',
+      card_border: '#27272a',
       beneficios: [
-        { texto: 'Hasta 2 Sucursales Físicas', incluido: true },
-        { texto: 'Caja POS Offline-First', incluido: true },
-        { texto: 'Inventario por Talla y Color', incluido: true },
-        { texto: 'Reservas QR de Vestidor', incluido: false },
-        { texto: 'Reportes con IA Gemini NLP', incluido: false },
-        { texto: 'Machine Learning de Demanda', incluido: false }
+        { texto: 'Hasta 2 Sucursales Físicas (RN04)', incluido: true },
+        { texto: 'Inventario por Talla, Color y Lotes', incluido: true },
+        { texto: 'Punto de Venta (POS) Offline-First', incluido: true },
+        { texto: 'Catálogo Web y Reservas Online', incluido: true },
+        { texto: 'Reportes Inteligentes con IA (RN23)', incluido: false },
+        { texto: 'Predicción de Demanda ML', incluido: false }
       ]
     },
     {
-      id: 'Estandar',
-      etiqueta: 'Estándar',
-      precioEntero: '39',
-      precioCentavos: '99',
-      precioBs: 'Bs 280',
-      descripcion: 'Perfecto para tiendas en crecimiento que requieren reservas de probadores VIP y catálogo interactivo.',
-      colorPrimario: '#4f46e5',
-      colorSecundario: '#818cf8',
-      colorSombraPliegue: '#3730a3',
-      maxSucursales: 4,
-      incluyeIA: false,
+      id_plan: 'Estandar',
+      etiqueta_ribbon: 'Estándar',
+      precio_entero: '39',
+      precio_centavos: '99',
+      periodo: '/Por Mes',
+      descripcion: 'Para marcas de ropa en expansión con múltiples tiendas físicas y traslados de mercadería.',
+      ribbon_bg: 'linear-gradient(135deg, #d97706, #b45309)',
+      ribbon_fold: '#78350f',
+      ribbon_text: '#ffffff',
+      check_color: '#d97706',
+      check_bg: 'rgba(217, 119, 6, 0.14)',
+      btn_bg: 'linear-gradient(135deg, #d97706, #b45309)',
+      btn_text: '#ffffff',
+      card_border: '#3f3f46',
       beneficios: [
-        { texto: 'Hasta 4 Sucursales Físicas', incluido: true },
-        { texto: 'Caja POS Offline-First', incluido: true },
-        { texto: 'Inventario por Talla y Color', incluido: true },
-        { texto: 'Reservas QR de Vestidor', incluido: true },
-        { texto: 'Reportes con IA Gemini NLP', incluido: false },
-        { texto: 'Machine Learning de Demanda', incluido: false }
+        { texto: 'Hasta 4 Sucursales Físicas (RN04)', incluido: true },
+        { texto: 'Inventario por Talla, Color y Lotes', incluido: true },
+        { texto: 'Punto de Venta (POS) Offline-First', incluido: true },
+        { texto: 'Transferencias entre Sucursales y AR', incluido: true },
+        { texto: 'Reportes Inteligentes con IA (RN23)', incluido: false },
+        { texto: 'Predicción de Demanda ML', incluido: false }
       ]
     },
     {
-      id: 'Profesional',
-      etiqueta: 'Profesional',
-      precioEntero: '79',
-      precioCentavos: '99',
-      precioBs: 'Bs 550',
-      descripcion: 'Potencia total con Inteligencia Artificial Gemini y Machine Learning para cadenas de moda consolidadas.',
-      colorPrimario: '#7e22ce',
-      colorSecundario: '#a855f7',
-      colorSombraPliegue: '#581c87',
-      maxSucursales: 10,
-      incluyeIA: true,
+      id_plan: 'Profesional',
+      etiqueta_ribbon: 'Profesional',
+      precio_entero: '79',
+      precio_centavos: '99',
+      periodo: '/Por Mes',
+      descripcion: 'Potencia total con Inteligencia Artificial generativa, Machine Learning y hasta 10 sucursales.',
+      ribbon_bg: 'linear-gradient(135deg, #fbbf24, #d97706)',
+      ribbon_fold: '#78350f',
+      ribbon_text: '#18181b',
+      check_color: '#f59e0b',
+      check_bg: 'rgba(245, 158, 11, 0.16)',
+      btn_bg: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+      btn_text: '#18181b',
+      card_border: '#f59e0b',
+      destacado: true,
       beneficios: [
-        { texto: 'Hasta 10 Sucursales Físicas', incluido: true },
-        { texto: 'Caja POS Offline-First', incluido: true },
-        { texto: 'Inventario por Talla y Color', incluido: true },
-        { texto: 'Reservas QR de Vestidor', incluido: true },
-        { texto: 'Reportes con IA Gemini NLP', incluido: true },
-        { texto: 'Machine Learning de Demanda', incluido: true }
-      ]
-    },
-    {
-      id: 'Especial',
-      etiqueta: 'Especial',
-      precioEntero: '149',
-      precioCentavos: '99',
-      precioBs: 'Bs 990',
-      descripcion: 'Solución corporativa para grandes franquicias con sucursales expandidas, Realidad Aumentada y soporte 24/7.',
-      colorPrimario: '#db2777',
-      colorSecundario: '#f472b6',
-      colorSombraPliegue: '#9d174d',
-      maxSucursales: 25,
-      incluyeIA: true,
-      beneficios: [
-        { texto: 'Hasta 25 Sucursales en Red', incluido: true },
-        { texto: 'POS Offline-First Prioritario', incluido: true },
-        { texto: 'Vestidor Virtual AR + QR VIP', incluido: true },
-        { texto: 'Cambios de Prenda (CU14)', incluido: true },
-        { texto: 'Reportes IA Gemini Ilimitados', incluido: true },
-        { texto: 'ML Predictivo + Soporte 24/7', incluido: true }
+        { texto: 'Hasta 10 Sucursales Físicas (RN04)', incluido: true },
+        { texto: 'Inventario, Transferencias y POS Offline', incluido: true },
+        { texto: 'Vestidores Virtuales AR y Lookbook', incluido: true },
+        { texto: 'Reportes en Lenguaje Natural con IA', incluido: true },
+        { texto: 'Predicción de Demanda Machine Learning', incluido: true },
+        { texto: 'Soporte Corporativo Prioritario 24/7', incluido: true }
       ]
     }
   ];
 
-  abrirModalAdquirir(plan: PlanCardUI): void {
-    this.planElegido = plan;
-    this.form = {
-      razon_social: '',
-      nit: '',
-      plan_nombre: plan.id,
-      admin_nombre: '',
-      admin_apellido: '',
-      admin_email: '',
-      admin_password: '',
-      meses_vigencia: 12
-    };
+  ngOnInit(): void {}
+
+  abrirModalSuscripcion(plan: PlanCardConfig): void {
+    this.planSeleccionado = plan;
+    this.form.plan_nombre = plan.id_plan;
     this.mostrarModal = true;
   }
 
-  cerrarModal(event: MouseEvent): void {
-    this.mostrarModal = false;
+  cambiarPlanEnModal(plan: PlanCardConfig): void {
+    this.planSeleccionado = plan;
+    this.form.plan_nombre = plan.id_plan;
+  }
+
+  cerrarModal(): void {
+    if (!this.enviando) {
+      this.mostrarModal = false;
+    }
   }
 
   confirmarSuscripcion(): void {
-    if (!this.form.razon_social.trim() || !this.form.nit.trim()) {
-      this.toastService.warning('Datos incompletos', 'Ingresa la Razón Social y el NIT de la empresa.');
-      return;
-    }
-    if (!this.form.admin_email.trim() || !this.form.admin_password.trim()) {
-      this.toastService.warning('Datos incompletos', 'Ingresa el correo y la contraseña del administrador.');
+    if (!this.form.razon_social.trim() || !this.form.nit.trim() || !this.form.admin_email.trim() || !this.form.admin_password.trim()) {
+      this.toastService.warning('Datos incompletos', 'Por favor completa todos los campos obligatorios.');
       return;
     }
 
     this.enviando = true;
     this.saasService.onboarding(this.form).subscribe({
-      next: (res) => {
+      next: (res: any) => {
         this.enviando = false;
         this.mostrarModal = false;
         this.toastService.success(
           '¡Suscripción Activada!',
-          `Empresa "${res.tenant_nombre}" registrada con el Plan ${res.plan}.`
+          `Tu empresa "${this.form.razon_social}" ya está activa con el Plan ${this.planSeleccionado?.etiqueta_ribbon}.`
         );
 
-        localStorage.setItem('fashionstore_token', res.access_token);
-        localStorage.setItem('fashionstore_user', JSON.stringify({
-          access_token: res.access_token,
-          role: res.role,
-          user_type: res.user_type,
-          user_id: res.user_id,
-          nombre_completo: res.nombre_completo,
-          email: res.email,
-          tenant_id: res.tenant_id,
-          tenant_nombre: res.tenant_nombre,
-          plan: res.plan,
-          permite_reportes_ia: res.permite_reportes_ia,
-          max_sucursales: res.max_sucursales
-        }));
-
-        window.location.href = '/admin';
+        if (res?.access_token) {
+          localStorage.setItem('fashionstore_token', res.access_token);
+          localStorage.setItem('fashionstore_user', JSON.stringify(res));
+          window.location.href = '/admin';
+        }
       },
-      error: (err) => {
+      error: (err: any) => {
         this.enviando = false;
-        this.toastService.error(
-          'No se pudo completar la suscripción',
-          err.error?.detail || 'Verifica que el NIT y correo no estén registrados previamente.'
-        );
+        const msg = err?.error?.detail || 'No se pudo procesar la suscripción. Verifica el NIT o correo.';
+        this.toastService.error('Error en Suscripción', msg);
       }
     });
   }

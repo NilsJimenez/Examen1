@@ -30,7 +30,7 @@ def run_migration():
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS planes (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                nombre VARCHAR(50) UNIQUE NOT NULL CHECK (nombre IN ('Basico', 'Estandar', 'Profesional', 'Especial')),
+                nombre VARCHAR(50) UNIQUE NOT NULL CHECK (nombre IN ('Basico', 'Estandar', 'Profesional')),
                 max_sucursales INT NOT NULL CHECK (max_sucursales > 0),
                 permite_reportes_ia BOOLEAN NOT NULL DEFAULT FALSE,
                 activo BOOLEAN NOT NULL DEFAULT TRUE
