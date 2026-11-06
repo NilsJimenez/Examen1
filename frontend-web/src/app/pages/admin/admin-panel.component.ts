@@ -447,27 +447,49 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
 
             <div>
               <label class="form-label text-xs font-bold uppercase mb-1 block">Plan de Suscripción Inicial</label>
-              <div class="grid grid-cols-2 gap-3">
+              <div class="grid grid-cols-2 gap-2.5">
                 <button 
                   type="button" 
                   (click)="nuevoTenant.plan_nombre = 'Basico'"
                   class="p-3 rounded-xl border text-left transition-all"
-                  [style.border-color]="nuevoTenant.plan_nombre === 'Basico' ? '#3b82f6' : 'var(--border-color)'"
-                  [style.background]="nuevoTenant.plan_nombre === 'Basico' ? 'rgba(59, 130, 246, 0.1)' : 'var(--table-th-bg)'"
+                  [style.border-color]="nuevoTenant.plan_nombre === 'Basico' ? '#06b6d4' : 'var(--border-color)'"
+                  [style.background]="nuevoTenant.plan_nombre === 'Basico' ? 'rgba(6, 182, 212, 0.12)' : 'var(--table-th-bg)'"
                 >
-                  <span class="font-bold text-xs block" [style.color]="nuevoTenant.plan_nombre === 'Basico' ? '#3b82f6' : 'var(--text-main)'">Plan Básico</span>
-                  <span class="text-xs text-muted block mt-0.5">Hasta 2 sucursales</span>
+                  <span class="font-bold text-xs block" style="color: #06b6d4;">Plan Básico ($19.99)</span>
+                  <span class="text-xs text-muted block mt-0.5">2 sucursales • Sin IA</span>
+                </button>
+
+                <button 
+                  type="button" 
+                  (click)="nuevoTenant.plan_nombre = 'Estandar'"
+                  class="p-3 rounded-xl border text-left transition-all"
+                  [style.border-color]="nuevoTenant.plan_nombre === 'Estandar' ? '#6366f1' : 'var(--border-color)'"
+                  [style.background]="nuevoTenant.plan_nombre === 'Estandar' ? 'rgba(99, 102, 241, 0.12)' : 'var(--table-th-bg)'"
+                >
+                  <span class="font-bold text-xs block" style="color: #6366f1;">Plan Estándar ($39.99)</span>
+                  <span class="text-xs text-muted block mt-0.5">4 sucursales • Reserva QR</span>
                 </button>
 
                 <button 
                   type="button" 
                   (click)="nuevoTenant.plan_nombre = 'Profesional'"
                   class="p-3 rounded-xl border text-left transition-all"
-                  [style.border-color]="nuevoTenant.plan_nombre === 'Profesional' ? '#f59e0b' : 'var(--border-color)'"
-                  [style.background]="nuevoTenant.plan_nombre === 'Profesional' ? 'rgba(245, 158, 11, 0.1)' : 'var(--table-th-bg)'"
+                  [style.border-color]="nuevoTenant.plan_nombre === 'Profesional' ? '#a855f7' : 'var(--border-color)'"
+                  [style.background]="nuevoTenant.plan_nombre === 'Profesional' ? 'rgba(168, 85, 247, 0.12)' : 'var(--table-th-bg)'"
                 >
-                  <span class="font-bold text-xs block" [style.color]="nuevoTenant.plan_nombre === 'Profesional' ? '#f59e0b' : 'var(--text-main)'">Plan Profesional</span>
-                  <span class="text-xs text-muted block mt-0.5">Hasta 10 sucursales + IA</span>
+                  <span class="font-bold text-xs block" style="color: #a855f7;">Plan Profesional ($79.99)</span>
+                  <span class="text-xs text-muted block mt-0.5">10 sucursales • IA + ML</span>
+                </button>
+
+                <button 
+                  type="button" 
+                  (click)="nuevoTenant.plan_nombre = 'Especial'"
+                  class="p-3 rounded-xl border text-left transition-all"
+                  [style.border-color]="nuevoTenant.plan_nombre === 'Especial' ? '#ec4899' : 'var(--border-color)'"
+                  [style.background]="nuevoTenant.plan_nombre === 'Especial' ? 'rgba(236, 72, 153, 0.12)' : 'var(--table-th-bg)'"
+                >
+                  <span class="font-bold text-xs block" style="color: #ec4899;">Plan Especial ($149.99)</span>
+                  <span class="text-xs text-muted block mt-0.5">25 sucursales • Full IA & AR</span>
                 </button>
               </div>
             </div>
@@ -517,33 +539,61 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
             Empresa: <strong>{{ tenantSeleccionadoParaPlan.razon_social }}</strong>
           </p>
 
-          <div class="flex flex-col gap-3 mb-6">
+          <div class="flex flex-col gap-2.5 mb-6">
             <button 
               type="button" 
               (click)="planDestinoSeleccionado = 'Basico'"
-              class="p-4 rounded-xl border text-left flex items-center justify-between"
-              [style.border-color]="planDestinoSeleccionado === 'Basico' ? '#3b82f6' : 'var(--border-color)'"
-              [style.background]="planDestinoSeleccionado === 'Basico' ? 'rgba(59, 130, 246, 0.12)' : 'var(--table-th-bg)'"
+              class="p-3.5 rounded-xl border text-left flex items-center justify-between"
+              [style.border-color]="planDestinoSeleccionado === 'Basico' ? '#06b6d4' : 'var(--border-color)'"
+              [style.background]="planDestinoSeleccionado === 'Basico' ? 'rgba(6, 182, 212, 0.12)' : 'var(--table-th-bg)'"
             >
               <div>
-                <span class="font-bold text-xs block text-blue-500">Plan Básico</span>
-                <span class="text-xs text-muted">Máx 2 sucursales • Sin IA (RN23)</span>
+                <span class="font-bold text-xs block" style="color: #06b6d4;">Plan Básico ($19.99 / mes)</span>
+                <span class="text-xs text-muted">Máx 2 sucursales • POS Offline • Sin IA</span>
               </div>
-              <i *ngIf="planDestinoSeleccionado === 'Basico'" class="fa-solid fa-circle-check text-blue-500 text-lg"></i>
+              <i *ngIf="planDestinoSeleccionado === 'Basico'" class="fa-solid fa-circle-check text-lg" style="color: #06b6d4;"></i>
+            </button>
+
+            <button 
+              type="button" 
+              (click)="planDestinoSeleccionado = 'Estandar'"
+              class="p-3.5 rounded-xl border text-left flex items-center justify-between"
+              [style.border-color]="planDestinoSeleccionado === 'Estandar' ? '#6366f1' : 'var(--border-color)'"
+              [style.background]="planDestinoSeleccionado === 'Estandar' ? 'rgba(99, 102, 241, 0.12)' : 'var(--table-th-bg)'"
+            >
+              <div>
+                <span class="font-bold text-xs block" style="color: #6366f1;">Plan Estándar ($39.99 / mes)</span>
+                <span class="text-xs text-muted">Máx 4 sucursales • Reserva QR • Sin IA</span>
+              </div>
+              <i *ngIf="planDestinoSeleccionado === 'Estandar'" class="fa-solid fa-circle-check text-lg" style="color: #6366f1;"></i>
             </button>
 
             <button 
               type="button" 
               (click)="planDestinoSeleccionado = 'Profesional'"
-              class="p-4 rounded-xl border text-left flex items-center justify-between"
-              [style.border-color]="planDestinoSeleccionado === 'Profesional' ? '#f59e0b' : 'var(--border-color)'"
-              [style.background]="planDestinoSeleccionado === 'Profesional' ? 'rgba(245, 158, 11, 0.12)' : 'var(--table-th-bg)'"
+              class="p-3.5 rounded-xl border text-left flex items-center justify-between"
+              [style.border-color]="planDestinoSeleccionado === 'Profesional' ? '#a855f7' : 'var(--border-color)'"
+              [style.background]="planDestinoSeleccionado === 'Profesional' ? 'rgba(168, 85, 247, 0.12)' : 'var(--table-th-bg)'"
             >
               <div>
-                <span class="font-bold text-xs block text-amber-500">Plan Profesional</span>
-                <span class="text-xs text-muted">Hasta 10 sucursales • Con IA Gemini (CU28)</span>
+                <span class="font-bold text-xs block" style="color: #a855f7;">Plan Profesional ($79.99 / mes)</span>
+                <span class="text-xs text-muted">Hasta 10 sucursales • Con IA Gemini + ML</span>
               </div>
-              <i *ngIf="planDestinoSeleccionado === 'Profesional'" class="fa-solid fa-circle-check text-amber-500 text-lg"></i>
+              <i *ngIf="planDestinoSeleccionado === 'Profesional'" class="fa-solid fa-circle-check text-lg" style="color: #a855f7;"></i>
+            </button>
+
+            <button 
+              type="button" 
+              (click)="planDestinoSeleccionado = 'Especial'"
+              class="p-3.5 rounded-xl border text-left flex items-center justify-between"
+              [style.border-color]="planDestinoSeleccionado === 'Especial' ? '#ec4899' : 'var(--border-color)'"
+              [style.background]="planDestinoSeleccionado === 'Especial' ? 'rgba(236, 72, 153, 0.12)' : 'var(--table-th-bg)'"
+            >
+              <div>
+                <span class="font-bold text-xs block" style="color: #ec4899;">Plan Especial ($149.99 / mes)</span>
+                <span class="text-xs text-muted">Hasta 25 sucursales • IA + ML + AR VIP</span>
+              </div>
+              <i *ngIf="planDestinoSeleccionado === 'Especial'" class="fa-solid fa-circle-check text-lg" style="color: #ec4899;"></i>
             </button>
           </div>
 
@@ -2400,7 +2450,7 @@ export class AdminPanelComponent implements OnInit {
   busquedaTenant: string = '';
   mostrarModalCambiarPlan: boolean = false;
   tenantSeleccionadoParaPlan: TenantSaaS | null = null;
-  planDestinoSeleccionado: 'Basico' | 'Profesional' = 'Profesional';
+  planDestinoSeleccionado: 'Basico' | 'Estandar' | 'Profesional' | 'Especial' = 'Profesional';
   mostrarModalSuspension: boolean = false;
   tenantSeleccionadoParaSuspension: TenantSaaS | null = null;
   tenants: TenantSaaS[] = [];

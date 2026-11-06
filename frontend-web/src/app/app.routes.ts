@@ -11,9 +11,11 @@ import { PagoComponent } from './pages/pago/pago.component';
 import { MisComprasComponent } from './pages/mis-compras/mis-compras.component';
 import { EncargadoComponent } from './pages/encargado/encargado.component';
 import { LookbookComponent } from './components/lookbook/lookbook.component';
+import { PlanesSaasComponent } from './pages/planes-saas/planes-saas.component';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'catalogo', pathMatch: 'full' },
+  { path: '', component: PlanesSaasComponent, pathMatch: 'full' },
+  { path: 'planes', component: PlanesSaasComponent },
   { path: 'catalogo', component: CatalogoComponent },
   { path: 'lookbook', component: LookbookComponent },
   { path: 'producto/:id', component: ProductoDetalleComponent },
@@ -26,6 +28,5 @@ export const routes: Routes = [
   { path: 'pago/:id', component: PagoComponent },
   { path: 'mis-compras', component: MisComprasComponent },
   { path: 'encargado', component: EncargadoComponent },
-  { path: '**', redirectTo: 'catalogo' }
+  { path: '**', redirectTo: '' }
 ];
-

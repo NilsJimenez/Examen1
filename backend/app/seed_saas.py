@@ -47,40 +47,34 @@ def seed_database():
             db.flush()
             print(" [+] Ciudad creada: Santa Cruz")
 
-        # 3. Planes SaaS Oficiales
-        # Plan Básico: max 2 sucursales, sin IA
-        plan_basico = db.query(Plan).filter(Plan.nombre == "Basico").first()
-        if not plan_basico:
-            plan_basico = Plan(
-                id=uuid.uuid4(),
-                nombre="Basico",
-                max_sucursales=2,
-                permite_reportes_ia=False,
-                activo=True
-            )
-            db.add(plan_basico)
-            db.flush()
-            print(" [+] Plan creado: Básico (Máx 2 sucursales, Sin IA)")
-        else:
-            plan_basico.max_sucursales = 2
-            plan_basico.permite_reportes_ia = False
+        # 3. Planes SaaS Oficiales (4 Niveles: Básico, Estándar, Profesional, Especial)
+        planes_config = [
+            ("Basico", 2, False),
+            ("Estandar", 4, False),
+            ("Profesional", 10, True),
+            ("Especial", 25, True),
+        ]
+        planes_map = {}
+        for p_nom, max_suc, permite_ia in planes_config:
+            pl = db.query(Plan).filter(Plan.nombre == p_nom).first()
+            if not pl:
+                pl = Plan(
+                    id=uuid.uuid4(),
+                    nombre=p_nom,
+                    max_sucursales=max_suc,
+                    permite_reportes_ia=permite_ia,
+                    activo=True
+                )
+                db.add(pl)
+                db.flush()
+                print(f" [+] Plan creado: {p_nom} (Máx {max_suc} sucursales, IA={permite_ia})")
+            else:
+                pl.max_sucursales = max_suc
+                pl.permite_reportes_ia = permite_ia
+            planes_map[p_nom] = pl
 
-        # Plan Profesional: max 10 sucursales, con IA
-        plan_pro = db.query(Plan).filter(Plan.nombre == "Profesional").first()
-        if not plan_pro:
-            plan_pro = Plan(
-                id=uuid.uuid4(),
-                nombre="Profesional",
-                max_sucursales=10,
-                permite_reportes_ia=True,
-                activo=True
-            )
-            db.add(plan_pro)
-            db.flush()
-            print(" [+] Plan creado: Profesional (Máx 10 sucursales, Con IA)")
-        else:
-            plan_pro.max_sucursales = 10
-            plan_pro.permite_reportes_ia = True
+        plan_basico = planes_map["Basico"]
+        plan_pro = planes_map["Profesional"]
 
         pwd_default_hash = get_password_hash("cambiar-en-produccion")
 
