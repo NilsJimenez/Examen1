@@ -108,58 +108,6 @@ import { ToastService } from '../../services/toast.service';
               </button>
             </form>
 
-            <!-- Separador Estilizado -->
-            <div class="auth-divider">
-              <span>ACCESO RÁPIDO SAAS MULTI-TENANT (2DO PARCIAL)</span>
-            </div>
-
-            <!-- Botones de Rápido Acceso Demo SaaS -->
-            <div class="demo-buttons-grid" style="grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
-              <button 
-                type="button" 
-                (click)="fillCredentials('superadmin')" 
-                class="demo-access-btn"
-                title="Super Administrador Global de la Plataforma SaaS (CU01-CU04)"
-                style="border-color: #f59e0b;"
-              >
-                <i class="fa-solid fa-crown mr-1.5" style="color: #f59e0b;"></i>
-                <span style="font-size: 0.75rem; font-weight: 700;">SuperAdmin SaaS</span>
-              </button>
-
-              <button 
-                type="button" 
-                (click)="fillCredentials('empresa_a')" 
-                class="demo-access-btn"
-                title="Empresa A: Boutique Aurora (Plan Profesional, con IA, hasta 10 sucursales)"
-                style="border-color: #8b5cf6;"
-              >
-                <i class="fa-solid fa-gem mr-1.5" style="color: #8b5cf6;"></i>
-                <span style="font-size: 0.75rem; font-weight: 700;">Empresa A (Pro + IA)</span>
-              </button>
-
-              <button 
-                type="button" 
-                (click)="fillCredentials('empresa_b')" 
-                class="demo-access-btn"
-                title="Empresa B: Urban Wear (Plan Básico, sin IA, máx 2 sucursales)"
-                style="border-color: #3b82f6;"
-              >
-                <i class="fa-solid fa-shop mr-1.5" style="color: #3b82f6;"></i>
-                <span style="font-size: 0.75rem; font-weight: 700;">Empresa B (Básico)</span>
-              </button>
-
-              <button 
-                type="button" 
-                (click)="fillCredentials('cliente')" 
-                class="demo-access-btn"
-                title="Cargar credenciales de Cliente Web"
-                style="border-color: #10b981;"
-              >
-                <i class="fa-solid fa-user mr-1.5" style="color: #10b981;"></i>
-                <span style="font-size: 0.75rem; font-weight: 700;">Cliente Web</span>
-              </button>
-            </div>
-
             <!-- Enlace a Registro -->
             <div class="auth-footer-switch">
               <span>¿Aún no tienes cuenta?</span>
