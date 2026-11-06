@@ -39,10 +39,6 @@ import { Sucursal } from '../../models/sucursal.models';
                 <span>DESCUBRIR COLECCIÓN</span>
                 <i class="fa-solid fa-arrow-down ml-2"></i>
               </button>
-              <a routerLink="/planes" class="hero-secondary-btn" style="border: 1.5px solid #f59e0b; color: #f59e0b;">
-                <i class="fa-solid fa-crown mr-1.5" style="color: #f59e0b;"></i>
-                <span>PLANES PARA EMPRESAS</span>
-              </a>
               <a routerLink="/sucursales" class="hero-secondary-btn">
                 <i class="fa-solid fa-location-dot mr-1.5" style="color: var(--accent);"></i>
                 <span>NUESTRAS TIENDAS</span>

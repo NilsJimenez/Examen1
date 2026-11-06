@@ -14,29 +14,34 @@ import { CarritoService } from '../../services/carrito.service';
       <div class="flex items-center justify-between w-full px-4 lg:px-10" style="height: 74px;">
         
         <!-- Logo de la Marca en la Esquina Izquierda -->
-        <a routerLink="/" class="flex items-center gap-3.5 flex-shrink-0" style="text-decoration: none;">
+        <a [routerLink]="esSuperAdmin || esAdmin ? '/admin' : (esEncargado || esCajero ? '/encargado' : (esCliente ? '/catalogo' : '/'))" class="flex items-center gap-3.5 flex-shrink-0" style="text-decoration: none;">
           <span style="font-size: 1.8rem; color: var(--accent);"><i class="fa-solid fa-vest-patches"></i></span>
           <div>
             <span class="font-serif" style="font-size: 1.2rem; lg:font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text-main); display: block; line-height: 1.1;">FashionStore</span>
-            <span class="hidden sm:block" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--accent); font-weight: 700;">Vestidores Virtuales AR</span>
+            <span class="hidden sm:block" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--accent); font-weight: 700;">
+              {{ esSuperAdmin ? 'Plataforma SaaS Global' : 'Vestidores Virtuales AR' }}
+            </span>
           </div>
         </a>
 
-        <!-- Enlaces de Navegación según Rol (Desktop) -->
+        <!-- Enlaces de Navegación Estrictos según Rol (Desktop) -->
         <nav class="hidden lg:flex items-center gap-6 xl:gap-8">
           
-          <a routerLink="/catalogo" routerLinkActive="active-link" class="nav-link">
-            <i class="fa-solid fa-shirt"></i> Catálogo
-          </a>
-
-          <a *ngIf="!esEncargado && !esCajero" routerLink="/sucursales" routerLinkActive="active-link" class="nav-link">
-            <i class="fa-solid fa-shop"></i> Sucursales
-          </a>
-
-          <a *ngIf="!esEncargado && !esCajero" routerLink="/planes" routerLinkActive="active-link" class="nav-link font-bold" style="color: #f59e0b;">
+          <!-- Visitantes sin sesión: Planes SaaS de Suscripción -->
+          <a *ngIf="!authService.isLoggedIn" routerLink="/planes" routerLinkActive="active-link" class="nav-link font-bold" style="color: #f59e0b;">
             <i class="fa-solid fa-crown mr-1"></i> Planes SaaS
           </a>
 
+          <!-- Catálogo y Sucursales: Solo para Clientes, Visitantes o Admin de Tienda (NO SuperAdmin, Encargado ni Cajero) -->
+          <a *ngIf="!esSuperAdmin && !esEncargado && !esCajero" routerLink="/catalogo" routerLinkActive="active-link" class="nav-link">
+            <i class="fa-solid fa-shirt"></i> Catálogo
+          </a>
+
+          <a *ngIf="!esSuperAdmin && !esEncargado && !esCajero" routerLink="/sucursales" routerLinkActive="active-link" class="nav-link">
+            <i class="fa-solid fa-shop"></i> Sucursales
+          </a>
+
+          <!-- Opciones exclusivas de Cliente -->
           <ng-container *ngIf="authService.isLoggedIn && esCliente">
             <a routerLink="/lookbook" routerLinkActive="active-link" class="nav-link" style="color: #a78bfa; font-weight: bold;">
               <i class="fa-solid fa-wand-magic-sparkles"></i> Arma tu Outfit
@@ -53,14 +58,22 @@ import { CarritoService } from '../../services/carrito.service';
             </a>
           </ng-container>
 
+          <!-- Opciones exclusivas de Personal de Sucursal -->
           <a *ngIf="esEncargado" routerLink="/encargado" routerLinkActive="active-link" class="nav-link font-bold" style="color: #6366f1;">
             <i class="fa-solid fa-warehouse"></i> Panel Sucursal
           </a>
           <a *ngIf="esCajero" routerLink="/encargado" routerLinkActive="active-link" class="nav-link font-bold" style="color: #10b981;">
             <i class="fa-solid fa-cash-register"></i> Caja & Ventas
           </a>
-          <a *ngIf="esAdmin" routerLink="/admin" routerLinkActive="active-link" class="nav-link text-amber-600 font-bold" style="color: var(--accent);">
-            <i class="fa-solid fa-sliders"></i> Admin
+
+          <!-- Opción exclusiva Administrador de Empresa (Tenant) -->
+          <a *ngIf="esAdmin && !esSuperAdmin" routerLink="/admin" routerLinkActive="active-link" class="nav-link text-amber-600 font-bold" style="color: var(--accent);">
+            <i class="fa-solid fa-sliders"></i> Panel Empresa
+          </a>
+
+          <!-- Opción exclusiva SuperAdmin Global SaaS -->
+          <a *ngIf="esSuperAdmin" routerLink="/admin" routerLinkActive="active-link" class="nav-link font-bold" style="color: #f59e0b;">
+            <i class="fa-solid fa-crown"></i> Empresas SaaS &amp; Planes
           </a>
 
         </nav>
@@ -141,9 +154,9 @@ import { CarritoService } from '../../services/carrito.service';
       <!-- Mobile Menu Dropdown -->
       <div *ngIf="isMobileMenuOpen" class="lg:hidden absolute top-full left-0 w-full border-b shadow-lg" style="background-color: var(--card-bg); border-color: var(--border-color);">
         <div class="flex flex-col p-4 gap-4">
-          <a routerLink="/catalogo" (click)="closeMenu()" class="nav-link"><i class="fa-solid fa-shirt"></i> Catálogo</a>
-          <a *ngIf="!esEncargado && !esCajero" routerLink="/sucursales" (click)="closeMenu()" class="nav-link"><i class="fa-solid fa-shop"></i> Sucursales</a>
-          <a *ngIf="!esEncargado && !esCajero" routerLink="/planes" (click)="closeMenu()" class="nav-link font-bold" style="color: #f59e0b;"><i class="fa-solid fa-crown mr-1"></i> Planes SaaS</a>
+          <a *ngIf="!authService.isLoggedIn" routerLink="/planes" (click)="closeMenu()" class="nav-link font-bold" style="color: #f59e0b;"><i class="fa-solid fa-crown mr-1"></i> Planes SaaS</a>
+          <a *ngIf="!esSuperAdmin && !esEncargado && !esCajero" routerLink="/catalogo" (click)="closeMenu()" class="nav-link"><i class="fa-solid fa-shirt"></i> Catálogo</a>
+          <a *ngIf="!esSuperAdmin && !esEncargado && !esCajero" routerLink="/sucursales" (click)="closeMenu()" class="nav-link"><i class="fa-solid fa-shop"></i> Sucursales</a>
 
           <ng-container *ngIf="authService.isLoggedIn && esCliente">
             <a routerLink="/lookbook" (click)="closeMenu()" class="nav-link" style="color: #a78bfa; font-weight: bold;"><i class="fa-solid fa-wand-magic-sparkles"></i> Arma tu Outfit</a>
@@ -157,7 +170,8 @@ import { CarritoService } from '../../services/carrito.service';
 
           <a *ngIf="esEncargado" routerLink="/encargado" (click)="closeMenu()" class="nav-link font-bold" style="color: #6366f1;"><i class="fa-solid fa-warehouse"></i> Panel de Sucursal</a>
           <a *ngIf="esCajero" routerLink="/encargado" (click)="closeMenu()" class="nav-link font-bold" style="color: #10b981;"><i class="fa-solid fa-cash-register"></i> Caja & Ventas</a>
-          <a *ngIf="esAdmin" routerLink="/admin" (click)="closeMenu()" class="nav-link font-bold" style="color: var(--accent);"><i class="fa-solid fa-sliders"></i> Panel de Administración</a>
+          <a *ngIf="esAdmin && !esSuperAdmin" routerLink="/admin" (click)="closeMenu()" class="nav-link font-bold" style="color: var(--accent);"><i class="fa-solid fa-sliders"></i> Panel Empresa</a>
+          <a *ngIf="esSuperAdmin" routerLink="/admin" (click)="closeMenu()" class="nav-link font-bold" style="color: #f59e0b;"><i class="fa-solid fa-crown"></i> Empresas SaaS &amp; Planes</a>
 
           <hr style="border-color: var(--border-color);">
           

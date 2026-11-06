@@ -37,30 +37,23 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
               <i class="fa-solid fa-crown mr-1"></i> Super Administrador Global SaaS
             </span>
           </div>
-          <h1 class="font-serif text-3xl font-bold" style="color: var(--text-main);">Panel de Control Comercial</h1>
+          <h1 class="font-serif text-3xl font-bold" style="color: var(--text-main);">
+            {{ esSuperAdmin ? 'Gobernanza Global de Empresas SaaS' : 'Panel de Control Comercial' }}
+          </h1>
           <p class="text-sm mt-1" style="color: var(--text-muted);">
-            Plataforma Multi-tenant: Administración de empresas, inventarios, catálogo y sucursales aisladas.
+            {{ esSuperAdmin ? 'Exclusivo SuperAdmin: Alta de empresas (Tenants), control de planes de suscripción y estado operativo.' : 'Administración exclusiva de tu empresa: catálogo de prendas, inventario por sucursal, proveedores y personal.' }}
           </p>
         </div>
 
         <div class="flex items-center gap-3">
-          <button (click)="cargarDatosGenerales()" class="btn btn-outline" style="padding: 0.6rem 1.2rem;">
+          <button (click)="esSuperAdmin ? cargarTenants() : cargarDatosGenerales()" class="btn btn-outline" style="padding: 0.6rem 1.2rem;">
             <i class="fa-solid fa-rotate"></i> Actualizar Datos
           </button>
         </div>
       </div>
 
-      <!-- Navegación por Pestañas -->
-      <div class="flex items-center gap-4 mb-10 overflow-x-auto pb-4" style="flex-wrap: nowrap; overflow-x: auto;">
-        <!-- PESTAÑA SAAS MULTI-TENANT (CU01-CU04) -->
-        <button 
-          (click)="activeTab = 'saas'" 
-          [class.tab-btn-active]="activeTab === 'saas'" 
-          class="admin-tab-btn shrink-0" style="flex-shrink: 0; min-width: max-content; border: 1.5px solid #f59e0b;"
-        >
-          <i class="fa-solid fa-crown" style="color: #f59e0b;"></i> Empresas SaaS &amp; Planes (CU01-CU04)
-        </button>
-
+      <!-- Navegación por Pestañas (SOLO PARA ADMINISTRADOR DE TIENDA - El SuperAdmin solo ve su panel SaaS) -->
+      <div *ngIf="!esSuperAdmin" class="flex items-center gap-4 mb-10 overflow-x-auto pb-4" style="flex-wrap: nowrap; overflow-x: auto;">
         <button 
           (click)="activeTab = 'prendas'" 
           [class.tab-btn-active]="activeTab === 'prendas'" 
@@ -123,13 +116,9 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
 
 
       <!-- =================================================================== -->
-      <!-- PESTAÑA 1: PRENDAS DE ROPA                                          -->
+      <!-- VISTA EXCLUSIVA SUPERADMIN: GESTIÓN SAAS MULTI-TENANT (CU01-CU04)   -->
       <!-- =================================================================== -->
-      
-      <!-- =================================================================== -->
-      <!-- PESTAÑA: GESTIÓN SAAS MULTI-TENANT & PLANES (SUPERADMIN CU01-CU04)   -->
-      <!-- =================================================================== -->
-      <div *ngIf="activeTab === 'saas'" class="flex flex-col gap-8 animate-fade-in">
+      <div *ngIf="esSuperAdmin && activeTab === 'saas'" class="flex flex-col gap-8 animate-fade-in">
         
         <!-- 1. HERO BANNER SAAS ULTRA CLEAN -->
         <div class="card p-7" style="border: 1px solid var(--border-color); background: var(--card-bg); border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.04);">
@@ -2651,9 +2640,11 @@ export class AdminPanelComponent implements OnInit {
     }
     if (this.esSuperAdmin) {
       this.activeTab = 'saas';
+      this.cargarTenants();
+    } else {
+      this.activeTab = 'prendas';
+      this.cargarDatosGenerales();
     }
-    this.cargarDatosGenerales();
-    this.cargarTenants();
   }
 
   cargarDatosGenerales(): void {

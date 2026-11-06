@@ -1055,7 +1055,22 @@ export class PlanesSaasComponent implements OnInit {
     }
   ];
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    // Si ya hay una sesión activa, redirigir automáticamente a la vista exclusiva de su rol
+    if (this.authService.isLoggedIn) {
+      const rol = (this.authService.currentUserValue?.role || '').toLowerCase();
+      if (rol === 'superadmin' || rol === 'administrador' || rol === 'admin') {
+        this.router.navigate(['/admin']);
+        return;
+      } else if (rol === 'encargado_sucursal' || rol === 'encargado' || rol === 'cajero') {
+        this.router.navigate(['/encargado']);
+        return;
+      } else {
+        this.router.navigate(['/catalogo']);
+        return;
+      }
+    }
+  }
 
   abrirModalSuscripcion(plan: PlanCardConfig): void {
     this.planSeleccionado = plan;

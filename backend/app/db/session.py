@@ -10,12 +10,14 @@ if db_url.startswith("postgres://"):
 elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+"):
     db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
-# Engine de conexión con pooling optimizado para PostgreSQL
+# Engine de conexión con pooling optimizado para Supabase Session Pooler (máx 15 conexiones totales)
 engine = create_engine(
     db_url,
     pool_pre_ping=True,  # Verifica que la conexión a Supabase siga viva antes de usarla
-    pool_size=10,
-    max_overflow=20
+    pool_size=3,
+    max_overflow=5,
+    pool_recycle=180,
+    pool_timeout=30
 )
 
 # Fábrica de sesiones de base de datos
