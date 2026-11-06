@@ -1,7 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 
@@ -26,6 +26,16 @@ import { ToastService } from '../../services/toast.service';
             <div class="auth-header">
               <h2 class="auth-title">INICIAR SESIÓN</h2>
               <div class="auth-title-line"></div>
+            </div>
+
+            <!-- Distintivo si viene con un plan seleccionado desde /planes -->
+            <div *ngIf="planPreseleccionado" class="p-3 rounded-xl mb-4" style="background: rgba(245, 158, 11, 0.12); border: 1.5px solid var(--accent);">
+              <span class="text-xs font-extrabold block" style="color: var(--accent);">
+                <i class="fa-solid fa-crown mr-1"></i> PLAN {{ planPreseleccionado.toUpperCase() }} SELECCIONADO
+              </span>
+              <span class="text-xs block mt-0.5" style="color: var(--text-muted);">
+                Inicia sesión si tu empresa ya está registrada, o <a [routerLink]="['/registro']" [queryParams]="{ plan: planPreseleccionado }" style="color: var(--accent); font-weight: 800; text-decoration: underline;">crea tu cuenta empresarial aquí</a> para ir a la pasarela de pago.
+              </span>
             </div>
 
             <!-- Mensaje de Error -->
@@ -153,7 +163,7 @@ import { ToastService } from '../../services/toast.service';
             <!-- Enlace a Registro -->
             <div class="auth-footer-switch">
               <span>¿Aún no tienes cuenta?</span>
-              <a routerLink="/registro" class="switch-link">
+              <a [routerLink]="['/registro']" [queryParams]="planPreseleccionado ? { plan: planPreseleccionado } : {}" class="switch-link">
                 Regístrate aquí
               </a>
             </div>
@@ -796,10 +806,19 @@ import { ToastService } from '../../services/toast.service';
     }
   `]
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private authService = inject(AuthService);
+  private route = inject(ActivatedRoute);
   private router = inject(Router);
   private toastService = inject(ToastService);
+
+  planPreseleccionado: string | null = null;
+
+  ngOnInit(): void {
+    this.route.queryParams.subscribe(params => {
+      this.planPreseleccionado = params['plan'] || null;
+    });
+  }
 
   // Estados de vista
   viewState: 'login' | 'forgot_email' | 'forgot_code' | 'forgot_password' = 'login';

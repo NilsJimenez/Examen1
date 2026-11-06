@@ -1,9 +1,19 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
+
+interface PlanResumen {
+  id: 'Basico' | 'Estandar' | 'Profesional';
+  nombre: string;
+  precioUsd: number;
+  precioBs: number;
+  sucursales: number;
+  ia: boolean;
+  color: string;
+}
 
 @Component({
   selector: 'app-registro',
@@ -22,8 +32,39 @@ import { ToastService } from '../../services/toast.service';
           
           <!-- Encabezado con línea de acento dorado -->
           <div class="auth-header">
-            <h2 class="auth-title">CREA TU CUENTA</h2>
+            <h2 class="auth-title">
+              {{ esSuscripcionSaas ? 'CREA TU CUENTA EMPRESARIAL' : 'CREA TU CUENTA' }}
+            </h2>
             <div class="auth-title-line"></div>
+          </div>
+
+          <!-- BANNER DEL PLAN SELECCIONADO (CUANDO VIENE DESDE /PLANES) -->
+          <div *ngIf="esSuscripcionSaas && planInfoActual" class="saas-plan-banner">
+            <div class="flex items-center justify-between mb-2">
+              <span class="saas-plan-badge" [style.color]="planInfoActual.color" [style.border-color]="planInfoActual.color">
+                <i class="fa-solid fa-crown mr-1"></i> PLAN {{ planInfoActual.nombre.toUpperCase() }} SELECCIONADO
+              </span>
+              <span class="font-serif font-extrabold text-sm" style="color: var(--accent);">
+                &#36;{{ planInfoActual.precioUsd }} / mes (Bs. {{ planInfoActual.precioBs | number:'1.2-2' }})
+              </span>
+            </div>
+            <p class="text-xs mb-2.5" style="color: var(--text-muted);">
+              Incluye hasta <strong>{{ planInfoActual.sucursales }} sucursales físicas</strong>, POS Offline-First y {{ planInfoActual.ia ? 'Reportes IA + Machine Learning' : 'Control de Inventario Matriz' }}.
+            </p>
+            <!-- Selector rápido para cambiar entre los 3 planes -->
+            <div class="plan-mini-Booking-grid">
+              <button 
+                *ngFor="let p of planesDisponibles"
+                type="button"
+                (click)="seleccionarPlan(p.id)"
+                class="plan-mini-btn"
+                [class.active]="planSeleccionado === p.id"
+                [style.border-color]="planSeleccionado === p.id ? p.color : 'var(--border-color)'"
+              >
+                <span class="block font-bold" style="font-size: 0.7rem; color: var(--text-main);">{{ p.nombre }}</span>
+                <span class="block font-semibold" style="font-size: 0.65rem;" [style.color]="p.color">&#36;{{ p.precioUsd }}/m</span>
+              </button>
+            </div>
           </div>
 
           <!-- Mensaje de Error -->
@@ -34,11 +75,42 @@ import { ToastService } from '../../services/toast.service';
 
           <form (ngSubmit)="onSubmit()" class="auth-form">
             
+            <!-- Campos de Empresa (Solo cuando está adquiriendo un Plan SaaS) -->
+            <div *ngIf="esSuscripcionSaas" class="auth-row-2col">
+              <div class="auth-field-group">
+                <label class="auth-label">
+                  RAZÓN SOCIAL / EMPRESA <span class="required-star">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  name="razonSocial"
+                  [(ngModel)]="razonSocial" 
+                  required
+                  placeholder="Ej: Boutique Elegance S.R.L."
+                  class="auth-input" 
+                />
+              </div>
+
+              <div class="auth-field-group">
+                <label class="auth-label">
+                  NIT CORPORATIVO <span class="required-star">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  name="nit"
+                  [(ngModel)]="nit" 
+                  required
+                  placeholder="Ej: 3049581015"
+                  class="auth-input" 
+                />
+              </div>
+            </div>
+
             <!-- Fila: Nombres y Apellidos (2 columnas) -->
             <div class="auth-row-2col">
               <div class="auth-field-group">
                 <label class="auth-label">
-                  NOMBRES <span class="required-star">*</span>
+                  {{ esSuscripcionSaas ? 'NOMBRES DEL ADMINISTRADOR' : 'NOMBRES' }} <span class="required-star">*</span>
                 </label>
                 <input 
                   type="text" 
@@ -52,7 +124,7 @@ import { ToastService } from '../../services/toast.service';
 
               <div class="auth-field-group">
                 <label class="auth-label">
-                  APELLIDOS <span class="required-star">*</span>
+                  {{ esSuscripcionSaas ? 'APELLIDOS DEL ADMINISTRADOR' : 'APELLIDOS' }} <span class="required-star">*</span>
                 </label>
                 <input 
                   type="text" 
@@ -75,7 +147,7 @@ import { ToastService } from '../../services/toast.service';
                 name="email"
                 [(ngModel)]="email" 
                 required
-                placeholder="tu.correo@ejemplo.com"
+                [placeholder]="esSuscripcionSaas ? 'admin@tuempresa.com' : 'tu.correo@ejemplo.com'"
                 class="auth-input" 
               />
             </div>
@@ -105,8 +177,8 @@ import { ToastService } from '../../services/toast.service';
               </div>
             </div>
 
-            <!-- Fila Opcional: Teléfono y Ciudad/Dirección -->
-            <div class="auth-row-2col">
+            <!-- Fila Opcional: Teléfono y Ciudad/Dirección (Solo en modo Cliente) -->
+            <div *ngIf="!esSuscripcionSaas" class="auth-row-2col">
               <div class="auth-field-group">
                 <label class="auth-label">
                   TELÉFONO / CELULAR
@@ -140,16 +212,19 @@ import { ToastService } from '../../services/toast.service';
               [disabled]="loading" 
               class="auth-submit-btn"
             >
-              <span *ngIf="loading"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> REGISTRANDO...</span>
-              <span *ngIf="!loading">CREAR CUENTA DE CLIENTE</span>
+              <span *ngIf="loading"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> PROCESANDO...</span>
+              <span *ngIf="!loading && esSuscripcionSaas">
+                <i class="fa-solid fa-shield-halved mr-2"></i> CONTINUAR A LA PASARELA DE PAGO (Bs. {{ planInfoActual?.precioBs | number:'1.2-2' }})
+              </span>
+              <span *ngIf="!loading && !esSuscripcionSaas">CREAR CUENTA DE CLIENTE</span>
             </button>
 
           </form>
 
-          <!-- Enlace a Iniciar Sesión -->
+          <!-- Enlace a Iniciar Sesión (Conserva el plan si viene desde /planes) -->
           <div class="auth-footer-switch">
             <span>¿Ya tienes una cuenta registrada?</span>
-            <a routerLink="/login" class="switch-link">
+            <a [routerLink]="['/login']" [queryParams]="esSuscripcionSaas ? { plan: planSeleccionado } : {}" class="switch-link">
               Inicia sesión aquí
             </a>
           </div>
@@ -161,8 +236,8 @@ import { ToastService } from '../../services/toast.service';
         <!-- ================================================================= -->
         <div class="auth-image-column">
           
-          <!-- Botón de Cerrar (X) que regresa al catálogo -->
-          <button (click)="cerrarModal()" class="close-modal-btn" title="Cerrar y volver al catálogo">
+          <!-- Botón de Cerrar (X) -->
+          <button (click)="cerrarModal()" class="close-modal-btn" title="Cerrar y volver">
             <i class="fa-solid fa-xmark"></i>
           </button>
 
@@ -172,15 +247,17 @@ import { ToastService } from '../../services/toast.service';
           <!-- Contenido Tipográfico de Alta Costura sobre la Imagen -->
           <div class="auth-image-content">
             <span class="editorial-tag">
-              <i class="fa-solid fa-crown mr-1.5"></i> CLUB DE CLIENTES VIP
+              <i class="fa-solid fa-crown mr-1.5"></i> {{ esSuscripcionSaas ? 'PLATAFORMA CLOUD SAAS' : 'CLUB DE CLIENTES VIP' }}
             </span>
-            <h3 class="editorial-brand">EXPERIENCIA EXCLUSIVA</h3>
+            <h3 class="editorial-brand">{{ esSuscripcionSaas ? 'EXPANDE TU MARCA' : 'EXPERIENCIA EXCLUSIVA' }}</h3>
             <p class="editorial-headline">
-              RESERVA TUS PRENDAS FAVORITAS
+              {{ esSuscripcionSaas ? 'PASARELA DE PAGO SEGURA CON QR Y TARJETA' : 'RESERVA TUS PRENDAS FAVORITAS' }}
             </p>
             <div class="editorial-separator"></div>
             <p class="editorial-subtext">
-              Pruébate ropa en Realidad Aumentada desde tu hogar o agenda tu visita en probadores físicos para tener tu vestidor preparado al llegar
+              {{ esSuscripcionSaas 
+                ? 'Crea tu cuenta administradora, paga tu suscripción mediante QR Simple o Tarjeta de Crédito/Débito y activa tus sucursales al instante.' 
+                : 'Pruébate ropa en Realidad Aumentada desde tu hogar o agenda tu visita en probadores físicos para tener tu vestidor preparado al llegar.' }}
             </p>
           </div>
 
@@ -196,15 +273,14 @@ import { ToastService } from '../../services/toast.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 3rem 1.5rem;
+      padding: 2.5rem 1.5rem;
       background: var(--bg-main);
     }
 
-    /* Card Split de 2 Columnas */
     .auth-split-card {
       display: grid;
-      grid-template-columns: 1.25fr 1fr;
-      max-width: 1020px;
+      grid-template-columns: 1.3fr 1fr;
+      max-width: 1060px;
       width: 100%;
       background: var(--card-bg);
       border: 1.5px solid var(--border-color);
@@ -217,35 +293,28 @@ import { ToastService } from '../../services/toast.service';
     @media (max-width: 860px) {
       .auth-split-card {
         grid-template-columns: 1fr;
-        max-width: 520px;
+        max-width: 540px;
       }
       .auth-image-column {
         display: none;
       }
     }
 
-    /* Columna Izquierda: Formulario */
     .auth-form-column {
-      padding: 3rem 2.75rem;
+      padding: 2.5rem 2.5rem;
       display: flex;
       flex-direction: column;
       justify-content: center;
       background: var(--card-bg);
     }
 
-    @media (max-width: 480px) {
-      .auth-form-column {
-        padding: 2.25rem 1.75rem;
-      }
-    }
-
     .auth-header {
-      margin-bottom: 2rem;
+      margin-bottom: 1.35rem;
     }
 
     .auth-title {
       font-family: var(--font-sans);
-      font-size: 1.25rem;
+      font-size: 1.2rem;
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -258,7 +327,48 @@ import { ToastService } from '../../services/toast.service';
       height: 3px;
       background: var(--accent);
       border-radius: 2px;
-      margin-top: 0.6rem;
+      margin-top: 0.5rem;
+    }
+
+    /* Banner del Plan SaaS */
+    .saas-plan-banner {
+      background: var(--table-th-bg);
+      border: 1.5px solid var(--accent);
+      border-radius: 14px;
+      padding: 0.9rem 1.1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .saas-plan-badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      padding: 0.18rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid;
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .plan-mini-Booking-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+
+    .plan-mini-btn {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.35rem 0.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .plan-mini-btn.active {
+      background: rgba(245, 158, 11, 0.12);
     }
 
     .auth-alert-error {
@@ -268,7 +378,7 @@ import { ToastService } from '../../services/toast.service';
       padding: 0.85rem 1.15rem;
       border-radius: 8px;
       font-size: 0.85rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.2rem;
       display: flex;
       align-items: center;
     }
@@ -276,19 +386,18 @@ import { ToastService } from '../../services/toast.service';
     .auth-form {
       display: flex;
       flex-direction: column;
-      gap: 1.4rem;
+      gap: 1.1rem;
     }
 
     .auth-row-2col {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 1.25rem;
+      gap: 1rem;
     }
 
     @media (max-width: 520px) {
       .auth-row-2col {
         grid-template-columns: 1fr;
-        gap: 1.35rem;
       }
     }
 
@@ -298,12 +407,12 @@ import { ToastService } from '../../services/toast.service';
     }
 
     .auth-label {
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       font-weight: 800;
       letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--text-muted);
-      margin-bottom: 0.45rem;
+      margin-bottom: 0.35rem;
     }
 
     .required-star {
@@ -313,12 +422,12 @@ import { ToastService } from '../../services/toast.service';
 
     .auth-input {
       width: 100%;
-      padding: 0.85rem 1.1rem;
+      padding: 0.75rem 1rem;
       border: 1.5px solid var(--border-color);
       border-radius: 8px;
       background: var(--input-bg);
       color: var(--text-main);
-      font-size: 0.92rem;
+      font-size: 0.88rem;
       transition: all 0.2s ease;
       outline: none;
       box-sizing: border-box;
@@ -329,12 +438,6 @@ import { ToastService } from '../../services/toast.service';
       box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
     }
 
-    .auth-input::placeholder {
-      color: var(--text-muted);
-      opacity: 0.6;
-    }
-
-    /* Wrapper de Contraseña con Botón de Ojo */
     .password-input-wrapper {
       position: relative;
       width: 100%;
@@ -355,51 +458,35 @@ import { ToastService } from '../../services/toast.service';
       font-size: 0.95rem;
       cursor: pointer;
       padding: 0.35rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: color 0.15s ease;
     }
 
-    .password-toggle-btn:hover {
-      color: var(--accent);
-    }
-
-    /* Botón Submit */
     .auth-submit-btn {
       width: 100%;
-      padding: 1rem;
-      background: var(--primary);
-      color: var(--primary-text);
+      padding: 0.95rem;
+      background: var(--accent);
+      color: #18181b;
       font-family: var(--font-sans);
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 800;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       border: none;
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.2s ease;
-      margin-top: 0.75rem;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+      margin-top: 0.5rem;
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
     }
 
     .auth-submit-btn:hover:not(:disabled) {
-      background: var(--accent);
-      color: #ffffff;
+      filter: brightness(1.08);
       transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3);
-    }
-
-    .auth-submit-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
     }
 
     .auth-footer-switch {
-      margin-top: 2rem;
+      margin-top: 1.5rem;
       text-align: center;
-      font-size: 0.86rem;
+      font-size: 0.84rem;
       color: var(--text-muted);
     }
 
@@ -410,11 +497,6 @@ import { ToastService } from '../../services/toast.service';
       margin-left: 0.35rem;
     }
 
-    .switch-link:hover {
-      text-decoration: underline;
-    }
-
-    /* Columna Derecha: Imagen Editorial de Moda */
     .auth-image-column {
       position: relative;
       background-image: url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1200&auto=format&fit=crop&q=80');
@@ -454,14 +536,6 @@ import { ToastService } from '../../services/toast.service';
       justify-content: center;
       cursor: pointer;
       z-index: 10;
-      transition: all 0.2s ease;
-      font-size: 0.9rem;
-    }
-
-    .close-modal-btn:hover {
-      background: var(--accent);
-      border-color: var(--accent);
-      transform: scale(1.08);
     }
 
     .auth-image-content {
@@ -518,10 +592,16 @@ import { ToastService } from '../../services/toast.service';
     }
   `]
 })
-export class RegistroComponent {
+export class RegistroComponent implements OnInit {
   private authService = inject(AuthService);
+  private route = inject(ActivatedRoute);
   private router = inject(Router);
   private toastService = inject(ToastService);
+
+  esSuscripcionSaas: boolean = false;
+  planSeleccionado: 'Basico' | 'Estandar' | 'Profesional' = 'Profesional';
+  razonSocial: string = '';
+  nit: string = '';
 
   nombres: string = '';
   apellidos: string = '';
@@ -533,12 +613,36 @@ export class RegistroComponent {
   loading: boolean = false;
   errorMessage: string = '';
 
+  planesDisponibles: PlanResumen[] = [
+    { id: 'Basico', nombre: 'Básico', precioUsd: 19.99, precioBs: 139.00, sucursales: 2, ia: false, color: '#a1a1aa' },
+    { id: 'Estandar', nombre: 'Estándar', precioUsd: 39.99, precioBs: 278.00, sucursales: 4, ia: false, color: '#d97706' },
+    { id: 'Profesional', nombre: 'Profesional', precioUsd: 79.99, precioBs: 556.00, sucursales: 10, ia: true, color: '#f59e0b' }
+  ];
+
+  get planInfoActual(): PlanResumen | undefined {
+    return this.planesDisponibles.find(p => p.id === this.planSeleccionado);
+  }
+
+  ngOnInit(): void {
+    this.route.queryParams.subscribe(params => {
+      const planParam = params['plan'];
+      if (planParam === 'Basico' || planParam === 'Estandar' || planParam === 'Profesional') {
+        this.esSuscripcionSaas = true;
+        this.planSeleccionado = planParam;
+      }
+    });
+  }
+
+  seleccionarPlan(id: 'Basico' | 'Estandar' | 'Profesional'): void {
+    this.planSeleccionado = id;
+  }
+
   toggleMostrarPassword(): void {
     this.mostrarPassword = !this.mostrarPassword;
   }
 
   cerrarModal(): void {
-    this.router.navigate(['/catalogo']);
+    this.router.navigate([this.esSuscripcionSaas ? '/planes' : '/catalogo']);
   }
 
   onSubmit(): void {
@@ -548,6 +652,38 @@ export class RegistroComponent {
       return;
     }
 
+    // MODO 1: SUSCRIPCIÓN EMPRESARIAL SAAS -> IR A LA PASARELA DE PAGO (/pago/saas)
+    if (this.esSuscripcionSaas) {
+      if (!this.razonSocial.trim() || !this.nit.trim()) {
+        this.errorMessage = 'Por favor ingresa la Razón Social y el NIT de tu empresa.';
+        this.toastService.warning('Datos de Empresa Requeridos', this.errorMessage);
+        return;
+      }
+
+      const plan = this.planInfoActual!;
+      const pendingSaas = {
+        tipo_checkout: 'SAAS_ONBOARDING',
+        razon_social: this.razonSocial.trim(),
+        nit: this.nit.trim(),
+        plan_nombre: this.planSeleccionado,
+        plan_etiqueta: plan.nombre,
+        precio_usd: plan.precioUsd,
+        total_bs: plan.precioBs,
+        max_sucursales: plan.sucursales,
+        permite_ia: plan.ia,
+        admin_nombre: this.nombres.trim(),
+        admin_apellido: this.apellidos.trim(),
+        admin_email: this.email.trim(),
+        admin_password: this.password
+      };
+
+      sessionStorage.setItem('saas_pending_onboarding', JSON.stringify(pendingSaas));
+      this.toastService.success('Cuenta Preparada', `Redirigiendo a la Pasarela de Pago para activar el Plan ${plan.nombre}.`);
+      this.router.navigate(['/pago/saas']);
+      return;
+    }
+
+    // MODO 2: REGISTRO NORMAL DE CLIENTE COMPRADOR
     this.loading = true;
     this.errorMessage = '';
 

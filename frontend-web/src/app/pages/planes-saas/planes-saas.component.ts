@@ -1073,9 +1073,8 @@ export class PlanesSaasComponent implements OnInit {
   }
 
   abrirModalSuscripcion(plan: PlanCardConfig): void {
-    this.planSeleccionado = plan;
-    this.form.plan_nombre = plan.id_plan;
-    this.mostrarModal = true;
+    // Redirigir a la vista de Registro/Login llevando el plan seleccionado
+    this.router.navigate(['/registro'], { queryParams: { plan: plan.id_plan } });
   }
 
   cambiarPlanEnModal(plan: PlanCardConfig): void {

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { VentaService } from '../../services/venta.service';
 import { CarritoService } from '../../services/carrito.service';
+import { SaasService } from '../../services/saas.service';
 import { ToastService } from '../../services/toast.service';
 
 @Component({
@@ -20,10 +21,12 @@ import { ToastService } from '../../services/toast.service';
             <i class="fa-solid fa-circle-check"></i>
           </div>
           <h2 class="font-serif text-3xl font-bold mb-2" style="color: var(--text-main);">
-            ¡Pago Aprobado Exitosamente!
+            {{ esSuscripcionSaas ? '¡Suscripción SaaS Activada Exitosamente!' : '¡Pago Aprobado Exitosamente!' }}
           </h2>
           <p class="text-sm max-w-md mx-auto mb-6" style="color: var(--text-muted);">
-            Tu transacción fue verificada. El inventario ha sido actualizado y tu orden está siendo preparada para entrega.
+            {{ esSuscripcionSaas 
+              ? 'Tu pago fue verificado. Tu espacio de trabajo Multi-Tenant aislado y tu cuenta administradora ya están activos.' 
+              : 'Tu transacción fue verificada. El inventario ha sido actualizado y tu orden está siendo preparada para entrega.' }}
           </p>
 
           <!-- Tarjeta de Comprobante -->
@@ -42,15 +45,23 @@ import { ToastService } from '../../services/toast.service';
                 <span>N° Comprobante:</span>
                 <strong class="font-mono text-sm" style="color: var(--text-main);">{{ comprobanteNumero }}</strong>
               </div>
-              <div class="flex justify-between" style="color: var(--text-muted);">
+              <div *ngIf="!esSuscripcionSaas" class="flex justify-between" style="color: var(--text-muted);">
                 <span>N° de Orden:</span>
                 <strong style="color: var(--text-main);">#{{ ventaId }}</strong>
+              </div>
+              <div *ngIf="esSuscripcionSaas" class="flex justify-between" style="color: var(--text-muted);">
+                <span>Empresa Suscrita:</span>
+                <strong style="color: var(--text-main);">{{ saasPending?.razon_social }} (NIT: {{ saasPending?.nit }})</strong>
+              </div>
+              <div *ngIf="esSuscripcionSaas" class="flex justify-between" style="color: var(--text-muted);">
+                <span>Plan Activado:</span>
+                <strong style="color: var(--accent);">Plan {{ saasPending?.plan_etiqueta }} (Máx. {{ saasPending?.max_sucursales }} sucursales)</strong>
               </div>
               <div class="flex justify-between" style="color: var(--text-muted);">
                 <span>Método de Pago:</span>
                 <span class="capitalize font-semibold" style="color: var(--text-main);">{{ formatearMetodo(metodoPago) }}</span>
               </div>
-              <div class="flex justify-between" style="color: var(--text-muted);">
+              <div *ngIf="!esSuscripcionSaas" class="flex justify-between" style="color: var(--text-muted);">
                 <span>Entrega:</span>
                 <span class="font-semibold" style="color: var(--text-main);">{{ orden?.metodo_entrega === 'delivery' ? 'Envío a Domicilio' : 'Retiro en Tienda' }}</span>
               </div>
@@ -61,13 +72,19 @@ import { ToastService } from '../../services/toast.service';
             </div>
           </div>
 
-          <div class="flex flex-wrap justify-center gap-4">
+          <div *ngIf="!esSuscripcionSaas" class="flex flex-wrap justify-center gap-4">
             <a routerLink="/mis-compras" class="btn btn-primary" style="padding: 0.75rem 1.6rem; display: inline-flex; align-items: center; gap: 0.5rem;">
               <i class="fa-solid fa-bag-shopping"></i> Ver Mis Compras
             </a>
             <a routerLink="/catalogo" class="btn btn-outline" style="padding: 0.75rem 1.6rem; display: inline-flex; align-items: center; gap: 0.5rem;">
               <i class="fa-solid fa-shirt"></i> Seguir Comprando
             </a>
+          </div>
+
+          <div *ngIf="esSuscripcionSaas" class="flex flex-wrap justify-center gap-4">
+            <button type="button" (click)="irAlPanelEmpresa()" class="btn btn-primary" style="padding: 0.85rem 2rem; background: var(--accent); color: #18181b; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-sliders"></i> Ir al Panel de Administración de mi Empresa
+            </button>
           </div>
         </div>
 
@@ -81,13 +98,21 @@ import { ToastService } from '../../services/toast.service';
                 <i class="fa-solid fa-shield-halved" style="color: var(--accent);"></i> Pasarela de Pago
               </h1>
               <p class="text-xs sm:text-sm mt-1" style="color: var(--text-muted);">
-                Selecciona tu forma de pago para liquidar la orden <strong style="color: var(--text-main);">#{{ ventaId }}</strong>
+                <ng-container *ngIf="esSuscripcionSaas">
+                  Selecciona tu forma de pago para activar el <strong style="color: var(--accent);">Plan {{ saasPending?.plan_etiqueta }}</strong> de <strong style="color: var(--text-main);">{{ saasPending?.razon_social }}</strong>
+                </ng-container>
+                <ng-container *ngIf="!esSuscripcionSaas">
+                  Selecciona tu forma de pago para liquidar la orden <strong style="color: var(--text-main);">#{{ ventaId }}</strong>
+                </ng-container>
               </p>
             </div>
             <div class="text-right">
               <span class="block text-xs" style="color: var(--text-muted);">Total a Cancelar</span>
               <span class="font-serif text-xl sm:text-2xl font-bold" style="color: var(--accent);">
                 Bs. {{ (monto > 0 ? monto : (orden?.total || 0)) | number:'1.2-2' }}
+              </span>
+              <span *ngIf="esSuscripcionSaas" class="block text-xs font-bold" style="color: var(--text-muted);">
+                (&#36;{{ saasPending?.precio_usd }} USD / Mes)
               </span>
             </div>
           </div>
@@ -99,7 +124,7 @@ import { ToastService } from '../../services/toast.service';
 
           <div *ngIf="!cargandoOrden" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
-            <!-- Columna Izquierda: Métodos de Pago y Formularios (8 cols) -->
+            <!-- Columna Izquierda: Métodos de Pago y Formularios (7 cols) -->
             <div class="lg:col-span-7 flex flex-col gap-6">
 
               <!-- Selector de Métodos de Pago -->
@@ -191,7 +216,9 @@ import { ToastService } from '../../services/toast.service';
 
                 <div class="w-full p-3 rounded-xl mb-5 flex items-center justify-between text-xs" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
                   <span style="color: var(--text-muted);">Concepto:</span>
-                  <span class="font-mono font-bold" style="color: var(--text-main);">FASHIONSTORE-ORDEN-{{ ventaId }}</span>
+                  <span class="font-mono font-bold" style="color: var(--text-main);">
+                    {{ esSuscripcionSaas ? ('SAAS-PLAN-' + (saasPending?.plan_nombre || 'PRO').toUpperCase() + '-' + (saasPending?.nit || '')) : ('FASHIONSTORE-ORDEN-' + ventaId) }}
+                  </span>
                 </div>
 
                 <button 
@@ -304,7 +331,7 @@ import { ToastService } from '../../services/toast.service';
                     <strong class="block text-sm mb-0.5 font-bold">Transacción Declinada por la Pasarela</strong>
                     <span>{{ mensajeErrorRechazo }}</span>
                     <div class="mt-1.5 text-[11px] opacity-80">
-                      El inventario se mantiene intacto. Puedes desmarcar la simulación y reintentar la operación.
+                      Puedes desmarcar la simulación y reintentar la operación.
                     </div>
                   </div>
                 </div>
@@ -329,24 +356,22 @@ import { ToastService } from '../../services/toast.service';
                   <i class="fa-solid fa-hand-holding-dollar text-3xl" style="color: var(--accent);"></i>
                   <div class="text-xs">
                     <strong class="block text-sm mb-0.5" style="color: var(--text-main);">
-                      {{ orden?.metodo_entrega === 'delivery' ? 'Pago Contra Entrega' : 'Pago en Caja de Sucursal' }}
+                      {{ esSuscripcionSaas ? 'Depósito o Pago en Oficinas Centrales' : (orden?.metodo_entrega === 'delivery' ? 'Pago Contra Entrega' : 'Pago en Caja de Sucursal') }}
                     </strong>
                     <span style="color: var(--text-muted);">
-                      {{ orden?.metodo_entrega === 'delivery' 
-                        ? 'Pagarás en efectivo directamente al repartidor al recibir el paquete en tu dirección registrada.' 
-                        : 'Pagarás en caja al momento de recoger tus prendas en nuestra sucursal presentando tu número de orden.' }}
+                      {{ esSuscripcionSaas 
+                        ? 'Se activará tu suscripción de inmediato y se registrará el comprobante de pago en efectivo para tu NIT corporativo.' 
+                        : (orden?.metodo_entrega === 'delivery' 
+                          ? 'Pagarás en efectivo directamente al repartidor al recibir el paquete en tu dirección registrada.' 
+                          : 'Pagarás en caja al momento de recoger tus prendas en nuestra sucursal presentando tu número de orden.') }}
                     </span>
                   </div>
                 </div>
 
                 <div class="p-4 rounded-xl text-xs flex flex-col gap-2" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
                   <div class="flex justify-between" style="color: var(--text-muted);">
-                    <span>Monto Exacto a Preparar:</span>
+                    <span>Monto Exacto a Cancelar:</span>
                     <strong class="font-serif text-sm" style="color: var(--accent);">Bs. {{ (monto > 0 ? monto : (orden?.total || 0)) | number:'1.2-2' }}</strong>
-                  </div>
-                  <div *ngIf="orden?.direccion_envio" class="flex justify-between" style="color: var(--text-muted);">
-                    <span>Dirección de Cobro:</span>
-                    <span class="font-semibold" style="color: var(--text-main);">{{ orden?.direccion_envio }}</span>
                   </div>
                 </div>
 
@@ -356,8 +381,8 @@ import { ToastService } from '../../services/toast.service';
                   class="btn btn-primary w-full mt-2"
                   style="padding: 0.85rem; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
                 >
-                  <span *ngIf="loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Registrando Pedido...</span>
-                  <span *ngIf="!loading"><i class="fa-solid fa-check"></i> Confirmar Pedido en Efectivo (Bs. {{ (monto > 0 ? monto : (orden?.total || 0)) | number:'1.2-2' }})</span>
+                  <span *ngIf="loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Procesando...</span>
+                  <span *ngIf="!loading"><i class="fa-solid fa-check"></i> Confirmar Pago en Efectivo (Bs. {{ (monto > 0 ? monto : (orden?.total || 0)) | number:'1.2-2' }})</span>
                 </button>
               </div>
 
@@ -367,9 +392,67 @@ import { ToastService } from '../../services/toast.service';
 
             </div>
 
-            <!-- Columna Derecha: Resumen de Orden (5 cols) -->
+            <!-- Columna Derecha: Resumen de Orden / Suscripción SaaS (5 cols) -->
             <div class="lg:col-span-5 flex flex-col gap-4">
-              <div class="card p-6 sticky top-24">
+              
+              <!-- MODO SUSCRIPCIÓN SAAS -->
+              <div *ngIf="esSuscripcionSaas" class="card p-6 sticky top-24">
+                <h3 class="font-serif text-lg font-bold pb-3 mb-3 flex items-center justify-between" style="color: var(--text-main); border-bottom: 1px solid var(--border-color);">
+                  <span>Resumen de Suscripción</span>
+                  <span class="badge" style="background: rgba(245, 158, 11, 0.18); color: #f59e0b; font-size: 0.68rem;">SAAS CLOUD</span>
+                </h3>
+
+                <div class="flex flex-col gap-3 text-xs mb-4">
+                  <div class="p-3 rounded-xl" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+                    <span class="block text-[10px] uppercase font-bold" style="color: var(--text-muted);">Empresa (Tenant)</span>
+                    <strong class="text-sm block mt-0.5" style="color: var(--text-main);">{{ saasPending?.razon_social }}</strong>
+                    <span class="text-xs" style="color: var(--text-muted);">NIT: {{ saasPending?.nit }}</span>
+                  </div>
+
+                  <div class="p-3 rounded-xl" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+                    <span class="block text-[10px] uppercase font-bold" style="color: var(--text-muted);">Administrador Asignado</span>
+                    <strong class="text-xs block mt-0.5" style="color: var(--text-main);">{{ saasPending?.admin_nombre }} {{ saasPending?.admin_apellido }}</strong>
+                    <span class="text-xs" style="color: var(--text-muted);">{{ saasPending?.admin_email }}</span>
+                  </div>
+
+                  <div class="flex items-center justify-between py-1.5" style="border-bottom: 1px dashed var(--border-color);">
+                    <span style="color: var(--text-muted);">Plan Seleccionado:</span>
+                    <strong style="color: var(--accent);">Plan {{ saasPending?.plan_etiqueta }}</strong>
+                  </div>
+
+                  <div class="flex items-center justify-between py-1.5" style="border-bottom: 1px dashed var(--border-color);">
+                    <span style="color: var(--text-muted);">Límite de Sucursales (RN04):</span>
+                    <strong style="color: var(--text-main);">Hasta {{ saasPending?.max_sucursales }} sucursales</strong>
+                  </div>
+
+                  <div class="flex items-center justify-between py-1.5" style="border-bottom: 1px dashed var(--border-color);">
+                    <span style="color: var(--text-muted);">Reportes IA &amp; ML (RN23):</span>
+                    <strong [style.color]="saasPending?.permite_ia ? '#22c55e' : '#ef4444'">
+                      {{ saasPending?.permite_ia ? 'Incluido' : 'No incluido' }}
+                    </strong>
+                  </div>
+                </div>
+
+                <!-- Totales -->
+                <div class="flex flex-col gap-2 pt-2 text-xs" style="border-top: 1px solid var(--border-color);">
+                  <div class="flex justify-between" style="color: var(--text-muted);">
+                    <span>Precio Mensual USD:</span>
+                    <span class="font-semibold" style="color: var(--text-main);">&#36;{{ saasPending?.precio_usd }} USD</span>
+                  </div>
+                  <div class="flex justify-between text-sm font-bold pt-2 mt-1" style="border-top: 1px dashed var(--border-color); color: var(--text-main);">
+                    <span>Total a Pagar (Bs.):</span>
+                    <span class="font-serif text-lg" style="color: var(--accent);">Bs. {{ monto | number:'1.2-2' }}</span>
+                  </div>
+                </div>
+
+                <div class="mt-4 pt-3 text-[11px] flex items-center gap-2" style="color: var(--text-muted); border-top: 1px solid var(--border-color);">
+                  <i class="fa-solid fa-bolt" style="color: var(--accent);"></i>
+                  <span>Activación inmediata al confirmar el pago</span>
+                </div>
+              </div>
+
+              <!-- MODO ORDEN DE PRENDAS NORMAL -->
+              <div *ngIf="!esSuscripcionSaas" class="card p-6 sticky top-24">
                 <h3 class="font-serif text-lg font-bold pb-3 mb-3 flex items-center justify-between" style="color: var(--text-main); border-bottom: 1px solid var(--border-color);">
                   <span>Detalle de tu Orden</span>
                   <span class="text-xs font-mono font-normal" style="color: var(--text-muted);">#{{ ventaId }}</span>
@@ -411,6 +494,7 @@ import { ToastService } from '../../services/toast.service';
                   <span>Método de entrega: <strong>{{ orden?.metodo_entrega === 'delivery' ? 'Envío a Domicilio' : 'Retiro en Tienda' }}</strong></span>
                 </div>
               </div>
+
             </div>
 
           </div>
@@ -425,7 +509,11 @@ export class PagoComponent implements OnInit {
   private router = inject(Router);
   private ventaService = inject(VentaService);
   private carritoService = inject(CarritoService);
+  private saasService = inject(SaasService);
   private toastService = inject(ToastService);
+
+  esSuscripcionSaas: boolean = false;
+  saasPending: any = null;
 
   ventaId: number = 0;
   metodoPago: string = 'qr';
@@ -445,16 +533,34 @@ export class PagoComponent implements OnInit {
   mensajeErrorRechazo: string = '';
 
   ngOnInit(): void {
-    // 1. Si la orden viene en history.state (desde el checkout directo del carrito)
     if (history.state?.orden) {
       this.asignarDatosOrden(history.state.orden);
     }
 
-    // 2. Suscribirse al id de la ruta
     this.route.params.subscribe(params => {
-      this.ventaId = Number(params['id']);
+      const rawId = params['id'];
+
+      // MODO 1: CHECKOUT DE SUSCRIPCIÓN SAAS (/pago/saas)
+      if (rawId === 'saas') {
+        const stored = sessionStorage.getItem('saas_pending_onboarding');
+        if (!stored) {
+          this.toastService.warning('Sin Plan Pendiente', 'Primero selecciona tu plan y registra los datos de tu empresa.');
+          this.router.navigate(['/planes']);
+          return;
+        }
+        this.esSuscripcionSaas = true;
+        this.saasPending = JSON.parse(stored);
+        this.monto = Number(this.saasPending.total_bs) || 139.00;
+        this.titular = `${this.saasPending.admin_nombre || ''} ${this.saasPending.admin_apellido || ''}`.trim().toUpperCase() || 'ADMIN EMPRESA';
+        this.cargandoOrden = false;
+        this.generarQrFrontend();
+        return;
+      }
+
+      // MODO 2: CHECKOUT DE COMPRA DE PRENDAS (/pago/:id)
+      this.esSuscripcionSaas = false;
+      this.ventaId = Number(rawId);
       if (this.ventaId) {
-        // Chequear si existe en sessionStorage
         try {
           const spec = sessionStorage.getItem('orden_' + this.ventaId);
           const activa = sessionStorage.getItem('orden_activa');
@@ -493,6 +599,10 @@ export class PagoComponent implements OnInit {
 
   obtenerFallbackQr(): string {
     const totalVal = (this.monto > 0 ? this.monto : (Number(this.orden?.total) || 0)).toFixed(2);
+    if (this.esSuscripcionSaas && this.saasPending) {
+      const payload = encodeURIComponent(`FASHIONSTORE-SAAS|NIT:${this.saasPending.nit}|PLAN:${this.saasPending.plan_nombre}|TOTAL:${totalVal}|BS`);
+      return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${payload}`;
+    }
     const idVal = this.ventaId || this.orden?.id || this.orden?.venta_id || 1;
     const payload = encodeURIComponent(`FASHIONSTORE|ORDEN:${idVal}|TOTAL:${totalVal}|BS|PAGOSIMPLE`);
     return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${payload}`;
@@ -510,21 +620,19 @@ export class PagoComponent implements OnInit {
   }
 
   cargarOrden(): void {
-    this.cargandoOrden = !this.orden; // Solo mostrar loading si no teníamos datos previos
+    this.cargandoOrden = !this.orden;
     
     this.ventaService.getVenta(this.ventaId).subscribe({
       next: (res) => {
         this.asignarDatosOrden(res);
         this.cargandoOrden = false;
 
-        // Si la orden ya estaba completada (pagada con anterioridad)
         if (res.estado === 'completada') {
           this.pagoExitoso = true;
           this.comprobanteNumero = res.numero_comprobante || 'COMP-' + this.ventaId;
         }
       },
       error: () => {
-        // FALLBACK si el backend tarda o da 404
         this.ventaService.getMisCompras().subscribe({
           next: (compras) => {
             const v = compras.find((c: any) => c.id === this.ventaId);
@@ -595,6 +703,48 @@ export class PagoComponent implements OnInit {
     this.loading = true;
     this.mensajeErrorRechazo = '';
 
+    // FLUJO 1: PAGO DE SUSCRIPCIÓN SAAS (ONBOARDING)
+    if (this.esSuscripcionSaas && this.saasPending) {
+      if (this.metodoPago === 'tarjeta_credito' && this.simularRechazo) {
+        setTimeout(() => {
+          this.loading = false;
+          this.mensajeErrorRechazo = 'Transacción denegada por el banco emisor (Fondos insuficientes o tarjeta bloqueada). La suscripción SaaS no fue activada.';
+          this.toastService.error('Pago Rechazado', this.mensajeErrorRechazo);
+        }, 600);
+        return;
+      }
+
+      this.saasService.onboarding({
+        razon_social: this.saasPending.razon_social,
+        nit: this.saasPending.nit,
+        plan_nombre: this.saasPending.plan_nombre,
+        admin_nombre: this.saasPending.admin_nombre,
+        admin_apellido: this.saasPending.admin_apellido,
+        admin_email: this.saasPending.admin_email,
+        admin_password: this.saasPending.admin_password
+      }).subscribe({
+        next: (res: any) => {
+          this.loading = false;
+          this.pagoExitoso = true;
+          this.comprobanteNumero = 'COMP-SAAS-' + (this.saasPending.nit || '2026');
+          if (res?.access_token) {
+            localStorage.setItem('fashionstore_token', res.access_token);
+            localStorage.setItem('fashionstore_user', JSON.stringify(res));
+          }
+          sessionStorage.removeItem('saas_pending_onboarding');
+          this.toastService.success('¡Suscripción Pagada y Activada!', `Comprobante ${this.comprobanteNumero} generado con éxito.`);
+        },
+        error: (err: any) => {
+          this.loading = false;
+          const msg = err?.error?.detail || 'No se pudo activar la suscripción. Verifica que el NIT o correo no estén duplicados.';
+          this.mensajeErrorRechazo = msg;
+          this.toastService.error('Error al Procesar Suscripción', msg);
+        }
+      });
+      return;
+    }
+
+    // FLUJO 2: PAGO DE ORDEN DE PRENDAS NORMAL
     this.ventaService.pagarVenta(this.ventaId, {
       metodo_pago: this.metodoPago,
       monto: this.monto,
@@ -611,7 +761,6 @@ export class PagoComponent implements OnInit {
           sessionStorage.removeItem('orden_' + this.ventaId);
         } catch (e) {}
         this.toastService.success('¡Pago Confirmado!', `Comprobante ${this.comprobanteNumero} generado con éxito.`, 6000);
-        // Refrescar contador del carrito a 0
         this.carritoService.refreshCount();
       },
       error: (err) => {
@@ -622,5 +771,8 @@ export class PagoComponent implements OnInit {
       }
     });
   }
-}
 
+  irAlPanelEmpresa(): void {
+    window.location.href = '/admin';
+  }
+}
