@@ -11,6 +11,11 @@ export interface TokenResponse {
   user_id: number;
   nombre_completo: string;
   email: string;
+  tenant_id?: string | null;
+  tenant_nombre?: string | null;
+  plan?: string | null;
+  permite_reportes_ia?: boolean | null;
+  max_sucursales?: number | null;
 }
 
 export interface ClienteRegisterRequest {
@@ -20,6 +25,7 @@ export interface ClienteRegisterRequest {
   password: string;
   telefono?: string;
   direccion?: string;
+  tenant_id?: string;
 }
 
 export interface UserProfile {
@@ -31,4 +37,9 @@ export interface UserProfile {
   user_type: string;
   sucursal_id?: number | null;
   activo: boolean;
+  tenant_id?: string | null;
+  tenant_nombre?: string | null;
+  plan?: string | null;
+  permite_reportes_ia?: boolean | null;
+  max_sucursales?: number | null;
 }

@@ -100,39 +100,53 @@ import { ToastService } from '../../services/toast.service';
 
             <!-- Separador Estilizado -->
             <div class="auth-divider">
-              <span>O ACCEDE COMO DEMO</span>
+              <span>ACCESO RÁPIDO SAAS MULTI-TENANT (2DO PARCIAL)</span>
             </div>
 
-            <!-- Botones de Rápido Acceso Demo (Estilo Botones Sociales de la Referencia) -->
-            <div class="demo-buttons-grid">
+            <!-- Botones de Rápido Acceso Demo SaaS -->
+            <div class="demo-buttons-grid" style="grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
               <button 
                 type="button" 
-                (click)="fillCredentials('admin')" 
+                (click)="fillCredentials('superadmin')" 
                 class="demo-access-btn"
-                title="Cargar credenciales de Administrador"
+                title="Super Administrador Global de la Plataforma SaaS (CU01-CU04)"
+                style="border-color: #f59e0b;"
               >
-                <i class="fa-solid fa-shield-halved mr-2" style="color: var(--accent);"></i>
-                <span>Admin</span>
+                <i class="fa-solid fa-crown mr-1.5" style="color: #f59e0b;"></i>
+                <span style="font-size: 0.75rem; font-weight: 700;">SuperAdmin SaaS</span>
               </button>
 
               <button 
                 type="button" 
-                (click)="fillCredentials('encargado')" 
+                (click)="fillCredentials('empresa_a')" 
                 class="demo-access-btn"
-                title="Cargar credenciales de Encargado de Sucursal"
+                title="Empresa A: Boutique Aurora (Plan Profesional, con IA, hasta 10 sucursales)"
+                style="border-color: #8b5cf6;"
               >
-                <i class="fa-solid fa-warehouse mr-2" style="color: #818cf8;"></i>
-                <span>Encargado</span>
+                <i class="fa-solid fa-gem mr-1.5" style="color: #8b5cf6;"></i>
+                <span style="font-size: 0.75rem; font-weight: 700;">Empresa A (Pro + IA)</span>
+              </button>
+
+              <button 
+                type="button" 
+                (click)="fillCredentials('empresa_b')" 
+                class="demo-access-btn"
+                title="Empresa B: Urban Wear (Plan Básico, sin IA, máx 2 sucursales)"
+                style="border-color: #3b82f6;"
+              >
+                <i class="fa-solid fa-shop mr-1.5" style="color: #3b82f6;"></i>
+                <span style="font-size: 0.75rem; font-weight: 700;">Empresa B (Básico)</span>
               </button>
 
               <button 
                 type="button" 
                 (click)="fillCredentials('cliente')" 
                 class="demo-access-btn"
-                title="Cargar credenciales de Cliente"
+                title="Cargar credenciales de Cliente Web"
+                style="border-color: #10b981;"
               >
-                <i class="fa-solid fa-user mr-2" style="color: #34d399;"></i>
-                <span>Cliente</span>
+                <i class="fa-solid fa-user mr-1.5" style="color: #10b981;"></i>
+                <span style="font-size: 0.75rem; font-weight: 700;">Cliente Web</span>
               </button>
             </div>
 
@@ -814,8 +828,17 @@ export class LoginComponent {
     this.mostrarPassword = !this.mostrarPassword;
   }
 
-  fillCredentials(role: 'admin' | 'encargado' | 'cliente'): void {
-    if (role === 'admin') {
+  fillCredentials(role: 'superadmin' | 'empresa_a' | 'empresa_b' | 'cliente' | 'admin' | 'encargado'): void {
+    if (role === 'superadmin') {
+      this.email = 'admin@fashionstore.saas';
+      this.password = 'cambiar-en-produccion';
+    } else if (role === 'empresa_a') {
+      this.email = 'admin@1023451010.test';
+      this.password = 'cambiar-en-produccion';
+    } else if (role === 'empresa_b') {
+      this.email = 'admin@2045602018.test';
+      this.password = 'cambiar-en-produccion';
+    } else if (role === 'admin') {
       this.email = 'admin@fashionstore.com';
       this.password = 'Admin123!';
     } else if (role === 'encargado') {
@@ -825,7 +848,6 @@ export class LoginComponent {
       this.email = 'cliente@fashionstore.com';
       this.password = 'Cliente123!';
     }
-    // Iniciar sesión inmediatamente al pulsar el botón demo
     this.onSubmit();
   }
 
@@ -849,7 +871,7 @@ export class LoginComponent {
         this.loading = false;
         this.toastService.success('¡Bienvenido!', `Has iniciado sesión correctamente como ${res.role || 'cliente'}.`);
         const rol = (res.role || '').toLowerCase();
-        if (rol === 'administrador' || rol === 'admin') {
+        if (rol === 'superadmin' || rol === 'administrador' || rol === 'admin') {
           this.router.navigate(['/admin']);
         } else if (rol === 'encargado_sucursal' || rol === 'encargado') {
           this.router.navigate(['/encargado']);

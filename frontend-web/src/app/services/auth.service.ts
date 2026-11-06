@@ -33,7 +33,13 @@ export class AuthService {
   }
 
   public get isAdmin(): boolean {
-    return this.currentUserSubject.value?.role === 'administrador';
+    const role = (this.currentUserSubject.value?.role || '').toLowerCase();
+    return role === 'administrador' || role === 'admin' || role === 'superadmin';
+  }
+
+  public get isSuperAdmin(): boolean {
+    const role = (this.currentUserSubject.value?.role || '').toLowerCase();
+    return role === 'superadmin';
   }
 
   /**
@@ -62,21 +68,6 @@ export class AuthService {
     );
   }
 
-  /**
-   * Obtiene la información del perfil del usuario autenticado
-   */
-  getProfile(): Observable<UserProfile> {
-    return this.http.get<UserProfile>(`${this.apiUrl}/me`, {
-      headers: {
-        Authorization: `Bearer ${this.token}`
-      }
-    });
-  }
-
-  /**
-   * Cierra la sesión eliminando el Token JWT y limpiando el estado
-   */
-
   forgotPassword(email: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/forgot-password`, { email });
   }
@@ -89,10 +80,21 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/reset-password`, { email, code, new_password });
   }
 
+  /**
+   * Cierra sesión y limpia los datos del navegador
+   */
   logout(): void {
-
     localStorage.removeItem('fashionstore_token');
     localStorage.removeItem('fashionstore_user');
     this.currentUserSubject.next(null);
+  }
+
+  /**
+   * Obtiene el perfil del usuario autenticado
+   */
+  getProfile(): Observable<UserProfile> {
+    return this.http.get<UserProfile>(`${this.apiUrl}/me`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    });
   }
 }

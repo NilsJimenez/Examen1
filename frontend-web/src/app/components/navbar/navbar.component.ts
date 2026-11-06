@@ -93,10 +93,25 @@ import { CarritoService } from '../../services/carrito.service';
               <div class="flex items-center gap-3">
                 <div class="user-avatar">{{ user.nombre_completo.charAt(0).toUpperCase() }}</div>
                 <div class="flex flex-col text-left">
-                  <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">{{ user.nombre_completo }}</span>
-                  <span class="badge" style="background-color: var(--table-th-bg); color: var(--text-muted); font-size: 0.65rem; padding: 2px 6px; text-transform: uppercase;">
-                    {{ user.role }}
-                  </span>
+                  <div class="flex items-center gap-1.5">
+                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">{{ user.nombre_completo }}</span>
+                    <!-- Distintivo SuperAdmin o Empresa -->
+                    <span *ngIf="user.role?.toLowerCase() === 'superadmin'" class="badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-size: 0.62rem; padding: 1px 5px; font-weight: 800;">
+                      <i class="fa-solid fa-crown mr-1"></i>SuperAdmin
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-1 flex-wrap mt-0.5">
+                    <span class="badge" style="background-color: var(--table-th-bg); color: var(--text-muted); font-size: 0.65rem; padding: 2px 6px; text-transform: uppercase;">
+                      {{ user.role }}
+                    </span>
+                    <!-- Empresa y Plan SaaS -->
+                    <span *ngIf="user.tenant_nombre" class="badge" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6; font-size: 0.65rem; padding: 2px 6px; font-weight: 700;">
+                      <i class="fa-solid fa-building mr-1"></i>{{ user.tenant_nombre }}
+                    </span>
+                    <span *ngIf="user.plan" class="badge" [style.background]="user.plan === 'Profesional' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)'" [style.color]="user.plan === 'Profesional' ? '#10b981' : '#3b82f6'" style="font-size: 0.65rem; padding: 2px 6px; font-weight: 700;">
+                      <i class="fa-solid" [class.fa-gem]="user.plan === 'Profesional'" [class.fa-tag]="user.plan !== 'Profesional'"></i> {{ user.plan }}
+                    </span>
+                  </div>
                 </div>
                 <button (click)="logout()" class="btn btn-outline" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" title="Cerrar Sesión">
                   <i class="fa-solid fa-right-from-bracket"></i>
@@ -317,7 +332,12 @@ export class NavbarComponent implements OnInit {
   }
 
   get esAdmin(): boolean {
-    return this.currentRole === 'administrador';
+    const r = (this.currentRole || '').toLowerCase();
+    return r === 'administrador' || r === 'admin' || r === 'superadmin';
+  }
+
+  get esSuperAdmin(): boolean {
+    return (this.currentRole || '').toLowerCase() === 'superadmin';
   }
 
   get esEncargado(): boolean {

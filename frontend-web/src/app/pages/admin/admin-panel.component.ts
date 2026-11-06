@@ -10,6 +10,7 @@ import { AlertaService, AlertaReabastecimiento } from '../../services/alerta.ser
 import { Producto, Categoria, Talla, Color } from '../../models/producto.models';
 import { Sucursal } from '../../models/sucursal.models';
 import { ReportesComponent } from '../../components/reportes/reportes.component';
+import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../services/saas.service';
 
 @Component({
   selector: 'app-admin-panel',
@@ -21,11 +22,25 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
       <!-- Encabezado del Panel -->
       <div class="flex items-center justify-between mb-8 pb-6 border-b border-gray-200" style="flex-wrap: wrap; gap: 1rem; border-color: var(--border-color);">
         <div>
-          <span class="badge badge-admin mb-2">
-            <i class="fa-solid fa-shield-halved"></i> Administración FashionStore
-          </span>
+          <div class="flex items-center gap-2 mb-2 flex-wrap">
+            <span class="badge badge-admin">
+              <i class="fa-solid fa-shield-halved"></i> Administración FashionStore
+            </span>
+            <!-- Distintivo de Tenant y Plan SaaS -->
+            <span *ngIf="authUser?.tenant_nombre" class="badge" style="background: rgba(139, 92, 246, 0.18); color: #8b5cf6; border: 1.5px solid #8b5cf6; font-weight: 800;">
+              <i class="fa-solid fa-building mr-1"></i> {{ authUser?.tenant_nombre }}
+            </span>
+            <span *ngIf="authUser?.plan" class="badge" [style.background]="authUser?.plan === 'Profesional' ? 'rgba(16, 185, 129, 0.18)' : 'rgba(59, 130, 246, 0.18)'" [style.color]="authUser?.plan === 'Profesional' ? '#10b981' : '#3b82f6'" [style.border]="'1.5px solid ' + (authUser?.plan === 'Profesional' ? '#10b981' : '#3b82f6')" style="font-weight: 800;">
+              <i class="fa-solid" [class.fa-gem]="authUser?.plan === 'Profesional'" [class.fa-tag]="authUser?.plan !== 'Profesional'"></i> Plan {{ authUser?.plan }} (Máx {{ authUser?.max_sucursales }} sucursales | IA: {{ authUser?.permite_reportes_ia ? 'Habilitada' : 'No disponible' }})
+            </span>
+            <span *ngIf="esSuperAdmin" class="badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1.5px solid #f59e0b; font-weight: 800;">
+              <i class="fa-solid fa-crown mr-1"></i> Super Administrador Global SaaS
+            </span>
+          </div>
           <h1 class="font-serif text-3xl font-bold" style="color: var(--text-main);">Panel de Control Comercial</h1>
-          <p class="text-sm mt-1" style="color: var(--text-muted);">Gestión centralizada del catálogo, fotos por color, cantidades que entran, sucursales, personal y roles</p>
+          <p class="text-sm mt-1" style="color: var(--text-muted);">
+            Plataforma Multi-tenant: Administración de empresas, inventarios, catálogo y sucursales aisladas.
+          </p>
         </div>
 
         <div class="flex items-center gap-3">
@@ -37,6 +52,15 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
 
       <!-- Navegación por Pestañas -->
       <div class="flex items-center gap-4 mb-10 overflow-x-auto pb-4" style="flex-wrap: nowrap; overflow-x: auto;">
+        <!-- PESTAÑA SAAS MULTI-TENANT (CU01-CU04) -->
+        <button 
+          (click)="activeTab = 'saas'" 
+          [class.tab-btn-active]="activeTab === 'saas'" 
+          class="admin-tab-btn shrink-0" style="flex-shrink: 0; min-width: max-content; border: 1.5px solid #f59e0b;"
+        >
+          <i class="fa-solid fa-crown" style="color: #f59e0b;"></i> Empresas SaaS &amp; Planes (CU01-CU04)
+        </button>
+
         <button 
           (click)="activeTab = 'prendas'" 
           [class.tab-btn-active]="activeTab === 'prendas'" 
@@ -102,6 +126,300 @@ import { ReportesComponent } from '../../components/reportes/reportes.component'
       <!-- PESTAÑA 1: PRENDAS DE ROPA                                          -->
       <!-- =================================================================== -->
       
+      <!-- =================================================================== -->
+      <!-- PESTAÑA: EMPRESAS SAAS MULTI-TENANT & PLANES (CU01-CU04)             -->
+      <!-- =================================================================== -->
+      <div *ngIf="activeTab === 'saas'" class="flex flex-col gap-6 animate-fade-in">
+        
+        <!-- Tarjeta Informativa SaaS -->
+        <div class="card p-6" style="border: 1.5px solid #f59e0b; background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(139, 92, 246, 0.05) 100%);">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-weight: 800;">
+                  <i class="fa-solid fa-crown mr-1"></i> ARQUITECTURA SAAS MULTI-TENANT
+                </span>
+                <span class="text-xs font-bold" style="color: var(--text-muted);">2do Parcial - INF 412</span>
+              </div>
+              <h2 class="font-serif text-2xl font-bold" style="color: var(--text-main);">Gestión de Empresas (Tenants) y Suscripciones</h2>
+              <p class="text-xs mt-1" style="color: var(--text-muted); max-width: 750px;">
+                Supervisión global de empresas suscritas. Cada tenant posee aislamiento estricto de base de datos (RN02, RF06), 
+                límites automáticos de sucursales según plan (RN04) y políticas de suspensión comercial (RN05).
+              </p>
+            </div>
+
+            <div class="flex items-center gap-2.5">
+              <button 
+                type="button" 
+                (click)="cargarTenants()" 
+                class="btn btn-outline" 
+                style="padding: 0.55rem 1rem; font-size: 0.85rem;"
+                title="Refrescar lista de empresas"
+              >
+                <i class="fa-solid fa-arrows-rotate mr-1.5" [class.fa-spin]="loadingTenants"></i> Actualizar
+              </button>
+
+              <button 
+                type="button" 
+                (click)="mostrarModalNuevoTenant = !mostrarModalNuevoTenant" 
+                class="btn btn-primary" 
+                style="padding: 0.55rem 1.25rem; font-size: 0.85rem; font-weight: 800;"
+              >
+                <i class="fa-solid fa-plus-circle mr-1.5"></i> {{ mostrarModalNuevoTenant ? 'Cerrar Registro' : '+ Registrar Nueva Empresa (CU01)' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Métricas Resumen -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            <div class="p-4 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+              <span class="text-xs font-bold block uppercase" style="color: var(--text-muted);">Empresas Registradas</span>
+              <span class="font-serif text-2xl font-black" style="color: var(--text-main);">{{ tenants.length }}</span>
+            </div>
+
+            <div class="p-4 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+              <span class="text-xs font-bold block uppercase" style="color: #10b981;">Empresas Activas</span>
+              <span class="font-serif text-2xl font-black" style="color: #10b981;">{{ getTenantsActivosCount() }}</span>
+            </div>
+
+            <div class="p-4 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+              <span class="text-xs font-bold block uppercase" style="color: #ef4444;">Empresas Suspendidas</span>
+              <span class="font-serif text-2xl font-black" style="color: #ef4444;">{{ getTenantsSuspendidosCount() }}</span>
+            </div>
+
+            <div class="p-4 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border-color);">
+              <span class="text-xs font-bold block uppercase" style="color: #8b5cf6;">Planes Activos</span>
+              <span class="font-serif text-sm font-bold block mt-1" style="color: var(--text-main);">
+                💎 Pro: {{ getTenantsProCount() }} | 🏷️ Básico: {{ getTenantsBasicoCount() }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- FORMULARIO: REGISTRAR NUEVA EMPRESA (CU01) -->
+        <div *ngIf="mostrarModalNuevoTenant" class="card p-6 animate-fade-in" style="border: 2px dashed #f59e0b; background: var(--table-th-bg);">
+          <div class="flex items-center justify-between mb-4 pb-3 border-b" style="border-color: var(--border-color);">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-building-circle-check text-xl" style="color: #f59e0b;"></i>
+              <h3 class="font-serif text-lg font-bold" style="color: var(--text-main);">CU01: Registrar Nueva Empresa en Plataforma SaaS</h3>
+            </div>
+            <button type="button" (click)="mostrarModalNuevoTenant = false" class="btn btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <form (ngSubmit)="guardarNuevoTenant()" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="form-label text-xs font-bold uppercase mb-1 block">Razón Social de la Empresa *</label>
+              <input type="text" [(ngModel)]="nuevoTenant.razon_social" name="razon_social" required placeholder="Ej: Nova Style S.A." class="form-input text-xs" />
+            </div>
+
+            <div>
+              <label class="form-label text-xs font-bold uppercase mb-1 block">NIT (Identificación Tributaria) *</label>
+              <input type="text" [(ngModel)]="nuevoTenant.nit" name="nit" required placeholder="Ej: 3045901021" class="form-input text-xs" />
+            </div>
+
+            <div>
+              <label class="form-label text-xs font-bold uppercase mb-1 block">Plan de Suscripción Inicial *</label>
+              <select [(ngModel)]="nuevoTenant.plan_nombre" name="plan_nombre" class="form-input text-xs font-bold">
+                <option value="Basico">Plan Básico (Hasta 2 sucursales, sin IA)</option>
+                <option value="Profesional">Plan Profesional (Hasta 10 sucursales, con IA)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="form-label text-xs font-bold uppercase mb-1 block">Nombre del Administrador *</label>
+              <input type="text" [(ngModel)]="nuevoTenant.admin_nombre" name="admin_nombre" required placeholder="Ej: Carlos" class="form-input text-xs" />
+            </div>
+
+            <div>
+              <label class="form-label text-xs font-bold uppercase mb-1 block">Apellidos del Administrador *</label>
+              <input type="text" [(ngModel)]="nuevoTenant.admin_apellido" name="admin_apellido" required placeholder="Ej: Mendoza" class="form-input text-xs" />
+            </div>
+
+            <div>
+              <label class="form-label text-xs font-bold uppercase mb-1 block">Correo Electrónico del Admin *</label>
+              <input type="email" [(ngModel)]="nuevoTenant.admin_email" name="admin_email" required placeholder="admin@empresa.com" class="form-input text-xs" />
+            </div>
+
+            <div>
+              <label class="form-label text-xs font-bold uppercase mb-1 block">Contraseña Inicial *</label>
+              <input type="password" [(ngModel)]="nuevoTenant.admin_password" name="admin_password" required placeholder="Mínimo 6 caracteres" class="form-input text-xs" />
+            </div>
+
+            <div>
+              <label class="form-label text-xs font-bold uppercase mb-1 block">Vigencia de Suscripción (Meses)</label>
+              <input type="number" [(ngModel)]="nuevoTenant.meses_vigencia" name="meses_vigencia" min="1" max="60" class="form-input text-xs font-bold text-center" />
+            </div>
+
+            <div class="flex items-end">
+              <button type="submit" [disabled]="guardandoTenant" class="btn btn-primary w-full" style="padding: 0.65rem 1rem; font-weight: 800;">
+                <span *ngIf="guardandoTenant"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Registrando...</span>
+                <span *ngIf="!guardandoTenant"><i class="fa-solid fa-check-circle mr-1"></i> Crear Empresa y Activar Plan</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- TABLA DE EMPRESAS (CU03) -->
+        <div class="card p-5">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 class="font-serif text-lg font-bold" style="color: var(--text-main);">
+                <i class="fa-solid fa-list-check mr-2" style="color: #f59e0b;"></i>
+                CU03: Directorio de Empresas Registradas y Monitoreo de Límites
+              </h3>
+              <p class="text-xs" style="color: var(--text-muted);">
+                Verifica el estado de cada empresa, cambia planes en caliente o suspende cuentas por impago (RN05).
+              </p>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="admin-table w-full">
+              <thead>
+                <tr>
+                  <th>Empresa / Razón Social</th>
+                  <th>NIT</th>
+                  <th>Plan Actual</th>
+                  <th>Sucursales (Uso / Límite)</th>
+                  <th>Soporte IA (CU28)</th>
+                  <th>Vencimiento</th>
+                  <th>Estado</th>
+                  <th style="text-align: right;">Acciones (CU02 / CU04)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let t of tenants" [style.opacity]="t.estado === 'SUSPENDIDA' ? '0.7' : '1'">
+                  <!-- Empresa -->
+                  <td>
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
+                        <i class="fa-solid fa-building"></i>
+                      </div>
+                      <div>
+                        <span class="font-bold block" style="color: var(--text-main);">{{ t.razon_social }}</span>
+                        <span class="text-xs" style="color: var(--text-muted);">{{ t.total_usuarios }} usuario(s)</span>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- NIT -->
+                  <td>
+                    <code style="font-weight: 700; color: var(--accent);">{{ t.nit }}</code>
+                  </td>
+
+                  <!-- Plan Actual -->
+                  <td>
+                    <span 
+                      class="badge" 
+                      [style.background]="t.plan_activo === 'Profesional' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)'"
+                      [style.color]="t.plan_activo === 'Profesional' ? '#10b981' : '#3b82f6'"
+                      [style.border]="'1.5px solid ' + (t.plan_activo === 'Profesional' ? '#10b981' : '#3b82f6')"
+                      style="font-weight: 800;"
+                    >
+                      <i class="fa-solid" [class.fa-gem]="t.plan_activo === 'Profesional'" [class.fa-tag]="t.plan_activo !== 'Profesional'"></i>
+                      {{ t.plan_activo }}
+                    </span>
+                  </td>
+
+                  <!-- Sucursales -->
+                  <td>
+                    <div class="flex items-center gap-2">
+                      <span class="font-bold text-sm" [style.color]="t.total_sucursales >= (t.max_sucursales || 2) ? '#ef4444' : 'var(--text-main)'">
+                        {{ t.total_sucursales }} / {{ t.max_sucursales }}
+                      </span>
+                      <span *ngIf="t.total_sucursales >= (t.max_sucursales || 2)" class="badge" style="background: #ef4444; color: white; font-size: 0.6rem;">
+                        TOPE ALCANZADO (RN04)
+                      </span>
+                    </div>
+                  </td>
+
+                  <!-- Soporte IA -->
+                  <td>
+                    <span *ngIf="t.permite_reportes_ia" class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700;">
+                      <i class="fa-solid fa-circle-check mr-1"></i> Habilitado (Gemini)
+                    </span>
+                    <span *ngIf="!t.permite_reportes_ia" class="badge" style="background: rgba(100, 116, 139, 0.15); color: #64748b;">
+                      <i class="fa-solid fa-ban mr-1"></i> Bloqueado (RN23)
+                    </span>
+                  </td>
+
+                  <!-- Vencimiento -->
+                  <td>
+                    <span class="text-xs font-semibold">{{ t.fecha_vencimiento || '1 año' }}</span>
+                  </td>
+
+                  <!-- Estado -->
+                  <td>
+                    <span 
+                      class="badge" 
+                      [style.background]="t.estado === 'ACTIVA' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)'"
+                      [style.color]="t.estado === 'ACTIVA' ? '#22c55e' : '#ef4444'"
+                      style="font-weight: 800;"
+                    >
+                      <i class="fa-solid" [class.fa-circle-check]="t.estado === 'ACTIVA'" [class.fa-circle-xmark]="t.estado !== 'ACTIVA'"></i>
+                      {{ t.estado }}
+                    </span>
+                  </td>
+
+                  <!-- Acciones -->
+                  <td style="text-align: right;">
+                    <div class="flex items-center justify-end gap-2">
+                      <!-- Botón Cambiar Plan (CU02) -->
+                      <button 
+                        type="button" 
+                        *ngIf="t.plan_activo === 'Basico'"
+                        (click)="cambiarPlanTenant(t, 'Profesional')" 
+                        class="btn btn-outline"
+                        style="padding: 0.35rem 0.75rem; font-size: 0.75rem; color: #10b981; border-color: #10b981;"
+                        title="Subir a Plan Profesional (10 sucursales + IA)"
+                      >
+                        <i class="fa-solid fa-arrow-up mr-1"></i> Upgrade a Pro
+                      </button>
+
+                      <button 
+                        type="button" 
+                        *ngIf="t.plan_activo === 'Profesional'"
+                        (click)="cambiarPlanTenant(t, 'Basico')" 
+                        class="btn btn-outline"
+                        style="padding: 0.35rem 0.75rem; font-size: 0.75rem; color: #3b82f6; border-color: #3b82f6;"
+                        title="Bajar a Plan Básico (2 sucursales)"
+                      >
+                        <i class="fa-solid fa-arrow-down mr-1"></i> Downgrade Básico
+                      </button>
+
+                      <!-- Botón Suspender / Reactivar (CU04 / RN05) -->
+                      <button 
+                        type="button" 
+                        (click)="toggleEstadoTenant(t)" 
+                        class="btn"
+                        [ngClass]="t.estado === 'ACTIVA' ? 'btn-outline' : 'btn-primary'"
+                        [style.border-color]="t.estado === 'ACTIVA' ? '#ef4444' : '#10b981'"
+                        [style.color]="t.estado === 'ACTIVA' ? '#ef4444' : '#fff'"
+                        [style.background]="t.estado === 'ACTIVA' ? 'transparent' : '#10b981'"
+                        style="padding: 0.35rem 0.75rem; font-size: 0.75rem; font-weight: 700;"
+                        [title]="t.estado === 'ACTIVA' ? 'Suspender empresa (RN05: bloquea logins)' : 'Reactivar empresa'"
+                      >
+                        <i class="fa-solid" [class.fa-ban]="t.estado === 'ACTIVA'" [class.fa-check]="t.estado !== 'ACTIVA'"></i>
+                        {{ t.estado === 'ACTIVA' ? 'Suspender' : 'Reactivar' }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr *ngIf="tenants.length === 0">
+                  <td colspan="8" class="text-center py-6 text-xs text-muted">
+                    No se encontraron empresas registradas. Usa el botón superior para agregar una.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
       <!-- PESTAÑA: REPORTES -->
       <div *ngIf="activeTab === 'reportes'" class="animate-fade-in" style="width: 100%;">
          <app-reportes [esAdmin]="true"></app-reportes>
@@ -1886,8 +2204,34 @@ export class AdminPanelComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
 
-  activeTab: 'prendas' | 'atributos' | 'sucursales' | 'proveedores' | 'usuarios' | 'alertas' | 'reportes' = 'prendas';
+  activeTab: 'saas' | 'prendas' | 'atributos' | 'sucursales' | 'proveedores' | 'usuarios' | 'alertas' | 'reportes' = 'prendas';
   private alertaService = inject(AlertaService);
+  private saasService = inject(SaasService);
+
+  // --- SaaS Multi-tenant State (CU01-CU04) ---
+  tenants: TenantSaaS[] = [];
+  planes: PlanSaaS[] = [];
+  loadingTenants: boolean = false;
+  mostrarModalNuevoTenant: boolean = false;
+  guardandoTenant: boolean = false;
+  nuevoTenant: CrearTenantDto = {
+    razon_social: '',
+    nit: '',
+    plan_nombre: 'Basico',
+    admin_nombre: '',
+    admin_apellido: '',
+    admin_email: '',
+    admin_password: '',
+    meses_vigencia: 12
+  };
+
+  get authUser() {
+    return this.authService.currentUserValue;
+  }
+
+  get esSuperAdmin(): boolean {
+    return this.authService.isSuperAdmin;
+  }
   alertas: AlertaReabastecimiento[] = [];
   alertasLoading = false;
   categoriaFiltroId: number | null = null;
@@ -2086,7 +2430,11 @@ export class AdminPanelComponent implements OnInit {
       this.router.navigate(['/login']);
       return;
     }
+    if (this.esSuperAdmin) {
+      this.activeTab = 'saas';
+    }
     this.cargarDatosGenerales();
+    this.cargarTenants();
   }
 
   cargarDatosGenerales(): void {
@@ -3343,6 +3691,117 @@ export class AdminPanelComponent implements OnInit {
       },
       error: (err) => this.errorMessage = err.error?.detail || 'Error creando usuario.'
     });
+  }
+
+  // =========================================================================
+  // GESTIÓN SAAS MULTI-TENANT (CU01 - CU04)
+  // =========================================================================
+  cargarTenants(): void {
+    this.loadingTenants = true;
+    this.saasService.getTenants().subscribe({
+      next: (data) => {
+        this.tenants = data || [];
+        this.loadingTenants = false;
+      },
+      error: () => {
+        this.loadingTenants = false;
+      }
+    });
+    this.saasService.getPlanes().subscribe({
+      next: (pls) => {
+        this.planes = pls || [];
+      }
+    });
+  }
+
+  guardarNuevoTenant(): void {
+    if (!this.nuevoTenant.razon_social.trim() || !this.nuevoTenant.nit.trim()) {
+      this.toastService.warning('Campos Requeridos', 'Por favor ingresa la Razón Social y el NIT.');
+      return;
+    }
+    if (!this.nuevoTenant.admin_email.trim() || !this.nuevoTenant.admin_password.trim()) {
+      this.toastService.warning('Campos Requeridos', 'Ingresa el correo y contraseña del Administrador.');
+      return;
+    }
+
+    this.guardandoTenant = true;
+    this.saasService.crearTenant(this.nuevoTenant).subscribe({
+      next: (creado) => {
+        this.guardandoTenant = false;
+        this.toastService.success('¡Empresa Creada!', `Empresa "${creado.razon_social}" dada de alta con Plan ${creado.plan_activo}.`);
+        this.mostrarModalNuevoTenant = false;
+        this.nuevoTenant = {
+          razon_social: '',
+          nit: '',
+          plan_nombre: 'Basico',
+          admin_nombre: '',
+          admin_apellido: '',
+          admin_email: '',
+          admin_password: '',
+          meses_vigencia: 12
+        };
+        this.cargarTenants();
+      },
+      error: (err) => {
+        this.guardandoTenant = false;
+        this.toastService.error('Error al registrar empresa', err.error?.detail || 'No se pudo crear la empresa.');
+      }
+    });
+  }
+
+  toggleEstadoTenant(t: TenantSaaS): void {
+    const nuevoEstado = t.estado === 'ACTIVA' ? 'SUSPENDIDA' : 'ACTIVA';
+    const accion = nuevoEstado === 'SUSPENDIDA' ? 'suspender' : 'reactivar';
+    if (!confirm(`¿Estás seguro de ${accion} a la empresa "${t.razon_social}"? ${nuevoEstado === 'SUSPENDIDA' ? 'Sus usuarios no podrán iniciar sesión (RN05).' : ''}`)) {
+      return;
+    }
+
+    this.saasService.cambiarEstado(t.id, nuevoEstado).subscribe({
+      next: (actualizado) => {
+        t.estado = actualizado.estado;
+        this.toastService.success(
+          nuevoEstado === 'ACTIVA' ? 'Empresa Reactivada' : 'Empresa Suspendida',
+          `"${t.razon_social}" ahora se encuentra ${nuevoEstado} (RN05).`
+        );
+      },
+      error: (err) => {
+        this.toastService.error('Error al actualizar estado', err.error?.detail || 'No se pudo cambiar el estado.');
+      }
+    });
+  }
+
+  cambiarPlanTenant(t: TenantSaaS, nuevoPlan: string): void {
+    if (!confirm(`¿Deseas cambiar el plan de "${t.razon_social}" a "${nuevoPlan}"?`)) {
+      return;
+    }
+
+    this.saasService.cambiarPlan(t.id, nuevoPlan).subscribe({
+      next: (actualizado) => {
+        t.plan_activo = actualizado.plan_activo;
+        t.max_sucursales = actualizado.max_sucursales;
+        t.permite_reportes_ia = actualizado.permite_reportes_ia;
+        this.toastService.success('Plan Actualizado', `"${t.razon_social}" actualizado exitosamente al Plan ${nuevoPlan}.`);
+      },
+      error: (err) => {
+        this.toastService.error('Error al cambiar plan', err.error?.detail || 'No se pudo actualizar el plan.');
+      }
+    });
+  }
+
+  getTenantsActivosCount(): number {
+    return this.tenants.filter(t => t.estado === 'ACTIVA').length;
+  }
+
+  getTenantsSuspendidosCount(): number {
+    return this.tenants.filter(t => t.estado === 'SUSPENDIDA').length;
+  }
+
+  getTenantsProCount(): number {
+    return this.tenants.filter(t => t.plan_activo === 'Profesional').length;
+  }
+
+  getTenantsBasicoCount(): number {
+    return this.tenants.filter(t => t.plan_activo === 'Basico').length;
   }
 
   cambiarRolUsuario(u: any, nuevoRolId: number): void {
