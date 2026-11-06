@@ -127,299 +127,486 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
       <!-- =================================================================== -->
       
       <!-- =================================================================== -->
-      <!-- PESTAÑA: EMPRESAS SAAS MULTI-TENANT & PLANES (CU01-CU04)             -->
+      <!-- PESTAÑA: GESTIÓN SAAS MULTI-TENANT & PLANES (SUPERADMIN CU01-CU04)   -->
       <!-- =================================================================== -->
-      <div *ngIf="activeTab === 'saas'" class="flex flex-col gap-6 animate-fade-in">
+      <div *ngIf="activeTab === 'saas'" class="flex flex-col gap-8 animate-fade-in">
         
-        <!-- Tarjeta Informativa SaaS -->
-        <div class="card p-6" style="border: 1.5px solid #f59e0b; background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(139, 92, 246, 0.05) 100%);">
-          <div class="flex flex-wrap items-center justify-between gap-4">
+        <!-- 1. HERO BANNER SAAS ULTRA CLEAN -->
+        <div class="card p-7" style="border: 1px solid var(--border-color); background: var(--card-bg); border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.04);">
+          <div class="flex flex-wrap items-center justify-between gap-5">
             <div>
-              <div class="flex items-center gap-2 mb-1">
-                <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-weight: 800;">
-                  <i class="fa-solid fa-crown mr-1"></i> ARQUITECTURA SAAS MULTI-TENANT
+              <div class="flex items-center gap-2 mb-2">
+                <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); font-weight: 800; font-size: 0.72rem; padding: 3px 9px;">
+                  <i class="fa-solid fa-crown mr-1.5"></i> SUPERADMIN SAAS PLATFORM
                 </span>
-                <span class="text-xs font-bold" style="color: var(--text-muted);">2do Parcial - INF 412</span>
+                <span class="text-xs font-semibold" style="color: var(--text-muted);">
+                  Aislamiento Multi-Tenant &amp; Suscripciones (CU01–CU04)
+                </span>
               </div>
-              <h2 class="font-serif text-2xl font-bold" style="color: var(--text-main);">Gestión de Empresas (Tenants) y Suscripciones</h2>
-              <p class="text-xs mt-1" style="color: var(--text-muted); max-width: 750px;">
-                Supervisión global de empresas suscritas. Cada tenant posee aislamiento estricto de base de datos (RN02, RF06), 
-                límites automáticos de sucursales según plan (RN04) y políticas de suspensión comercial (RN05).
+              <h2 class="font-serif text-3xl font-extrabold" style="color: var(--text-main); letter-spacing: -0.02em;">
+                Control Central de Empresas y Suscripciones
+              </h2>
+              <p class="text-xs mt-1.5" style="color: var(--text-muted); max-width: 680px; line-height: 1.5;">
+                Monitorea en tiempo real todas las marcas de ropa suscritas, gestiona sus límites de sucursales según plan y administra las políticas de suspensión.
               </p>
             </div>
 
-            <div class="flex items-center gap-2.5">
+            <!-- Acciones Superiores -->
+            <div class="flex items-center gap-3">
               <button 
                 type="button" 
                 (click)="cargarTenants()" 
                 class="btn btn-outline" 
-                style="padding: 0.55rem 1rem; font-size: 0.85rem;"
-                title="Refrescar lista de empresas"
+                style="padding: 0.6rem 1.1rem; font-size: 0.85rem; border-radius: 12px;"
+                title="Actualizar datos de empresas"
               >
-                <i class="fa-solid fa-arrows-rotate mr-1.5" [class.fa-spin]="loadingTenants"></i> Actualizar
+                <i class="fa-solid fa-arrows-rotate mr-2" [class.fa-spin]="loadingTenants"></i> Refrescar
               </button>
 
               <button 
                 type="button" 
-                (click)="mostrarModalNuevoTenant = !mostrarModalNuevoTenant" 
+                (click)="abrirModalCrearTenant()" 
                 class="btn btn-primary" 
-                style="padding: 0.55rem 1.25rem; font-size: 0.85rem; font-weight: 800;"
+                style="padding: 0.6rem 1.35rem; font-size: 0.85rem; font-weight: 800; border-radius: 12px; background: #f59e0b; color: #18181b; border: none; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);"
               >
-                <i class="fa-solid fa-plus-circle mr-1.5"></i> {{ mostrarModalNuevoTenant ? 'Cerrar Registro' : '+ Registrar Nueva Empresa (CU01)' }}
+                <i class="fa-solid fa-plus-circle mr-2"></i> + Nueva Empresa (CU01)
               </button>
             </div>
           </div>
 
-          <!-- Métricas Resumen -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-            <div class="p-4 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border-color);">
-              <span class="text-xs font-bold block uppercase" style="color: var(--text-muted);">Empresas Registradas</span>
-              <span class="font-serif text-2xl font-black" style="color: var(--text-main);">{{ tenants.length }}</span>
+          <!-- Métricas Resumen Minimalistas -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-7 pt-6 border-t" style="border-color: var(--border-color);">
+            
+            <div class="p-4 rounded-2xl flex items-center gap-3.5" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center text-lg" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
+                <i class="fa-solid fa-building"></i>
+              </div>
+              <div>
+                <span class="text-xs font-bold block" style="color: var(--text-muted);">EMPRESAS TOTALES</span>
+                <span class="font-serif text-2xl font-black" style="color: var(--text-main);">{{ tenants.length }}</span>
+              </div>
             </div>
 
-            <div class="p-4 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border-color);">
-              <span class="text-xs font-bold block uppercase" style="color: #10b981;">Empresas Activas</span>
-              <span class="font-serif text-2xl font-black" style="color: #10b981;">{{ getTenantsActivosCount() }}</span>
+            <div class="p-4 rounded-2xl flex items-center gap-3.5" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center text-lg" style="background: rgba(34, 197, 94, 0.15); color: #22c55e;">
+                <i class="fa-solid fa-circle-check"></i>
+              </div>
+              <div>
+                <span class="text-xs font-bold block" style="color: #22c55e;">ACTIVAS (OPERANDO)</span>
+                <span class="font-serif text-2xl font-black" style="color: var(--text-main);">{{ getTenantsActivosCount() }}</span>
+              </div>
             </div>
 
-            <div class="p-4 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border-color);">
-              <span class="text-xs font-bold block uppercase" style="color: #ef4444;">Empresas Suspendidas</span>
-              <span class="font-serif text-2xl font-black" style="color: #ef4444;">{{ getTenantsSuspendidosCount() }}</span>
+            <div class="p-4 rounded-2xl flex items-center gap-3.5" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center text-lg" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+                <i class="fa-solid fa-ban"></i>
+              </div>
+              <div>
+                <span class="text-xs font-bold block" style="color: #ef4444;">SUSPENDIDAS (RN05)</span>
+                <span class="font-serif text-2xl font-black" style="color: var(--text-main);">{{ getTenantsSuspendidosCount() }}</span>
+              </div>
             </div>
 
-            <div class="p-4 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border-color);">
-              <span class="text-xs font-bold block uppercase" style="color: #8b5cf6;">Planes Activos</span>
-              <span class="font-serif text-sm font-bold block mt-1" style="color: var(--text-main);">
-                💎 Pro: {{ getTenantsProCount() }} | 🏷️ Básico: {{ getTenantsBasicoCount() }}
-              </span>
+            <div class="p-4 rounded-2xl flex items-center gap-3.5" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center text-lg" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                <i class="fa-solid fa-gem"></i>
+              </div>
+              <div>
+                <span class="text-xs font-bold block" style="color: var(--text-muted);">SUSCRIPCIONES</span>
+                <div class="flex items-center gap-2 mt-0.5">
+                  <span class="text-xs font-bold text-amber-500">💎 {{ getTenantsProCount() }} Pro</span>
+                  <span class="text-xs" style="color: var(--border-color);">|</span>
+                  <span class="text-xs font-bold text-blue-500">🏷️ {{ getTenantsBasicoCount() }} Básico</span>
+                </div>
+              </div>
             </div>
+
           </div>
         </div>
 
-        <!-- FORMULARIO: REGISTRAR NUEVA EMPRESA (CU01) -->
-        <div *ngIf="mostrarModalNuevoTenant" class="card p-6 animate-fade-in" style="border: 2px dashed #f59e0b; background: var(--table-th-bg);">
-          <div class="flex items-center justify-between mb-4 pb-3 border-b" style="border-color: var(--border-color);">
-            <div class="flex items-center gap-2">
-              <i class="fa-solid fa-building-circle-check text-xl" style="color: #f59e0b;"></i>
-              <h3 class="font-serif text-lg font-bold" style="color: var(--text-main);">CU01: Registrar Nueva Empresa en Plataforma SaaS</h3>
-            </div>
-            <button type="button" (click)="mostrarModalNuevoTenant = false" class="btn btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;">
-              <i class="fa-solid fa-xmark"></i>
+        <!-- 2. BARRA DE HERRAMIENTAS: BÚSQUEDA Y FILTROS CLEAN -->
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <!-- Chips de Filtro -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-bold mr-1 uppercase" style="color: var(--text-muted);">Filtrar:</span>
+            
+            <button 
+              type="button" 
+              (click)="filtroEstadoSaaS = 'TODAS'"
+              class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+              [style.background]="filtroEstadoSaaS === 'TODAS' ? 'var(--accent)' : 'var(--table-th-bg)'"
+              [style.color]="filtroEstadoSaaS === 'TODAS' ? '#18181b' : 'var(--text-muted)'"
+              style="border: 1px solid var(--border-color);"
+            >
+              Todas ({{ tenants.length }})
+            </button>
+
+            <button 
+              type="button" 
+              (click)="filtroEstadoSaaS = 'ACTIVA'"
+              class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+              [style.background]="filtroEstadoSaaS === 'ACTIVA' ? 'rgba(34, 197, 94, 0.2)' : 'var(--table-th-bg)'"
+              [style.color]="filtroEstadoSaaS === 'ACTIVA' ? '#22c55e' : 'var(--text-muted)'"
+              [style.border]="filtroEstadoSaaS === 'ACTIVA' ? '1px solid #22c55e' : '1px solid var(--border-color)'"
+            >
+              Activas ({{ getTenantsActivosCount() }})
+            </button>
+
+            <button 
+              type="button" 
+              (click)="filtroEstadoSaaS = 'SUSPENDIDA'"
+              class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+              [style.background]="filtroEstadoSaaS === 'SUSPENDIDA' ? 'rgba(239, 68, 68, 0.2)' : 'var(--table-th-bg)'"
+              [style.color]="filtroEstadoSaaS === 'SUSPENDIDA' ? '#ef4444' : 'var(--text-muted)'"
+              [style.border]="filtroEstadoSaaS === 'SUSPENDIDA' ? '1px solid #ef4444' : '1px solid var(--border-color)'"
+            >
+              Suspendidas ({{ getTenantsSuspendidosCount() }})
             </button>
           </div>
 
-          <form (ngSubmit)="guardarNuevoTenant()" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label class="form-label text-xs font-bold uppercase mb-1 block">Razón Social de la Empresa *</label>
-              <input type="text" [(ngModel)]="nuevoTenant.razon_social" name="razon_social" required placeholder="Ej: Nova Style S.A." class="form-input text-xs" />
-            </div>
-
-            <div>
-              <label class="form-label text-xs font-bold uppercase mb-1 block">NIT (Identificación Tributaria) *</label>
-              <input type="text" [(ngModel)]="nuevoTenant.nit" name="nit" required placeholder="Ej: 3045901021" class="form-input text-xs" />
-            </div>
-
-            <div>
-              <label class="form-label text-xs font-bold uppercase mb-1 block">Plan de Suscripción Inicial *</label>
-              <select [(ngModel)]="nuevoTenant.plan_nombre" name="plan_nombre" class="form-input text-xs font-bold">
-                <option value="Basico">Plan Básico (Hasta 2 sucursales, sin IA)</option>
-                <option value="Profesional">Plan Profesional (Hasta 10 sucursales, con IA)</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="form-label text-xs font-bold uppercase mb-1 block">Nombre del Administrador *</label>
-              <input type="text" [(ngModel)]="nuevoTenant.admin_nombre" name="admin_nombre" required placeholder="Ej: Carlos" class="form-input text-xs" />
-            </div>
-
-            <div>
-              <label class="form-label text-xs font-bold uppercase mb-1 block">Apellidos del Administrador *</label>
-              <input type="text" [(ngModel)]="nuevoTenant.admin_apellido" name="admin_apellido" required placeholder="Ej: Mendoza" class="form-input text-xs" />
-            </div>
-
-            <div>
-              <label class="form-label text-xs font-bold uppercase mb-1 block">Correo Electrónico del Admin *</label>
-              <input type="email" [(ngModel)]="nuevoTenant.admin_email" name="admin_email" required placeholder="admin@empresa.com" class="form-input text-xs" />
-            </div>
-
-            <div>
-              <label class="form-label text-xs font-bold uppercase mb-1 block">Contraseña Inicial *</label>
-              <input type="password" [(ngModel)]="nuevoTenant.admin_password" name="admin_password" required placeholder="Mínimo 6 caracteres" class="form-input text-xs" />
-            </div>
-
-            <div>
-              <label class="form-label text-xs font-bold uppercase mb-1 block">Vigencia de Suscripción (Meses)</label>
-              <input type="number" [(ngModel)]="nuevoTenant.meses_vigencia" name="meses_vigencia" min="1" max="60" class="form-input text-xs font-bold text-center" />
-            </div>
-
-            <div class="flex items-end">
-              <button type="submit" [disabled]="guardandoTenant" class="btn btn-primary w-full" style="padding: 0.65rem 1rem; font-weight: 800;">
-                <span *ngIf="guardandoTenant"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Registrando...</span>
-                <span *ngIf="!guardandoTenant"><i class="fa-solid fa-check-circle mr-1"></i> Crear Empresa y Activar Plan</span>
-              </button>
-            </div>
-          </form>
+          <!-- Buscador en Vivo -->
+          <div class="relative" style="min-width: 280px;">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-xs" style="color: var(--text-muted);"></i>
+            <input 
+              type="text" 
+              [(ngModel)]="busquedaTenant" 
+              placeholder="Buscar por Razón Social o NIT..." 
+              class="form-input text-xs"
+              style="padding-left: 2.3rem; border-radius: 12px;"
+            />
+          </div>
         </div>
 
-        <!-- TABLA DE EMPRESAS (CU03) -->
-        <div class="card p-5">
-          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <div>
-              <h3 class="font-serif text-lg font-bold" style="color: var(--text-main);">
-                <i class="fa-solid fa-list-check mr-2" style="color: #f59e0b;"></i>
-                CU03: Directorio de Empresas Registradas y Monitoreo de Límites
-              </h3>
-              <p class="text-xs" style="color: var(--text-muted);">
-                Verifica el estado de cada empresa, cambia planes en caliente o suspende cuentas por impago (RN05).
-              </p>
+        <!-- 3. LISTADO DE EMPRESAS EN CARDS MODERNAS Y LIMPIAS -->
+        <div class="grid grid-cols-1 gap-4">
+          
+          <div 
+            *ngFor="let t of tenantsFiltrados" 
+            class="card p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 transition-all"
+            [style.border]="t.estado === 'ACTIVA' ? '1px solid var(--border-color)' : '1.5px solid rgba(239, 68, 68, 0.4)'"
+            [style.background]="t.estado === 'ACTIVA' ? 'var(--card-bg)' : 'rgba(239, 68, 68, 0.03)'"
+            style="border-radius: 18px; box-shadow: 0 4px 16px rgba(0,0,0,0.03);"
+          >
+            <!-- Columna Izquierda: Identidad de Empresa -->
+            <div class="flex items-center gap-4 flex-1 min-w-0">
+              <div 
+                class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold flex-shrink-0"
+                [style.background]="t.plan_activo === 'Profesional' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(59, 130, 246, 0.15)'"
+                [style.color]="t.plan_activo === 'Profesional' ? '#f59e0b' : '#3b82f6'"
+                [style.border]="'1.5px solid ' + (t.plan_activo === 'Profesional' ? '#f59e0b' : '#3b82f6')"
+              >
+                <i class="fa-solid" [class.fa-gem]="t.plan_activo === 'Profesional'" [class.fa-shop]="t.plan_activo !== 'Profesional'"></i>
+              </div>
+
+              <div class="min-w-0">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                  <h3 class="font-serif text-lg font-bold truncate" style="color: var(--text-main);">
+                    {{ t.razon_social }}
+                  </h3>
+                  <!-- Badge Estado -->
+                  <span 
+                    class="badge" 
+                    [style.background]="t.estado === 'ACTIVA' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)'"
+                    [style.color]="t.estado === 'ACTIVA' ? '#22c55e' : '#ef4444'"
+                    [style.border]="'1px solid ' + (t.estado === 'ACTIVA' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)')"
+                    style="font-size: 0.68rem; font-weight: 800; padding: 2px 8px;"
+                  >
+                    <i class="fa-solid" [class.fa-circle-check]="t.estado === 'ACTIVA'" [class.fa-ban]="t.estado !== 'ACTIVA'"></i>
+                    {{ t.estado }}
+                  </span>
+                </div>
+
+                <div class="flex items-center gap-3 text-xs mt-1 flex-wrap" style="color: var(--text-muted);">
+                  <span><i class="fa-solid fa-id-card mr-1 text-amber-500"></i> NIT: <strong>{{ t.nit }}</strong></span>
+                  <span>•</span>
+                  <span><i class="fa-solid fa-users mr-1"></i> {{ t.total_usuarios }} usuario(s)</span>
+                  <span>•</span>
+                  <span><i class="fa-regular fa-calendar-check mr-1"></i> Vence: {{ t.fecha_vencimiento || '1 año' }}</span>
+                </div>
+              </div>
             </div>
+
+            <!-- Columna Central: Capacidad y Plan -->
+            <div class="flex items-center gap-6 flex-wrap md:border-l md:border-r md:px-6" style="border-color: var(--border-color);">
+              
+              <!-- Plan -->
+              <div class="text-left">
+                <span class="text-xs font-bold block mb-1 uppercase" style="color: var(--text-muted);">Plan Contratado</span>
+                <span 
+                  class="badge" 
+                  [style.background]="t.plan_activo === 'Profesional' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(59, 130, 246, 0.18)'"
+                  [style.color]="t.plan_activo === 'Profesional' ? '#f59e0b' : '#3b82f6'"
+                  [style.border]="'1.5px solid ' + (t.plan_activo === 'Profesional' ? '#f59e0b' : '#3b82f6')"
+                  style="font-size: 0.75rem; font-weight: 800; padding: 4px 10px;"
+                >
+                  <i class="fa-solid" [class.fa-gem]="t.plan_activo === 'Profesional'" [class.fa-tag]="t.plan_activo !== 'Profesional'"></i>
+                  {{ t.plan_activo }}
+                </span>
+              </div>
+
+              <!-- Límite de Sucursales -->
+              <div class="text-left" style="min-width: 140px;">
+                <span class="text-xs font-bold block mb-1 uppercase" style="color: var(--text-muted);">Sucursales Activas</span>
+                <div class="flex items-center gap-2">
+                  <span class="font-serif text-base font-extrabold" [style.color]="t.total_sucursales >= (t.max_sucursales || 2) ? '#ef4444' : 'var(--text-main)'">
+                    {{ t.total_sucursales }} / {{ t.max_sucursales }}
+                  </span>
+                  <span *ngIf="t.total_sucursales >= (t.max_sucursales || 2)" class="badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; font-size: 0.62rem; font-weight: 800;">
+                    Límite (RN04)
+                  </span>
+                </div>
+              </div>
+
+              <!-- Soporte IA -->
+              <div class="text-left">
+                <span class="text-xs font-bold block mb-1 uppercase" style="color: var(--text-muted);">Reportes IA (CU28)</span>
+                <span *ngIf="t.permite_reportes_ia" class="badge" style="background: rgba(34, 197, 94, 0.15); color: #22c55e; font-size: 0.72rem; font-weight: 700;">
+                  <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Con Gemini IA
+                </span>
+                <span *ngIf="!t.permite_reportes_ia" class="badge" style="background: rgba(100, 116, 139, 0.15); color: #64748b; font-size: 0.72rem; font-weight: 700;">
+                  <i class="fa-solid fa-lock mr-1"></i> Bloqueado (RN23)
+                </span>
+              </div>
+
+            </div>
+
+            <!-- Columna Derecha: Botones de Acción Limpios -->
+            <div class="flex items-center gap-2.5 flex-shrink-0 self-end md:self-center">
+              
+              <!-- Botón Cambiar Plan (CU02) -->
+              <button 
+                type="button" 
+                (click)="abrirModalCambiarPlan(t)" 
+                class="btn btn-outline flex items-center gap-1.5"
+                style="padding: 0.5rem 0.9rem; font-size: 0.8rem; border-radius: 10px;"
+                title="Actualizar o cambiar plan de suscripción (CU02)"
+              >
+                <i class="fa-solid fa-arrow-right-arrow-left text-xs"></i>
+                <span>Cambiar Plan</span>
+              </button>
+
+              <!-- Botón Suspender / Reactivar (CU04 / RN05) -->
+              <button 
+                type="button" 
+                (click)="abrirModalSuspension(t)" 
+                class="btn flex items-center gap-1.5"
+                [style.background]="t.estado === 'ACTIVA' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.15)'"
+                [style.border]="'1.5px solid ' + (t.estado === 'ACTIVA' ? '#ef4444' : '#22c55e')"
+                [style.color]="t.estado === 'ACTIVA' ? '#ef4444' : '#22c55e'"
+                style="padding: 0.5rem 0.9rem; font-size: 0.8rem; font-weight: 800; border-radius: 10px;"
+                [title]="t.estado === 'ACTIVA' ? 'Suspender empresa (RN05)' : 'Reactivar empresa'"
+              >
+                <i class="fa-solid" [class.fa-ban]="t.estado === 'ACTIVA'" [class.fa-check-circle]="t.estado !== 'ACTIVA'"></i>
+                <span>{{ t.estado === 'ACTIVA' ? 'Suspender' : 'Reactivar' }}</span>
+              </button>
+            </div>
+
           </div>
 
-          <div class="overflow-x-auto">
-            <table class="admin-table w-full">
-              <thead>
-                <tr>
-                  <th>Empresa / Razón Social</th>
-                  <th>NIT</th>
-                  <th>Plan Actual</th>
-                  <th>Sucursales (Uso / Límite)</th>
-                  <th>Soporte IA (CU28)</th>
-                  <th>Vencimiento</th>
-                  <th>Estado</th>
-                  <th style="text-align: right;">Acciones (CU02 / CU04)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let t of tenants" [style.opacity]="t.estado === 'SUSPENDIDA' ? '0.7' : '1'">
-                  <!-- Empresa -->
-                  <td>
-                    <div class="flex items-center gap-2">
-                      <div class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
-                        <i class="fa-solid fa-building"></i>
-                      </div>
-                      <div>
-                        <span class="font-bold block" style="color: var(--text-main);">{{ t.razon_social }}</span>
-                        <span class="text-xs" style="color: var(--text-muted);">{{ t.total_usuarios }} usuario(s)</span>
-                      </div>
-                    </div>
-                  </td>
-
-                  <!-- NIT -->
-                  <td>
-                    <code style="font-weight: 700; color: var(--accent);">{{ t.nit }}</code>
-                  </td>
-
-                  <!-- Plan Actual -->
-                  <td>
-                    <span 
-                      class="badge" 
-                      [style.background]="t.plan_activo === 'Profesional' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)'"
-                      [style.color]="t.plan_activo === 'Profesional' ? '#10b981' : '#3b82f6'"
-                      [style.border]="'1.5px solid ' + (t.plan_activo === 'Profesional' ? '#10b981' : '#3b82f6')"
-                      style="font-weight: 800;"
-                    >
-                      <i class="fa-solid" [class.fa-gem]="t.plan_activo === 'Profesional'" [class.fa-tag]="t.plan_activo !== 'Profesional'"></i>
-                      {{ t.plan_activo }}
-                    </span>
-                  </td>
-
-                  <!-- Sucursales -->
-                  <td>
-                    <div class="flex items-center gap-2">
-                      <span class="font-bold text-sm" [style.color]="t.total_sucursales >= (t.max_sucursales || 2) ? '#ef4444' : 'var(--text-main)'">
-                        {{ t.total_sucursales }} / {{ t.max_sucursales }}
-                      </span>
-                      <span *ngIf="t.total_sucursales >= (t.max_sucursales || 2)" class="badge" style="background: #ef4444; color: white; font-size: 0.6rem;">
-                        TOPE ALCANZADO (RN04)
-                      </span>
-                    </div>
-                  </td>
-
-                  <!-- Soporte IA -->
-                  <td>
-                    <span *ngIf="t.permite_reportes_ia" class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700;">
-                      <i class="fa-solid fa-circle-check mr-1"></i> Habilitado (Gemini)
-                    </span>
-                    <span *ngIf="!t.permite_reportes_ia" class="badge" style="background: rgba(100, 116, 139, 0.15); color: #64748b;">
-                      <i class="fa-solid fa-ban mr-1"></i> Bloqueado (RN23)
-                    </span>
-                  </td>
-
-                  <!-- Vencimiento -->
-                  <td>
-                    <span class="text-xs font-semibold">{{ t.fecha_vencimiento || '1 año' }}</span>
-                  </td>
-
-                  <!-- Estado -->
-                  <td>
-                    <span 
-                      class="badge" 
-                      [style.background]="t.estado === 'ACTIVA' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)'"
-                      [style.color]="t.estado === 'ACTIVA' ? '#22c55e' : '#ef4444'"
-                      style="font-weight: 800;"
-                    >
-                      <i class="fa-solid" [class.fa-circle-check]="t.estado === 'ACTIVA'" [class.fa-circle-xmark]="t.estado !== 'ACTIVA'"></i>
-                      {{ t.estado }}
-                    </span>
-                  </td>
-
-                  <!-- Acciones -->
-                  <td style="text-align: right;">
-                    <div class="flex items-center justify-end gap-2">
-                      <!-- Botón Cambiar Plan (CU02) -->
-                      <button 
-                        type="button" 
-                        *ngIf="t.plan_activo === 'Basico'"
-                        (click)="cambiarPlanTenant(t, 'Profesional')" 
-                        class="btn btn-outline"
-                        style="padding: 0.35rem 0.75rem; font-size: 0.75rem; color: #10b981; border-color: #10b981;"
-                        title="Subir a Plan Profesional (10 sucursales + IA)"
-                      >
-                        <i class="fa-solid fa-arrow-up mr-1"></i> Upgrade a Pro
-                      </button>
-
-                      <button 
-                        type="button" 
-                        *ngIf="t.plan_activo === 'Profesional'"
-                        (click)="cambiarPlanTenant(t, 'Basico')" 
-                        class="btn btn-outline"
-                        style="padding: 0.35rem 0.75rem; font-size: 0.75rem; color: #3b82f6; border-color: #3b82f6;"
-                        title="Bajar a Plan Básico (2 sucursales)"
-                      >
-                        <i class="fa-solid fa-arrow-down mr-1"></i> Downgrade Básico
-                      </button>
-
-                      <!-- Botón Suspender / Reactivar (CU04 / RN05) -->
-                      <button 
-                        type="button" 
-                        (click)="toggleEstadoTenant(t)" 
-                        class="btn"
-                        [ngClass]="t.estado === 'ACTIVA' ? 'btn-outline' : 'btn-primary'"
-                        [style.border-color]="t.estado === 'ACTIVA' ? '#ef4444' : '#10b981'"
-                        [style.color]="t.estado === 'ACTIVA' ? '#ef4444' : '#fff'"
-                        [style.background]="t.estado === 'ACTIVA' ? 'transparent' : '#10b981'"
-                        style="padding: 0.35rem 0.75rem; font-size: 0.75rem; font-weight: 700;"
-                        [title]="t.estado === 'ACTIVA' ? 'Suspender empresa (RN05: bloquea logins)' : 'Reactivar empresa'"
-                      >
-                        <i class="fa-solid" [class.fa-ban]="t.estado === 'ACTIVA'" [class.fa-check]="t.estado !== 'ACTIVA'"></i>
-                        {{ t.estado === 'ACTIVA' ? 'Suspender' : 'Reactivar' }}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-
-                <tr *ngIf="tenants.length === 0">
-                  <td colspan="8" class="text-center py-6 text-xs text-muted">
-                    No se encontraron empresas registradas. Usa el botón superior para agregar una.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <!-- Mensaje Vacío -->
+          <div *ngIf="tenantsFiltrados.length === 0" class="card p-12 text-center" style="border: 1px dashed var(--border-color); border-radius: 18px;">
+            <i class="fa-solid fa-building-circle-exclamation text-4xl mb-3 text-muted"></i>
+            <h4 class="font-serif text-base font-bold" style="color: var(--text-main);">No se encontraron empresas</h4>
+            <p class="text-xs mt-1 text-muted">Ajusta los filtros o usa el botón "+ Nueva Empresa" para registrar una.</p>
           </div>
+
         </div>
 
       </div>
 
+      <!-- =================================================================== -->
+      <!-- MODAL LIMPIO: REGISTRAR NUEVA EMPRESA (CU01)                         -->
+      <!-- =================================================================== -->
+      <div *ngIf="mostrarModalNuevoTenant" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px);">
+        <div class="card p-7 max-w-xl w-full animate-fade-in relative" style="border: 2px solid #f59e0b; border-radius: 20px; max-height: 90vh; overflow-y: auto;">
+          <button type="button" (click)="mostrarModalNuevoTenant = false" class="absolute top-5 right-5 text-gray-400 hover:text-white" style="background: none; border: none; font-size: 1.25rem; cursor: pointer;">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+
+          <div class="flex items-center gap-3 mb-5">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b;">
+              <i class="fa-solid fa-building-circle-check"></i>
+            </div>
+            <div>
+              <h3 class="font-serif text-xl font-bold" style="color: var(--text-main);">CU01: Registrar Nueva Empresa</h3>
+              <p class="text-xs" style="color: var(--text-muted);">Alta de Tenant SaaS, suscripción y cuenta administradora</p>
+            </div>
+          </div>
+
+          <form (ngSubmit)="guardarNuevoTenant()" class="flex flex-col gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="form-label text-xs font-bold uppercase mb-1 block">Razón Social *</label>
+                <input type="text" [(ngModel)]="nuevoTenant.razon_social" name="razon_social" required placeholder="Ej: Nova Style S.A." class="form-input text-xs" />
+              </div>
+              <div>
+                <label class="form-label text-xs font-bold uppercase mb-1 block">NIT *</label>
+                <input type="text" [(ngModel)]="nuevoTenant.nit" name="nit" required placeholder="Ej: 3045901021" class="form-input text-xs" />
+              </div>
+            </div>
+
+            <div>
+              <label class="form-label text-xs font-bold uppercase mb-1 block">Plan de Suscripción Inicial</label>
+              <div class="grid grid-cols-2 gap-3">
+                <button 
+                  type="button" 
+                  (click)="nuevoTenant.plan_nombre = 'Basico'"
+                  class="p-3 rounded-xl border text-left transition-all"
+                  [style.border-color]="nuevoTenant.plan_nombre === 'Basico' ? '#3b82f6' : 'var(--border-color)'"
+                  [style.background]="nuevoTenant.plan_nombre === 'Basico' ? 'rgba(59, 130, 246, 0.1)' : 'var(--table-th-bg)'"
+                >
+                  <span class="font-bold text-xs block" [style.color]="nuevoTenant.plan_nombre === 'Basico' ? '#3b82f6' : 'var(--text-main)'">Plan Básico</span>
+                  <span class="text-xs text-muted block mt-0.5">Hasta 2 sucursales</span>
+                </button>
+
+                <button 
+                  type="button" 
+                  (click)="nuevoTenant.plan_nombre = 'Profesional'"
+                  class="p-3 rounded-xl border text-left transition-all"
+                  [style.border-color]="nuevoTenant.plan_nombre === 'Profesional' ? '#f59e0b' : 'var(--border-color)'"
+                  [style.background]="nuevoTenant.plan_nombre === 'Profesional' ? 'rgba(245, 158, 11, 0.1)' : 'var(--table-th-bg)'"
+                >
+                  <span class="font-bold text-xs block" [style.color]="nuevoTenant.plan_nombre === 'Profesional' ? '#f59e0b' : 'var(--text-main)'">Plan Profesional</span>
+                  <span class="text-xs text-muted block mt-0.5">Hasta 10 sucursales + IA</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="form-label text-xs font-bold uppercase mb-1 block">Nombre Administrador *</label>
+                <input type="text" [(ngModel)]="nuevoTenant.admin_nombre" name="admin_nombre" required placeholder="Ej: Carlos" class="form-input text-xs" />
+              </div>
+              <div>
+                <label class="form-label text-xs font-bold uppercase mb-1 block">Apellidos Administrador *</label>
+                <input type="text" [(ngModel)]="nuevoTenant.admin_apellido" name="admin_apellido" required placeholder="Ej: Mendoza" class="form-input text-xs" />
+              </div>
+            </div>
+
+            <div>
+              <label class="form-label text-xs font-bold uppercase mb-1 block">Correo Electrónico *</label>
+              <input type="email" [(ngModel)]="nuevoTenant.admin_email" name="admin_email" required placeholder="admin@empresa.com" class="form-input text-xs" />
+            </div>
+
+            <div>
+              <label class="form-label text-xs font-bold uppercase mb-1 block">Contraseña *</label>
+              <input type="password" [(ngModel)]="nuevoTenant.admin_password" name="admin_password" required placeholder="Contraseña de acceso" class="form-input text-xs" />
+            </div>
+
+            <button type="submit" [disabled]="guardandoTenant" class="btn btn-primary w-full mt-2" style="padding: 0.8rem; font-weight: 800; border-radius: 12px; background: #f59e0b; color: #18181b; border: none;">
+              <span *ngIf="guardandoTenant"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Creando Espacio SaaS...</span>
+              <span *ngIf="!guardandoTenant"><i class="fa-solid fa-check mr-2"></i> Crear Empresa y Activar Plan</span>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- MODAL LIMPIO: CAMBIAR PLAN (CU02)                                    -->
+      <!-- =================================================================== -->
+      <div *ngIf="mostrarModalCambiarPlan && tenantSeleccionadoParaPlan" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px);">
+        <div class="card p-7 max-w-md w-full animate-fade-in relative" style="border: 2px solid var(--accent); border-radius: 20px;">
+          <button type="button" (click)="mostrarModalCambiarPlan = false" class="absolute top-5 right-5 text-gray-400 hover:text-white" style="background: none; border: none; font-size: 1.25rem; cursor: pointer;">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+
+          <h3 class="font-serif text-xl font-bold mb-1" style="color: var(--text-main);">
+            CU02: Modificar Plan de Suscripción
+          </h3>
+          <p class="text-xs mb-5" style="color: var(--text-muted);">
+            Empresa: <strong>{{ tenantSeleccionadoParaPlan.razon_social }}</strong>
+          </p>
+
+          <div class="flex flex-col gap-3 mb-6">
+            <button 
+              type="button" 
+              (click)="planDestinoSeleccionado = 'Basico'"
+              class="p-4 rounded-xl border text-left flex items-center justify-between"
+              [style.border-color]="planDestinoSeleccionado === 'Basico' ? '#3b82f6' : 'var(--border-color)'"
+              [style.background]="planDestinoSeleccionado === 'Basico' ? 'rgba(59, 130, 246, 0.12)' : 'var(--table-th-bg)'"
+            >
+              <div>
+                <span class="font-bold text-xs block text-blue-500">Plan Básico</span>
+                <span class="text-xs text-muted">Máx 2 sucursales • Sin IA (RN23)</span>
+              </div>
+              <i *ngIf="planDestinoSeleccionado === 'Basico'" class="fa-solid fa-circle-check text-blue-500 text-lg"></i>
+            </button>
+
+            <button 
+              type="button" 
+              (click)="planDestinoSeleccionado = 'Profesional'"
+              class="p-4 rounded-xl border text-left flex items-center justify-between"
+              [style.border-color]="planDestinoSeleccionado === 'Profesional' ? '#f59e0b' : 'var(--border-color)'"
+              [style.background]="planDestinoSeleccionado === 'Profesional' ? 'rgba(245, 158, 11, 0.12)' : 'var(--table-th-bg)'"
+            >
+              <div>
+                <span class="font-bold text-xs block text-amber-500">Plan Profesional</span>
+                <span class="text-xs text-muted">Hasta 10 sucursales • Con IA Gemini (CU28)</span>
+              </div>
+              <i *ngIf="planDestinoSeleccionado === 'Profesional'" class="fa-solid fa-circle-check text-amber-500 text-lg"></i>
+            </button>
+          </div>
+
+          <button 
+            type="button" 
+            (click)="ejecutarCambioPlan()" 
+            class="btn btn-primary w-full"
+            style="padding: 0.8rem; font-weight: 800; border-radius: 12px; background: #f59e0b; color: #18181b; border: none;"
+          >
+            <i class="fa-solid fa-check-circle mr-2"></i> Confirmar Actualización de Plan
+          </button>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- MODAL LIMPIO: CONFIRMAR SUSPENSIÓN / REACTIVACIÓN (CU04 / RN05)      -->
+      <!-- =================================================================== -->
+      <div *ngIf="mostrarModalSuspension && tenantSeleccionadoParaSuspension" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px);">
+        <div class="card p-7 max-w-md w-full animate-fade-in relative" style="border: 2px solid" [style.border-color]="tenantSeleccionadoParaSuspension.estado === 'ACTIVA' ? '#ef4444' : '#22c55e'" style="border-radius: 20px;">
+          <button type="button" (click)="mostrarModalSuspension = false" class="absolute top-5 right-5 text-gray-400 hover:text-white" style="background: none; border: none; font-size: 1.25rem; cursor: pointer;">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-4" [style.background]="tenantSeleccionadoParaSuspension.estado === 'ACTIVA' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)'" [style.color]="tenantSeleccionadoParaSuspension.estado === 'ACTIVA' ? '#ef4444' : '#22c55e'">
+            <i class="fa-solid" [class.fa-triangle-exclamation]="tenantSeleccionadoParaSuspension.estado === 'ACTIVA'" [class.fa-circle-check]="tenantSeleccionadoParaSuspension.estado !== 'ACTIVA'"></i>
+          </div>
+
+          <h3 class="font-serif text-xl font-bold mb-2" style="color: var(--text-main);">
+            {{ tenantSeleccionadoParaSuspension.estado === 'ACTIVA' ? '¿Suspender Empresa?' : '¿Reactivar Empresa?' }}
+          </h3>
+
+          <p class="text-xs mb-6" style="color: var(--text-muted); line-height: 1.6;">
+            Empresa: <strong>{{ tenantSeleccionadoParaSuspension.razon_social }}</strong> (NIT: {{ tenantSeleccionadoParaSuspension.nit }})<br>
+            <span *ngIf="tenantSeleccionadoParaSuspension.estado === 'ACTIVA'" class="text-red-400 mt-2 block font-semibold">
+              Regla RN05: Al suspenderla, ningún usuario o cajero de esta empresa podrá iniciar sesión en la plataforma.
+            </span>
+            <span *ngIf="tenantSeleccionadoParaSuspension.estado !== 'ACTIVA'" class="text-emerald-400 mt-2 block font-semibold">
+              Al reactivarla, sus empleados podrán acceder con normalidad a sus sucursales.
+            </span>
+          </p>
+
+          <div class="flex items-center gap-3">
+            <button 
+              type="button" 
+              (click)="mostrarModalSuspension = false" 
+              class="btn btn-outline flex-1"
+              style="padding: 0.75rem; border-radius: 12px;"
+            >
+              Cancelar
+            </button>
+
+            <button 
+              type="button" 
+              (click)="ejecutarCambioEstado()" 
+              class="btn flex-1"
+              [style.background]="tenantSeleccionadoParaSuspension.estado === 'ACTIVA' ? '#ef4444' : '#22c55e'"
+              style="padding: 0.75rem; font-weight: 800; border-radius: 12px; color: white; border: none;"
+            >
+              {{ tenantSeleccionadoParaSuspension.estado === 'ACTIVA' ? 'Sí, Suspender' : 'Sí, Reactivar' }}
+            </button>
+          </div>
+        </div>
+      </div>
       <!-- PESTAÑA: REPORTES -->
       <div *ngIf="activeTab === 'reportes'" class="animate-fade-in" style="width: 100%;">
          <app-reportes [esAdmin]="true"></app-reportes>
@@ -2209,6 +2396,13 @@ export class AdminPanelComponent implements OnInit {
   private saasService = inject(SaasService);
 
   // --- SaaS Multi-tenant State (CU01-CU04) ---
+  filtroEstadoSaaS: 'TODAS' | 'ACTIVA' | 'SUSPENDIDA' = 'TODAS';
+  busquedaTenant: string = '';
+  mostrarModalCambiarPlan: boolean = false;
+  tenantSeleccionadoParaPlan: TenantSaaS | null = null;
+  planDestinoSeleccionado: 'Basico' | 'Profesional' = 'Profesional';
+  mostrarModalSuspension: boolean = false;
+  tenantSeleccionadoParaSuspension: TenantSaaS | null = null;
   tenants: TenantSaaS[] = [];
   planes: PlanSaaS[] = [];
   loadingTenants: boolean = false;
@@ -3694,8 +3888,23 @@ export class AdminPanelComponent implements OnInit {
   }
 
   // =========================================================================
-  // GESTIÓN SAAS MULTI-TENANT (CU01 - CU04)
+  // GESTIÓN SAAS MULTI-TENANT (CU01 - CU04) - ULTRA CLEAN ARCHITECTURE
   // =========================================================================
+  get tenantsFiltrados(): TenantSaaS[] {
+    let list = this.tenants;
+    if (this.filtroEstadoSaaS !== 'TODAS') {
+      list = list.filter(t => t.estado === this.filtroEstadoSaaS);
+    }
+    const q = (this.busquedaTenant || '').trim().toLowerCase();
+    if (q) {
+      list = list.filter(t => 
+        (t.razon_social && t.razon_social.toLowerCase().includes(q)) ||
+        (t.nit && t.nit.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }
+
   cargarTenants(): void {
     this.loadingTenants = true;
     this.saasService.getTenants().subscribe({
@@ -3714,6 +3923,20 @@ export class AdminPanelComponent implements OnInit {
     });
   }
 
+  abrirModalCrearTenant(): void {
+    this.nuevoTenant = {
+      razon_social: '',
+      nit: '',
+      plan_nombre: 'Basico',
+      admin_nombre: '',
+      admin_apellido: '',
+      admin_email: '',
+      admin_password: '',
+      meses_vigencia: 12
+    };
+    this.mostrarModalNuevoTenant = true;
+  }
+
   guardarNuevoTenant(): void {
     if (!this.nuevoTenant.razon_social.trim() || !this.nuevoTenant.nit.trim()) {
       this.toastService.warning('Campos Requeridos', 'Por favor ingresa la Razón Social y el NIT.');
@@ -3730,16 +3953,6 @@ export class AdminPanelComponent implements OnInit {
         this.guardandoTenant = false;
         this.toastService.success('¡Empresa Creada!', `Empresa "${creado.razon_social}" dada de alta con Plan ${creado.plan_activo}.`);
         this.mostrarModalNuevoTenant = false;
-        this.nuevoTenant = {
-          razon_social: '',
-          nit: '',
-          plan_nombre: 'Basico',
-          admin_nombre: '',
-          admin_apellido: '',
-          admin_email: '',
-          admin_password: '',
-          meses_vigencia: 12
-        };
         this.cargarTenants();
       },
       error: (err) => {
@@ -3749,12 +3962,41 @@ export class AdminPanelComponent implements OnInit {
     });
   }
 
-  toggleEstadoTenant(t: TenantSaaS): void {
+  abrirModalCambiarPlan(t: TenantSaaS): void {
+    this.tenantSeleccionadoParaPlan = t;
+    this.planDestinoSeleccionado = (t.plan_activo === 'Basico' ? 'Profesional' : 'Basico');
+    this.mostrarModalCambiarPlan = true;
+  }
+
+  ejecutarCambioPlan(): void {
+    if (!this.tenantSeleccionadoParaPlan) return;
+    const t = this.tenantSeleccionadoParaPlan;
+    const nuevoPlan = this.planDestinoSeleccionado;
+
+    this.saasService.cambiarPlan(t.id, nuevoPlan).subscribe({
+      next: (actualizado) => {
+        t.plan_activo = actualizado.plan_activo;
+        t.max_sucursales = actualizado.max_sucursales;
+        t.permite_reportes_ia = actualizado.permite_reportes_ia;
+        this.toastService.success('Plan Actualizado', `"${t.razon_social}" actualizado exitosamente al Plan ${nuevoPlan} (CU02).`);
+        this.mostrarModalCambiarPlan = false;
+        this.tenantSeleccionadoParaPlan = null;
+      },
+      error: (err) => {
+        this.toastService.error('Error al cambiar plan', err.error?.detail || 'No se pudo actualizar el plan.');
+      }
+    });
+  }
+
+  abrirModalSuspension(t: TenantSaaS): void {
+    this.tenantSeleccionadoParaSuspension = t;
+    this.mostrarModalSuspension = true;
+  }
+
+  ejecutarCambioEstado(): void {
+    if (!this.tenantSeleccionadoParaSuspension) return;
+    const t = this.tenantSeleccionadoParaSuspension;
     const nuevoEstado = t.estado === 'ACTIVA' ? 'SUSPENDIDA' : 'ACTIVA';
-    const accion = nuevoEstado === 'SUSPENDIDA' ? 'suspender' : 'reactivar';
-    if (!confirm(`¿Estás seguro de ${accion} a la empresa "${t.razon_social}"? ${nuevoEstado === 'SUSPENDIDA' ? 'Sus usuarios no podrán iniciar sesión (RN05).' : ''}`)) {
-      return;
-    }
 
     this.saasService.cambiarEstado(t.id, nuevoEstado).subscribe({
       next: (actualizado) => {
@@ -3763,27 +4005,11 @@ export class AdminPanelComponent implements OnInit {
           nuevoEstado === 'ACTIVA' ? 'Empresa Reactivada' : 'Empresa Suspendida',
           `"${t.razon_social}" ahora se encuentra ${nuevoEstado} (RN05).`
         );
+        this.mostrarModalSuspension = false;
+        this.tenantSeleccionadoParaSuspension = null;
       },
       error: (err) => {
         this.toastService.error('Error al actualizar estado', err.error?.detail || 'No se pudo cambiar el estado.');
-      }
-    });
-  }
-
-  cambiarPlanTenant(t: TenantSaaS, nuevoPlan: string): void {
-    if (!confirm(`¿Deseas cambiar el plan de "${t.razon_social}" a "${nuevoPlan}"?`)) {
-      return;
-    }
-
-    this.saasService.cambiarPlan(t.id, nuevoPlan).subscribe({
-      next: (actualizado) => {
-        t.plan_activo = actualizado.plan_activo;
-        t.max_sucursales = actualizado.max_sucursales;
-        t.permite_reportes_ia = actualizado.permite_reportes_ia;
-        this.toastService.success('Plan Actualizado', `"${t.razon_social}" actualizado exitosamente al Plan ${nuevoPlan}.`);
-      },
-      error: (err) => {
-        this.toastService.error('Error al cambiar plan', err.error?.detail || 'No se pudo actualizar el plan.');
       }
     });
   }
@@ -3804,7 +4030,7 @@ export class AdminPanelComponent implements OnInit {
     return this.tenants.filter(t => t.plan_activo === 'Basico').length;
   }
 
-  cambiarRolUsuario(u: any, nuevoRolId: number): void {
+    cambiarRolUsuario(u: any, nuevoRolId: number): void {
     if (!nuevoRolId || nuevoRolId === u.rol_id) return;
     this.adminService.cambiarRolUsuario(u.id, {
       rol_id: Number(nuevoRolId),

@@ -65,6 +65,10 @@ export class SaasService {
     return this.http.post<TenantSaaS>(`${this.apiUrl}/tenants`, dto, { headers: this.getHeaders() });
   }
 
+  onboarding(dto: CrearTenantDto): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/onboarding`, dto);
+  }
+
   cambiarEstado(tenantId: string, estado: string): Observable<TenantSaaS> {
     return this.http.patch<TenantSaaS>(
       `${this.apiUrl}/tenants/${tenantId}/estado`,

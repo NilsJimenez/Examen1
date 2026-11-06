@@ -13,7 +13,7 @@ from app.models.usuario import Usuario, Rol
 from app.models.sucursal import Sucursal
 from app.schemas.saas import (
     TenantCreateRequest, TenantUpdateRequest, CambiarPlanRequest,
-    TenantDetailResponse, PlanResponse, SuscripcionResponse
+    TenantDetailResponse, PlanResponse, SuscripcionResponse, OnboardingResponse
 )
 
 router = APIRouter()
@@ -113,6 +113,119 @@ def registrar_empresa(
         fecha_vencimiento=suscripcion.fecha_vencimiento,
         total_sucursales=0,
         total_usuarios=1
+    )
+
+
+# =============================================================================
+# CU01: ONBOARDING PÚBLICO / AUTORREGISTRO DE EMPRESA Y PLAN (LANDING PAGE)
+# =============================================================================
+@router.post("/onboarding", response_model=OnboardingResponse, status_code=status.HTTP_201_CREATED)
+def onboarding_empresa(
+    data: TenantCreateRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Permite a cualquier empresa de moda suscribirse desde la pantalla inicial (Landing Page).
+    Crea el tenant, la suscripción y la cuenta admin, retornando el token para login inmediato.
+    """
+    from app.core.security import create_access_token
+
+    existing_tenant = db.query(Tenant).filter(Tenant.nit == data.nit.strip()).first()
+    if existing_tenant:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Ya existe una empresa registrada con el NIT: {data.nit}."
+        )
+
+    existing_user = db.query(Usuario).filter(Usuario.email == data.admin_email.strip().lower()).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"El correo electrónico {data.admin_email} ya se encuentra registrado."
+        )
+
+    plan = db.query(Plan).filter(Plan.nombre == data.plan_nombre).first()
+    if not plan:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"El plan '{data.plan_nombre}' no existe en la plataforma (disponibles: Basico, Profesional)."
+        )
+
+    new_tenant = Tenant(
+        id=uuid.uuid4(),
+        razon_social=data.razon_social.strip(),
+        nit=data.nit.strip(),
+        estado="ACTIVA"
+    )
+    db.add(new_tenant)
+    db.flush()
+
+    meses = max(1, data.meses_vigencia)
+    fecha_fin = date.today() + timedelta(days=meses * 30)
+    suscripcion = Suscripcion(
+        id=uuid.uuid4(),
+        tenant_id=new_tenant.id,
+        plan_id=plan.id,
+        fecha_inicio=date.today(),
+        fecha_vencimiento=fecha_fin,
+        estado="ACTIVA"
+    )
+    db.add(suscripcion)
+    db.flush()
+
+    rol_admin = db.query(Rol).filter(Rol.nombre == "Administrador").first()
+    if not rol_admin:
+        rol_admin = Rol(nombre="Administrador")
+        db.add(rol_admin)
+        db.flush()
+
+    admin_user = Usuario(
+        tenant_id=new_tenant.id,
+        nombres=data.admin_nombre.strip(),
+        apellidos=data.admin_apellido.strip(),
+        email=data.admin_email.strip().lower(),
+        password_hash=get_password_hash(data.admin_password),
+        rol_id=rol_admin.id,
+        activo=True
+    )
+    db.add(admin_user)
+    db.commit()
+
+    token = create_access_token(
+        subject=admin_user.id,
+        role="Administrador",
+        user_type="usuario",
+        tenant_id=new_tenant.id
+    )
+
+    tenant_resp = TenantDetailResponse(
+        id=new_tenant.id,
+        razon_social=new_tenant.razon_social,
+        nit=new_tenant.nit,
+        estado=new_tenant.estado,
+        creado_en=new_tenant.creado_en,
+        plan_activo=plan.nombre,
+        max_sucursales=plan.max_sucursales,
+        permite_reportes_ia=plan.permite_reportes_ia,
+        fecha_vencimiento=suscripcion.fecha_vencimiento,
+        total_sucursales=0,
+        total_usuarios=1
+    )
+
+    return OnboardingResponse(
+        tenant=tenant_resp,
+        access_token=token,
+        token_type="bearer",
+        role="Administrador",
+        user_type="usuario",
+        user_id=admin_user.id,
+        nombre_completo=f"{admin_user.nombres} {admin_user.apellidos}",
+        email=admin_user.email,
+        tenant_id=str(new_tenant.id),
+        tenant_nombre=new_tenant.razon_social,
+        plan=plan.nombre,
+        permite_reportes_ia=plan.permite_reportes_ia,
+        max_sucursales=plan.max_sucursales
     )
 
 

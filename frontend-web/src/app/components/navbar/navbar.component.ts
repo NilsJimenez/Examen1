@@ -33,6 +33,10 @@ import { CarritoService } from '../../services/carrito.service';
             <i class="fa-solid fa-shop"></i> Sucursales
           </a>
 
+          <a *ngIf="!esEncargado && !esCajero" routerLink="/catalogo" fragment="planes-saas" class="nav-link font-bold" style="color: #f59e0b;">
+            <i class="fa-solid fa-crown mr-1"></i> Planes SaaS
+          </a>
+
           <ng-container *ngIf="authService.isLoggedIn && esCliente">
             <a routerLink="/lookbook" routerLinkActive="active-link" class="nav-link" style="color: #a78bfa; font-weight: bold;">
               <i class="fa-solid fa-wand-magic-sparkles"></i> Arma tu Outfit
@@ -139,6 +143,7 @@ import { CarritoService } from '../../services/carrito.service';
         <div class="flex flex-col p-4 gap-4">
           <a routerLink="/catalogo" (click)="closeMenu()" class="nav-link"><i class="fa-solid fa-shirt"></i> Catálogo</a>
           <a *ngIf="!esEncargado && !esCajero" routerLink="/sucursales" (click)="closeMenu()" class="nav-link"><i class="fa-solid fa-shop"></i> Sucursales</a>
+          <a *ngIf="!esEncargado && !esCajero" routerLink="/catalogo" fragment="planes-saas" (click)="closeMenu()" class="nav-link font-bold" style="color: #f59e0b;"><i class="fa-solid fa-crown mr-1"></i> Planes SaaS</a>
 
           <ng-container *ngIf="authService.isLoggedIn && esCliente">
             <a routerLink="/lookbook" (click)="closeMenu()" class="nav-link" style="color: #a78bfa; font-weight: bold;"><i class="fa-solid fa-wand-magic-sparkles"></i> Arma tu Outfit</a>

@@ -66,3 +66,19 @@ class TenantDetailResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class OnboardingResponse(BaseModel):
+    tenant: TenantDetailResponse
+    access_token: str
+    token_type: str = "bearer"
+    role: str
+    user_type: str = "usuario"
+    user_id: int
+    nombre_completo: str
+    email: str
+    tenant_id: str
+    tenant_nombre: str
+    plan: str
+    permite_reportes_ia: bool
+    max_sucursales: int
