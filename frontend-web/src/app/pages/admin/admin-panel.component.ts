@@ -42,6 +42,9 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
         </div>
 
         <div class="flex items-center gap-3">
+          <button (click)="abrirModalPush()" class="btn btn-primary" style="padding: 0.6rem 1.2rem; background: linear-gradient(135deg, #f59e0b, #d97706); color: #09090b; border: none; font-weight: 800;">
+            <i class="fa-solid fa-bell"></i> Enviar Push Móvil
+          </button>
           <button (click)="cargarDatosGenerales()" class="btn btn-outline" style="padding: 0.6rem 1.2rem;">
             <i class="fa-solid fa-rotate"></i> Actualizar Datos
           </button>
@@ -132,6 +135,17 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
             >
               <i class="fa-solid fa-plus"></i>
               <span>Nueva Empresa</span>
+            </button>
+
+            <button
+              type="button"
+              (click)="abrirModalPush()"
+              class="saas-icon-btn"
+              style="border-color: rgba(245, 158, 11, 0.45); color: #fbbf24;"
+              title="Enviar Notificación Push al Celular"
+            >
+              <i class="fa-solid fa-bell"></i>
+              <span>Push Móvil</span>
             </button>
 
             <button
@@ -650,6 +664,125 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
             >
               {{ tenantSeleccionadoParaSuspension.estado === 'ACTIVA' ? 'Sí, Suspender' : 'Sí, Reactivar' }}
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- MODAL LIMPIO: CENTRO DE NOTIFICACIONES PUSH AL MÓVIL                 -->
+      <!-- =================================================================== -->
+      <div *ngIf="mostrarModalPush" class="modal-overlay">
+        <div class="modal-content saas-modal-card" style="max-width: 560px; border: 1.5px solid rgba(245, 158, 11, 0.5);">
+          <div class="saas-modal-header">
+            <div class="saas-modal-title-wrap">
+              <div class="saas-modal-icon gold">
+                <i class="fa-solid fa-mobile-screen-button"></i>
+              </div>
+              <div>
+                <h3 class="font-serif" style="font-size: 1.22rem; font-weight: 700; color: #ffffff;">
+                  Notificaciones Push al Celular
+                </h3>
+                <p style="font-size: 0.76rem; color: #a1a1aa;">
+                  Llega directo al panel general de notificaciones Android/iOS (estilo WhatsApp)
+                </p>
+              </div>
+            </div>
+            <button type="button" (click)="mostrarModalPush = false" class="saas-modal-close">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Plantillas Rápidas de 1 Clic -->
+          <div style="margin-bottom: 1rem;">
+            <span style="font-size: 0.72rem; font-weight: 800; color: #a1a1aa; text-transform: uppercase; display: block; margin-bottom: 0.5rem;">
+              Plantillas Rápidas (1 Clic):
+            </span>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+              <button
+                type="button"
+                (click)="aplicarPlantillaPush('reserva')"
+                class="saas-plan-option"
+              >
+                <span class="plan-name" style="color: #34d399;">🛍️ Pedido / Reserva Lista</span>
+                <span class="plan-desc">Aviso de retiro en sucursal</span>
+              </button>
+              <button
+                type="button"
+                (click)="aplicarPlantillaPush('catalogo')"
+                class="saas-plan-option"
+              >
+                <span class="plan-name" style="color: #fbbf24;">🔥 Nueva Colección / Promo</span>
+                <span class="plan-desc">Promoción a todos los clientes</span>
+              </button>
+              <button
+                type="button"
+                (click)="aplicarPlantillaPush('stock')"
+                class="saas-plan-option"
+              >
+                <span class="plan-name" style="color: #f87171;">⚠️ Alerta de Stock Bajo</span>
+                <span class="plan-desc">Aviso urgente a encargados</span>
+              </button>
+              <button
+                type="button"
+                (click)="aplicarPlantillaPush('saas')"
+                class="saas-plan-option"
+              >
+                <span class="plan-name" style="color: #c084fc;">👑 Aviso Suscripción SaaS</span>
+                <span class="plan-desc">Estado de plan y beneficios IA</span>
+              </button>
+            </div>
+          </div>
+
+          <form (ngSubmit)="dispararPushManual()" class="saas-modal-form">
+            <div>
+              <label class="form-label" style="font-size: 0.75rem; text-transform: uppercase; color: #d4d4d8;">Título de la Notificación *</label>
+              <input
+                type="text"
+                [(ngModel)]="pushForm.titulo"
+                name="push_titulo"
+                required
+                placeholder="Ej: 🛍️ FashionStore • ¡Tu Pedido está Listo!"
+                class="form-input"
+              />
+            </div>
+
+            <div>
+              <label class="form-label" style="font-size: 0.75rem; text-transform: uppercase; color: #d4d4d8;">Mensaje que verá en el celular *</label>
+              <textarea
+                [(ngModel)]="pushForm.cuerpo"
+                name="push_cuerpo"
+                rows="3"
+                required
+                placeholder="Escribe el mensaje que sonará y bajará en la barra de notificaciones del teléfono..."
+                class="form-textarea"
+              ></textarea>
+            </div>
+
+            <button
+              type="submit"
+              [disabled]="enviandoPush"
+              class="btn btn-primary w-full"
+              style="padding: 0.85rem; font-weight: 800; border-radius: 12px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #09090b; border: none;"
+            >
+              <span *ngIf="enviandoPush"><i class="fa-solid fa-spinner fa-spin"></i> Enviando al Celular...</span>
+              <span *ngIf="!enviandoPush"><i class="fa-solid fa-paper-plane"></i> Enviar Notificación Push Ahora</span>
+            </button>
+          </form>
+
+          <!-- Historial Reciente de Eventos Push -->
+          <div *ngIf="historialPush.length > 0" style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #272732;">
+            <span style="font-size: 0.72rem; font-weight: 800; color: #a1a1aa; text-transform: uppercase; display: block; margin-bottom: 0.5rem;">
+              Últimas Notificaciones Emitidas (Automáticas y Manuales):
+            </span>
+            <div style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.4rem;">
+              <div *ngFor="let h of historialPush.slice(0, 6)" style="padding: 0.5rem 0.75rem; border-radius: 10px; background: #0e0e13; border: 1px solid #22222c; font-size: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; font-weight: 700; color: #fbbf24;">
+                  <span>{{ h.titulo }}</span>
+                  <span style="color: #71717a; font-size: 0.68rem;">{{ h.fecha_hora }}</span>
+                </div>
+                <div style="color: #d4d4d8; margin-top: 0.15rem;">{{ h.cuerpo }}</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -3464,6 +3597,14 @@ export class AdminPanelComponent implements OnInit {
   tenantSeleccionadoParaSuspension: TenantSaaS | null = null;
   tenants: TenantSaaS[] = [];
   tenantDestacado: TenantSaaS | null = null;
+  mostrarModalPush: boolean = false;
+  enviandoPush: boolean = false;
+  historialPush: any[] = [];
+  pushForm = {
+    titulo: '🛍️ FashionStore • ¡Tu Reserva está Lista!',
+    cuerpo: 'Hola Camila, tu prenda reservada ya está preparada en Sucursal Central lista para recoger.',
+    categoria: 'reserva'
+  };
   planes: PlanSaaS[] = [];
   loadingTenants: boolean = false;
   mostrarModalNuevoTenant: boolean = false;
@@ -5116,6 +5257,58 @@ export class AdminPanelComponent implements OnInit {
     const max = Math.max(1, t.max_sucursales || 2);
     const actual = Math.max(0, t.total_sucursales || 0);
     return Math.min(100, Math.round((actual / max) * 100));
+  }
+
+  abrirModalPush(): void {
+    this.mostrarModalPush = true;
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+    this.saasService.getHistorialNotificacionesPush().subscribe({
+      next: (list) => this.historialPush = list || []
+    });
+  }
+
+  aplicarPlantillaPush(tipo: 'reserva' | 'catalogo' | 'stock' | 'saas'): void {
+    this.pushForm.categoria = tipo;
+    if (tipo === 'reserva') {
+      this.pushForm.titulo = '✅ ¡Tu Prenda Reservada está Lista!';
+      this.pushForm.cuerpo = 'Hola Camila, tu pedido ya está preparado en Sucursal Central listo para recoger o probar.';
+    } else if (tipo === 'catalogo') {
+      const emp = this.authUser?.tenant_nombre || 'FashionStore';
+      this.pushForm.titulo = `🔥 ${emp} • Nueva Colección Disponible`;
+      this.pushForm.cuerpo = 'Acaban de llegar nuevas prendas exclusivas con probador virtual AR y 20% de descuento.';
+    } else if (tipo === 'stock') {
+      this.pushForm.titulo = '⚠️ Alerta Crítica de Stock Bajo';
+      this.pushForm.cuerpo = 'Quedan solo 2 unidades de Polera Oversize (Talla M) en Sucursal Central. Se recomienda reabastecer.';
+    } else if (tipo === 'saas') {
+      this.pushForm.titulo = '👑 FashionStore SaaS • Plan Profesional Activo';
+      this.pushForm.cuerpo = 'Tu empresa cuenta con Reportes IA Gemini, Predicción ML y hasta 10 sucursales habilitadas.';
+    }
+  }
+
+  dispararPushManual(): void {
+    if (!this.pushForm.titulo.trim() || !this.pushForm.cuerpo.trim()) {
+      this.toastService.warning('Campos Requeridos', 'Escribe un título y un mensaje para la notificación.');
+      return;
+    }
+    this.enviandoPush = true;
+    this.saasService.enviarNotificacionPush(this.pushForm).subscribe({
+      next: (res) => {
+        this.enviandoPush = false;
+        this.toastService.success('¡Push Enviado al Celular!', 'La notificación fue disparada a la bandeja del sistema móvil.');
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(this.pushForm.titulo, { body: this.pushForm.cuerpo });
+        }
+        this.saasService.getHistorialNotificacionesPush().subscribe({
+          next: (list) => this.historialPush = list || []
+        });
+      },
+      error: () => {
+        this.enviandoPush = false;
+        this.toastService.error('Error', 'No se pudo enviar la notificación push.');
+      }
+    });
   }
 
   getInicialesTenant(nombre: string): string {

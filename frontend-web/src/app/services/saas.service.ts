@@ -84,4 +84,16 @@ export class SaasService {
       { headers: this.getHeaders() }
     );
   }
+
+  enviarNotificacionPush(data: { titulo: string; cuerpo: string; categoria?: string; rol_destino?: string }): Observable<any> {
+    return this.http.post<any>(
+      `${environment.apiUrl}/notificaciones/enviar`,
+      data,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  getHistorialNotificacionesPush(): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiUrl}/notificaciones/historial`);
+  }
 }

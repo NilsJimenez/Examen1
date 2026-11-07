@@ -14,6 +14,7 @@ from app.models.interacciones import Carrito, CarritoDetalle
 from app.models.inventario import InventarioSucursal, MovimientoInventario
 from app.models.producto import ProductoVariante
 from app.models.usuario import Cliente
+from app.services.push_service import emitir_notificacion_push
 
 router = APIRouter()
 
@@ -155,6 +156,13 @@ def pagar_venta(venta_id: int, data: PagoInput, db: Session = Depends(get_db), c
         if inv:
             inv.cantidad_disponible = max(0, inv.cantidad_disponible - det.cantidad)
             db.add(MovimientoInventario(variante_id=det.variante_id, sucursal_id=inv.sucursal_id, tipo_movimiento="venta", cantidad=det.cantidad, referencia_tipo="venta", referencia_id=venta.id))
+            if inv.cantidad_disponible <= (inv.stock_minimo or 3):
+                emitir_notificacion_push(
+                    titulo="⚠️ Alerta Crítica de Stock Bajo",
+                    cuerpo=f"Quedan solo {inv.cantidad_disponible} unidades de la variante #{det.variante_id} en sucursal #{inv.sucursal_id}.",
+                    categoria="stock",
+                    referencia=str(det.variante_id)
+                )
     num_comp = "COMP-" + str(uuid.uuid4())[:10].upper()
     comprobante = Comprobante(venta_id=venta.id, numero_comprobante=num_comp, tipo="recibo")
     db.add(comprobante)
@@ -163,6 +171,12 @@ def pagar_venta(venta_id: int, data: PagoInput, db: Session = Depends(get_db), c
         if carrito:
             db.query(CarritoDetalle).filter(CarritoDetalle.carrito_id == carrito.id).delete()
     db.commit()
+    emitir_notificacion_push(
+        titulo=f"💳 Compra Confirmada • {num_comp}",
+        cuerpo=f"Pago aprobado por Bs. {float(venta.total):.2f} ({data.metodo_pago.upper()}). ¡Gracias por comprar en FashionStore!",
+        categoria="venta",
+        referencia=num_comp
+    )
     return {"mensaje": "Pago aprobado. Compra completada.", "numero_comprobante": num_comp, "venta_id": venta.id, "total_pagado": data.monto, "referencia_transaccion": ref_aprobada}
 
 @router.post("/pos", status_code=status.HTTP_201_CREATED)
@@ -180,11 +194,24 @@ def venta_pos(data: PosVentaInput, db: Session = Depends(get_db), current_user: 
         if inv:
             inv.cantidad_disponible = max(0, inv.cantidad_disponible - i.cantidad)
             db.add(MovimientoInventario(variante_id=i.variante_id, sucursal_id=data.sucursal_id, tipo_movimiento="venta", cantidad=i.cantidad, referencia_tipo="venta_pos", referencia_id=venta.id))
+            if inv.cantidad_disponible <= (inv.stock_minimo or 3):
+                emitir_notificacion_push(
+                    titulo="⚠️ Alerta Crítica de Stock en Tienda",
+                    cuerpo=f"Variante #{i.variante_id} quedó con solo {inv.cantidad_disponible} unidad(es) en Sucursal #{data.sucursal_id}.",
+                    categoria="stock",
+                    referencia=str(i.variante_id)
+                )
     pago = Pago(venta_id=venta.id, metodo_pago=data.metodo_pago, monto=subtotal, estado="aprobado", pasarela="POS_Fisico")
     db.add(pago)
     num_comp = "POS-" + str(uuid.uuid4())[:10].upper()
     db.add(Comprobante(venta_id=venta.id, numero_comprobante=num_comp, tipo="recibo"))
     db.commit()
+    emitir_notificacion_push(
+        titulo=f"🧾 Venta POS Registrada ({num_comp})",
+        cuerpo=f"Nueva venta en caja por Bs. {float(subtotal):.2f} ({data.metodo_pago.upper()}).",
+        categoria="venta",
+        referencia=num_comp
+    )
     return {"mensaje": "Venta POS registrada exitosamente.", "venta_id": venta.id, "numero_comprobante": num_comp, "total": subtotal}
 
 @router.get("/mis-compras")

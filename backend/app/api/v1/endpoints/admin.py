@@ -21,6 +21,7 @@ from app.schemas.admin import (
     RolCreate, RolOut
 )
 from app.schemas.producto import ProductoDetailOut, CategoriaOut, TallaOut, ColorOut
+from app.services.push_service import emitir_notificacion_push
 
 def limpiar_url_imagen(url: str | None) -> str | None:
     if not url:
@@ -115,6 +116,12 @@ def crear_producto(data: ProductoCreate, db: Session = Depends(get_db)):
 
     db.commit()
     db.refresh(nuevo_producto)
+    emitir_notificacion_push(
+        titulo="🔥 ¡Nueva Prenda en Catálogo!",
+        cuerpo=f"{nuevo_producto.nombre} ya está disponible por Bs. {float(nuevo_producto.precio_base):.2f}. ¡Pruébala con AR!",
+        categoria="catalogo",
+        referencia=str(nuevo_producto.id)
+    )
     return nuevo_producto
 
 
@@ -287,6 +294,12 @@ def registrar_ingreso_stock(producto_id: int, data: StockIngresoInput, db: Sessi
         db.add(mov)
 
     db.commit()
+    emitir_notificacion_push(
+        titulo=f"📦 Nuevo Stock en {sucursal.nombre}",
+        cuerpo=f"Ingresaron +{data.cantidad} unidades de {producto.nombre} al inventario.",
+        categoria="stock",
+        referencia=str(producto.id)
+    )
     return {
         "message": f"Ingreso registrado con éxito: +{data.cantidad} unidades en {sucursal.nombre} ({len(variantes_afectadas)} variantes actualizadas)."
     }
@@ -372,6 +385,12 @@ def registrar_ingreso_matriz(producto_id: int, data: StockMatrizInput, db: Sessi
         variantes_actualizadas += 1
 
     db.commit()
+    emitir_notificacion_push(
+        titulo=f"📦 Lote Recibido • {sucursal.nombre}",
+        cuerpo=f"Se registraron +{total_unidades} prendas de {producto.nombre} ({variantes_actualizadas} variantes).",
+        categoria="stock",
+        referencia=str(producto.id)
+    )
     return {
         "message": f"¡Entrada registrada con éxito! +{total_unidades} prendas ingresadas en {sucursal.nombre} ({variantes_actualizadas} combinaciones de talla y color actualizadas).",
         "total_unidades": total_unidades,

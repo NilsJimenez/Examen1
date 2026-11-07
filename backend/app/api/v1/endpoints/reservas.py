@@ -10,6 +10,7 @@ from app.models.reserva import Reserva, ReservaDetalle
 from app.models.inventario import InventarioSucursal, MovimientoInventario
 from app.models.usuario import Cliente
 from app.models.producto import ProductoVariante
+from app.services.push_service import emitir_notificacion_push
 
 router = APIRouter()
 
@@ -91,6 +92,12 @@ def crear_reserva(data: ReservaCreate, db: Session = Depends(get_db), current_us
     reserva.codigo_qr = f"QR-{codigo}"
     db.commit()
     db.refresh(reserva)
+    emitir_notificacion_push(
+        titulo=f"🛍️ Reserva Confirmada ({codigo})",
+        cuerpo=f"Hola {cliente.nombres}, tu reserva para el {data.fecha_reserva} a las {data.horario_atencion} fue registrada con éxito.",
+        categoria="reserva",
+        referencia=codigo
+    )
     return {"id": reserva.id, "codigo_reserva": codigo, "estado": reserva.estado, "codigo_qr": qr_data, "fecha": data.fecha_reserva, "hora": data.horario_atencion}
 
 @router.get("/mis-reservas")
@@ -164,6 +171,12 @@ def cancelar_reserva(reserva_id: int, db: Session = Depends(get_db), current_use
             inv.cantidad_reservada = max(0, inv.cantidad_reservada - d.cantidad)
     reserva.estado = "cancelada"
     db.commit()
+    emitir_notificacion_push(
+        titulo=f"❌ Reserva Cancelada ({reserva.codigo_reserva})",
+        cuerpo=f"Tu reserva {reserva.codigo_reserva} ha sido cancelada y las prendas se liberaron en tienda.",
+        categoria="reserva",
+        referencia=reserva.codigo_reserva
+    )
     return {"message": "Reserva cancelada. Stock liberado."}
 
 @router.get("/sucursal/{sucursal_id}")
@@ -197,6 +210,12 @@ def preparar_reserva(reserva_id: int, db: Session = Depends(get_db), current_use
     r.estado = "preparada"
     r.notificado = True
     db.commit()
+    emitir_notificacion_push(
+        titulo=f"✅ ¡Prenda Lista en Tienda! ({r.codigo_reserva})",
+        cuerpo=f"Tu pedido {r.codigo_reserva} ya está preparado en sucursal listo para recoger o probar.",
+        categoria="reserva",
+        referencia=r.codigo_reserva
+    )
     return {"message": "Reserva marcada como Preparada. Cliente notificado."}
 
 @router.patch("/{reserva_id}/atender")
@@ -208,6 +227,12 @@ def atender_reserva(reserva_id: int, db: Session = Depends(get_db), current_user
     r.estado = "atendida"
     r.fecha_atencion = datetime.utcnow()
     db.commit()
+    emitir_notificacion_push(
+        titulo=f"🎉 Reserva Entregada ({r.codigo_reserva})",
+        cuerpo=f"Tu reserva {r.codigo_reserva} fue atendida exitosamente en sucursal. ¡Gracias por tu preferencia!",
+        categoria="reserva",
+        referencia=r.codigo_reserva
+    )
     return {"message": "Reserva marcada como Atendida."}
 
 @router.get("/qr/{codigo}")
@@ -310,6 +335,12 @@ def actualizar_estado_item_reserva(
 
     detalle.estado_prenda = nuevo_estado
     db.commit()
+    emitir_notificacion_push(
+        titulo=f"👕 Estado de Prenda: {nuevo_estado.upper()}",
+        cuerpo=f"Tu prenda en la reserva {reserva.codigo_reserva} cambió a estado '{nuevo_estado}'.",
+        categoria="reserva",
+        referencia=reserva.codigo_reserva
+    )
     return {
         "message": f"Prenda actualizada a '{nuevo_estado}' exitosamente.",
         "detalle_id": detalle.id,

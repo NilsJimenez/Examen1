@@ -11,6 +11,7 @@ from app.core.security import get_password_hash
 from app.models.saas import Tenant, Plan, Suscripcion
 from app.models.usuario import Usuario, Rol
 from app.models.sucursal import Sucursal
+from app.services.push_service import emitir_notificacion_push
 from app.schemas.saas import (
     TenantCreateRequest, TenantUpdateRequest, CambiarPlanRequest,
     TenantDetailResponse, PlanResponse, SuscripcionResponse, OnboardingResponse
@@ -100,6 +101,12 @@ def registrar_empresa(
     )
     db.add(admin_user)
     db.commit()
+    emitir_notificacion_push(
+        titulo=f"🏢 Nueva Empresa en FashionStore SaaS",
+        cuerpo=f"{new_tenant.razon_social} activó su suscripción con el Plan {plan.nombre}.",
+        categoria="saas",
+        referencia=str(new_tenant.id)
+    )
 
     return TenantDetailResponse(
         id=new_tenant.id,
@@ -190,6 +197,12 @@ def onboarding_empresa(
     )
     db.add(admin_user)
     db.commit()
+    emitir_notificacion_push(
+        titulo=f"🏢 Nueva Empresa en FashionStore SaaS",
+        cuerpo=f"{new_tenant.razon_social} activó su suscripción con el Plan {plan.nombre}.",
+        categoria="saas",
+        referencia=str(new_tenant.id)
+    )
 
     token = create_access_token(
         subject=admin_user.id,
@@ -305,6 +318,12 @@ def cambiar_estado_empresa(
 
     db.commit()
     db.refresh(tenant)
+    emitir_notificacion_push(
+        titulo=f"{'🟢 Empresa Reactivada' if tenant.estado == 'ACTIVA' else '🚨 Empresa Suspendida (RN05)'}",
+        cuerpo=f"La empresa {tenant.razon_social} (NIT {tenant.nit}) ahora se encuentra en estado {tenant.estado}.",
+        categoria="saas",
+        referencia=str(tenant.id)
+    )
 
     sub = (
         db.query(Suscripcion)
@@ -393,6 +412,12 @@ def cambiar_plan_empresa(
     )
     db.add(nueva_sub)
     db.commit()
+    emitir_notificacion_push(
+        titulo=f"👑 Plan SaaS Actualizado: {nuevo_plan.nombre}",
+        cuerpo=f"{tenant.razon_social} actualizó su suscripción al Plan {nuevo_plan.nombre} (Máx {nuevo_plan.max_sucursales} sucursales).",
+        categoria="saas",
+        referencia=str(tenant.id)
+    )
 
     cant_usr = db.query(func.count(Usuario.id)).filter(Usuario.tenant_id == tenant.id).scalar() or 0
 

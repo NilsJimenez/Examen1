@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
     auth, productos, sucursales, admin, inventario, reservas,
-    carrito, ventas, recomendaciones, chatbot, alertas, reportes, lookbook, saas
+    carrito, ventas, recomendaciones, chatbot, alertas, reportes, lookbook, saas, notificaciones
 )
 
 api_router = APIRouter()
@@ -23,3 +23,4 @@ api_router.include_router(chatbot.router, prefix="/chatbot", tags=["Asistente Vi
 api_router.include_router(alertas.router, prefix="/alertas", tags=["Alertas de Stock"])
 api_router.include_router(reportes.router, prefix="/reportes", tags=["Reportes y BI"])
 api_router.include_router(lookbook.router, prefix="/lookbook", tags=["Lookbook IA"])
+api_router.include_router(notificaciones.router, prefix="/notificaciones", tags=["Notificaciones Push Móvil"])
