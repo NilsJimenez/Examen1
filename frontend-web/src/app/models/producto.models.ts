@@ -1,7 +1,5 @@
 export interface Categoria {
   id: number;
-  tenant_id?: string;
-  empresa_nombre?: string;
   nombre: string;
   descripcion?: string;
 }
@@ -30,6 +28,8 @@ export interface Variante {
 
 export interface Producto {
   id: number;
+  tenant_id?: string;
+  empresa_nombre?: string;
   nombre: string;
   descripcion?: string;
   precio_base: number;
