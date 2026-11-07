@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
@@ -38,6 +38,41 @@ export class VentaService {
     cliente_id?: number;
   }): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/pos`, data, { headers: this.headers });
+  }
+
+  getVentasRecientesPos(sucursalId?: number): Observable<any[]> {
+    let params = new HttpParams();
+    if (sucursalId) params = params.set('sucursal_id', sucursalId);
+    return this.http.get<any[]>(`${this.apiUrl}/pos/recientes`, { headers: this.headers, params });
+  }
+
+  buscarVentaPorComprobante(q: string): Observable<any> {
+    const params = new HttpParams().set('q', q);
+    return this.http.get<any>(`${this.apiUrl}/pos/buscar-comprobante`, { headers: this.headers, params });
+  }
+
+  getCatalogoVariantesSucursal(sucursalId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/pos/catalogo-sucursal/${sucursalId}`, { headers: this.headers });
+  }
+
+  registrarCambioPrenda(data: {
+    venta_id: number;
+    sucursal_id: number;
+    variante_devuelta_id: number;
+    variante_entregada_id: number;
+    cantidad: number;
+    motivo: string;
+    metodo_pago_diferencia?: string;
+    autorizado_excepcion?: boolean;
+    justificacion_excepcion?: string;
+  }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/cambio-prenda`, data, { headers: this.headers });
+  }
+
+  getHistorialCambios(sucursalId?: number): Observable<any[]> {
+    let params = new HttpParams();
+    if (sucursalId) params = params.set('sucursal_id', sucursalId);
+    return this.http.get<any[]>(`${this.apiUrl}/cambios/historial`, { headers: this.headers, params });
   }
 
   getVenta(ventaId: number): Observable<any> {

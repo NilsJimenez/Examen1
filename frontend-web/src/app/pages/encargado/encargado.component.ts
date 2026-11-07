@@ -9,13 +9,14 @@ import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { Sucursal } from '../../models/sucursal.models';
 import { ReportesComponent } from '../../components/reportes/reportes.component';
+import { PosCambioPrendaComponent } from '../../components/pos-cambio-prenda/pos-cambio-prenda.component';
 
 declare const Html5Qrcode: any;
 
 @Component({
   selector: 'app-encargado',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReportesComponent],
+  imports: [CommonModule, FormsModule, ReportesComponent, PosCambioPrendaComponent],
   template: `
     <div class="encargado-container">
       
@@ -207,7 +208,7 @@ declare const Html5Qrcode: any;
       <!-- PESTAÑAS MODERNAS SEGMENTADAS (CENTRADAS)                           -->
       <!-- =================================================================== -->
       <div class="tabs-bar-wrapper">
-        <div class="tabs-bar">
+        <div class="tabs-bar"><button (click)="tabActiva = 'cambio'" [class.tab-btn-active]="tabActiva === 'cambio'" class="tab-btn"><i class="fa-solid fa-right-left"></i> POS &amp; Cambio de Prenda (CU13)</button>
           <button 
             (click)="tabActiva = 'reportes'" 
             [class.tab-btn-active]="tabActiva === 'reportes'" 
@@ -325,6 +326,7 @@ declare const Html5Qrcode: any;
 
         
         <!-- PESTAÑA: REPORTES -->
+        <div *ngIf="tabActiva === 'cambio'" class="animate-fade-in" style="width: 100%;"><app-pos-cambio-prenda [sucursalIdInput]="sucursalId"></app-pos-cambio-prenda></div>
         <div *ngIf="tabActiva === 'reportes'" class="animate-fade-in" style="width: 100%;">
           <app-reportes [esAdmin]="false"></app-reportes>
         </div>
@@ -1078,7 +1080,7 @@ export class EncargadoComponent implements OnInit, OnDestroy {
   sucursales: Sucursal[] = [];
   menuSucursalesAbierto: boolean = false;
 
-  tabActiva: string = 'reservas';
+  tabActiva: string = 'cambio';
   private alertaService = inject(AlertaService);
   alertas: AlertaReabastecimiento[] = [];
   alertasLoading = false;

@@ -31,6 +31,18 @@ export interface DashboardReporteOut {
   filtros_interpretados?: FiltrosInterpretados;
 }
 
+export interface ReportesConvencionalesOut {
+  ventas: any[];
+  inventario: any[];
+  resumen_inventario: {
+    total_variantes: number;
+    total_unidades_stock: number;
+    valorizacion_total_bs: number;
+    items_bajo_stock: number;
+    total_cambios_prenda_cu13: number;
+  };
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -54,8 +66,17 @@ export class ReportesService {
     return this.http.get<DashboardReporteOut>(`${this.apiUrl}/dashboard`, { headers: this.getHeaders(), params });
   }
 
-  exportarReporte(formato: 'pdf' | 'xlsx', filtros?: { sucursal_id?: number; fecha_inicio?: string; fecha_fin?: string }) {
-    let params = new HttpParams().set('formato', formato);
+  getReportesConvencionales(filtros?: { sucursal_id?: number; fecha_inicio?: string; fecha_fin?: string }): Observable<ReportesConvencionalesOut> {
+    let params = new HttpParams();
+    if (filtros?.sucursal_id) params = params.set('sucursal_id', filtros.sucursal_id);
+    if (filtros?.fecha_inicio) params = params.set('fecha_inicio', filtros.fecha_inicio);
+    if (filtros?.fecha_fin) params = params.set('fecha_fin', filtros.fecha_fin);
+
+    return this.http.get<ReportesConvencionalesOut>(`${this.apiUrl}/convencionales`, { headers: this.getHeaders(), params });
+  }
+
+  exportarReporte(formato: 'pdf' | 'xlsx', filtros?: { sucursal_id?: number; fecha_inicio?: string; fecha_fin?: string }, tipo: 'ventas' | 'inventario' = 'ventas') {
+    let params = new HttpParams().set('formato', formato).set('tipo', tipo);
     if (filtros?.sucursal_id) params = params.set('sucursal_id', filtros.sucursal_id);
     if (filtros?.fecha_inicio) params = params.set('fecha_inicio', filtros.fecha_inicio);
     if (filtros?.fecha_fin) params = params.set('fecha_fin', filtros.fecha_fin);
@@ -75,4 +96,3 @@ export class ReportesService {
     );
   }
 }
-

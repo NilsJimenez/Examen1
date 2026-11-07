@@ -10,12 +10,13 @@ import { AlertaService, AlertaReabastecimiento } from '../../services/alerta.ser
 import { Producto, Categoria, Talla, Color } from '../../models/producto.models';
 import { Sucursal } from '../../models/sucursal.models';
 import { ReportesComponent } from '../../components/reportes/reportes.component';
+import { PosCambioPrendaComponent } from '../../components/pos-cambio-prenda/pos-cambio-prenda.component';
 import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../services/saas.service';
 
 @Component({
   selector: 'app-admin-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReportesComponent],
+  imports: [CommonModule, FormsModule, ReportesComponent, PosCambioPrendaComponent],
   template: `
     <div class="container py-10">
       
@@ -108,7 +109,10 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
           [class.tab-btn-active]="activeTab === 'reportes'" 
           class="admin-tab-btn shrink-0" style="flex-shrink: 0; min-width: max-content;"
         >
-          <i class="fa-solid fa-chart-pie" style="color: #60a5fa;"></i> Reportes & BI
+          <i class="fa-solid fa-chart-pie" style="color: #60a5fa;"></i> Reportes &amp; BI (CU14)
+        </button>
+        <button (click)="activeTab = 'cambio'" [class.tab-btn-active]="activeTab === 'cambio'" class="admin-tab-btn shrink-0" style="flex-shrink: 0; min-width: max-content;">
+          <i class="fa-solid fa-right-left" style="color: #f59e0b;"></i> POS &amp; Cambio de Prenda (CU13)
         </button>
       </div>
 
@@ -788,6 +792,7 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
       </div>
 
       <!-- PESTAÑA: REPORTES -->
+      <div *ngIf="activeTab === 'cambio'" class="animate-fade-in" style="width: 100%;"><app-pos-cambio-prenda></app-pos-cambio-prenda></div>
       <div *ngIf="activeTab === 'reportes'" class="animate-fade-in" style="width: 100%;">
          <app-reportes [esAdmin]="true"></app-reportes>
       </div>
@@ -3583,7 +3588,7 @@ export class AdminPanelComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
 
-  activeTab: 'saas' | 'prendas' | 'atributos' | 'sucursales' | 'proveedores' | 'usuarios' | 'alertas' | 'reportes' = 'prendas';
+  activeTab: 'saas' | 'prendas' | 'atributos' | 'sucursales' | 'proveedores' | 'usuarios' | 'alertas' | 'reportes' | 'cambio' = 'prendas';
   private alertaService = inject(AlertaService);
   private saasService = inject(SaasService);
 

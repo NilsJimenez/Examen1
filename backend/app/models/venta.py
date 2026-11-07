@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Integer, Text, Numeric, DateTime, ForeignKey
+from sqlalchemy import String, Integer, Text, Numeric, DateTime, ForeignKey, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base_class import Base
@@ -93,13 +93,43 @@ class Comprobante(Base):
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
     )
     venta_id: Mapped[int] = mapped_column(Integer, ForeignKey("ventas.id", ondelete="CASCADE"), unique=True, nullable=False)
-    tipo_comprobante: Mapped[str] = mapped_column(String(30), default="boleta")  # 'factura', 'boleta', 'ticket'
+    tipo: Mapped[str] = mapped_column(String(30), default="recibo")  # 'factura', 'boleta', 'recibo', 'ticket'
     numero_comprobante: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
-    nit_emisor: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    razon_social_emisor: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
-    codigo_autorizacion: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    codigo_control: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    archivo_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     fecha_emision: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relaciones
     venta: Mapped["Venta"] = relationship("Venta", back_populates="comprobante")
+
+
+class CambioPrenda(Base):
+    """
+    CU13: Gestionar cambio de prenda (RF21, RN20, RN21).
+    Registra la devolución de una variante adquirida previamente y la entrega
+    de una nueva variante, actualizando el kárdex en una sola transacción atómica.
+    """
+    __tablename__ = "cambio_prenda"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    venta_id: Mapped[int] = mapped_column(Integer, ForeignKey("ventas.id", ondelete="CASCADE"), nullable=False)
+    sucursal_id: Mapped[int] = mapped_column(Integer, ForeignKey("sucursales.id"), nullable=False)
+    variante_devuelta_id: Mapped[int] = mapped_column(Integer, ForeignKey("producto_variantes.id"), nullable=False)
+    variante_entregada_id: Mapped[int] = mapped_column(Integer, ForeignKey("producto_variantes.id"), nullable=False)
+    cantidad: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    precio_devuelto: Mapped[float] = mapped_column(Numeric(10, 2), default=0.0)
+    precio_entregado: Mapped[float] = mapped_column(Numeric(10, 2), default=0.0)
+    diferencia: Mapped[float] = mapped_column(Numeric(10, 2), default=0.0)
+    motivo: Mapped[str] = mapped_column(String(250), default="Cambio de talla / color")
+    autorizado_excepcion: Mapped[bool] = mapped_column(Boolean, default=False)
+    justificacion_excepcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    usuario_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    numero_comprobante_cambio: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    venta: Mapped["Venta"] = relationship("Venta")
+    variante_devuelta: Mapped["ProductoVariante"] = relationship("ProductoVariante", foreign_keys=[variante_devuelta_id])
+    variante_entregada: Mapped["ProductoVariante"] = relationship("ProductoVariante", foreign_keys=[variante_entregada_id])
+
