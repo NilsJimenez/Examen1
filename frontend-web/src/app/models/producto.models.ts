@@ -1,5 +1,7 @@
 export interface Categoria {
   id: number;
+  tenant_id?: string;
+  empresa_nombre?: string;
   nombre: string;
   descripcion?: string;
 }

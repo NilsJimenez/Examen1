@@ -45,10 +45,16 @@ router = APIRouter(dependencies=[Depends(require_roles(["administrador"]))])
 # GESTIÓN DE PRENDAS Y VARIANTES (RF04, CU-06)
 # =============================================================================
 @router.post("/productos", response_model=ProductoDetailOut, status_code=status.HTTP_201_CREATED)
-def crear_producto(data: ProductoCreate, db: Session = Depends(get_db)):
-    """Crea una nueva prenda con sus variantes e inicializa stock en las sucursales."""
+def crear_producto(
+    data: ProductoCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["administrador"]))
+):
+    """Crea una nueva prenda con sus variantes e inicializa stock en las sucursales de la empresa."""
+    tenant_id = current_user.get("tenant_id")
     img_limpia = limpiar_url_imagen(data.imagen_url)
     nuevo_producto = Producto(
+        tenant_id=tenant_id,
         nombre=data.nombre,
         descripcion=data.descripcion,
         categoria_id=data.categoria_id,
@@ -82,7 +88,10 @@ def crear_producto(data: ProductoCreate, db: Session = Depends(get_db)):
                 )
             )
 
-    sucursales = db.query(Sucursal).filter(Sucursal.activo == True).all()
+    suc_q = db.query(Sucursal).filter(Sucursal.activo == True)
+    if tenant_id:
+        suc_q = suc_q.filter(Sucursal.tenant_id == tenant_id)
+    sucursales = suc_q.all()
 
     for v_data in variantes_a_crear:
         v_sku = v_data.sku
@@ -572,9 +581,16 @@ def crear_ciudad(data: CiudadCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/sucursales")
-def listar_sucursales_admin(db: Session = Depends(get_db)):
-    """Lista todas las sucursales, incluyendo estado activo, para el panel admin."""
-    sucursales = db.query(Sucursal).options(joinedload(Sucursal.ciudad)).all()
+def listar_sucursales_admin(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["administrador"]))
+):
+    """Lista las sucursales de la empresa autenticada para el panel admin."""
+    tenant_id = current_user.get("tenant_id")
+    q = db.query(Sucursal).options(joinedload(Sucursal.ciudad))
+    if tenant_id:
+        q = q.filter(Sucursal.tenant_id == tenant_id)
+    sucursales = q.all()
     return [
         {
             "id": s.id,
@@ -770,12 +786,19 @@ def eliminar_coleccion(coleccion_id: int, db: Session = Depends(get_db)):
 # =============================================================================
 @router.get("/roles")
 def listar_roles(db: Session = Depends(get_db)):
-    return db.query(Rol).all()
+    return db.query(Rol).filter(~Rol.nombre.ilike("SuperAdmin")).all()
 
 
 @router.get("/usuarios")
-def listar_usuarios(db: Session = Depends(get_db)):
-    usuarios = db.query(Usuario).options(joinedload(Usuario.rol), joinedload(Usuario.sucursal)).filter(Usuario.activo == True).all()
+def listar_usuarios(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["administrador"]))
+):
+    tenant_id = current_user.get("tenant_id")
+    q = db.query(Usuario).options(joinedload(Usuario.rol), joinedload(Usuario.sucursal)).filter(Usuario.activo == True)
+    if tenant_id:
+        q = q.filter(Usuario.tenant_id == tenant_id)
+    usuarios = q.all()
     return [
         {
             "id": u.id,
@@ -795,13 +818,19 @@ def listar_usuarios(db: Session = Depends(get_db)):
 
 
 @router.post("/usuarios", status_code=status.HTTP_201_CREATED)
-def crear_usuario_interno(data: UsuarioCreate, db: Session = Depends(get_db)):
-    """Crea un empleado interno de la tienda (Encargado de Sucursal o Cajero)."""
+def crear_usuario_interno(
+    data: UsuarioCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["administrador"]))
+):
+    """Crea un empleado interno de la empresa (Encargado de Sucursal o Cajero)."""
+    tenant_id = current_user.get("tenant_id")
     existing = db.query(Usuario).filter(Usuario.email == data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Ya existe un usuario con este correo.")
 
     nuevo_usuario = Usuario(
+        tenant_id=tenant_id,
         nombres=data.nombres,
         apellidos=data.apellidos,
         email=data.email,
@@ -881,8 +910,8 @@ def crear_rol(rol_in: RolCreate, db: Session = Depends(get_db)):
 
 @router.get("/roles", response_model=List[RolOut])
 def listar_roles(db: Session = Depends(get_db)):
-    """Lista todos los roles disponibles en el sistema."""
-    return db.query(Rol).all()
+    """Lista los roles operativos disponibles para el personal de una empresa."""
+    return db.query(Rol).filter(~Rol.nombre.ilike("SuperAdmin")).all()
 
 
 @router.put("/roles/{rol_id}", response_model=RolOut)

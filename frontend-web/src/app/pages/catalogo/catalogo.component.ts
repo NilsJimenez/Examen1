@@ -230,6 +230,32 @@ import { Sucursal } from '../../models/sucursal.models';
 
           </div>
 
+          <!-- Selector de Marca / Empresa Suscrita (SaaS Multi-Tenant) -->
+          <div *ngIf="tiendasSaaS.length > 0" class="category-pills-scroll mt-4 pt-3" style="border-top: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap;">
+            <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); margin-right: 0.25rem;">
+              <i class="fa-solid fa-building"></i> Tiendas / Marcas:
+            </span>
+            <button
+              type="button"
+              (click)="selectTenant('TODAS')"
+              [class.category-pill-active]="selectedTenantId === 'TODAS'"
+              class="category-pill"
+              style="font-size: 0.76rem; padding: 0.38rem 0.9rem;"
+            >
+              <i class="fa-solid fa-globe mr-1"></i> Todas las Marcas
+            </button>
+            <button
+              *ngFor="let tienda of tiendasSaaS"
+              type="button"
+              (click)="selectTenant(tienda.id)"
+              [class.category-pill-active]="selectedTenantId === tienda.id"
+              class="category-pill"
+              style="font-size: 0.76rem; padding: 0.38rem 0.9rem;"
+            >
+              <i class="fa-solid fa-store mr-1" style="color: var(--accent);"></i> {{ tienda.razon_social }}
+            </button>
+          </div>
+
           <!-- Píldoras de Categorías Horizontales -->
           <div class="category-pills-scroll mt-4 pt-3" style="border-top: 1px solid var(--border-color);">
             <button 
@@ -403,7 +429,12 @@ import { Sucursal } from '../../models/sucursal.models';
 
             <!-- Ficha de Información de la Prenda -->
             <div class="product-info-box">
-              <span class="product-cat-label">{{ p.categoria?.nombre }}</span>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; margin-bottom: 0.15rem;">
+                <span class="product-cat-label">{{ p.categoria?.nombre }}</span>
+                <span *ngIf="p.empresa_nombre" style="font-size: 0.65rem; font-weight: 800; color: var(--accent); background: rgba(245, 158, 11, 0.12); padding: 2px 7px; border-radius: 999px; border: 1px solid rgba(245, 158, 11, 0.28);">
+                  <i class="fa-solid fa-store"></i> {{ p.empresa_nombre }}
+                </span>
+              </div>
               <h3 class="product-name font-serif">
                 <a [routerLink]="['/producto', p.id]" [queryParams]="selectedSucursalId ? { sucursal: selectedSucursalId } : {}">
                   {{ p.nombre }}
@@ -1835,6 +1866,8 @@ export class CatalogoComponent implements OnInit {
   productos: Producto[] = [];
   categorias: Categoria[] = [];
   sucursales: Sucursal[] = [];
+  tiendasSaaS: { id: string; razon_social: string; plan: string }[] = [];
+  selectedTenantId: string = 'TODAS';
 
   searchTerm: string = '';
   selectedCategoriaId: number | null = null;
@@ -1850,6 +1883,7 @@ export class CatalogoComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.cargarTiendasSaaS();
     this.cargarCategorias();
     this.cargarSucursales();
     this.cargarRecomendacionesIA();
@@ -1892,13 +1926,25 @@ export class CatalogoComponent implements OnInit {
     });
   }
 
+  cargarTiendasSaaS(): void {
+    this.saasService.getTiendasPublicas().subscribe({
+      next: (data) => (this.tiendasSaaS = data || [])
+    });
+  }
+
+  selectTenant(tenantId: string): void {
+    this.selectedTenantId = tenantId;
+    this.cargarProductos();
+  }
+
   cargarProductos(): void {
     this.loading = true;
     this.productoService
       .getProductos(
         this.selectedCategoriaId || undefined,
         this.searchTerm || undefined,
-        this.selectedSucursalId || undefined
+        this.selectedSucursalId || undefined,
+        this.selectedTenantId || 'TODAS'
       )
       .subscribe({
         next: (data) => {

@@ -15,7 +15,7 @@ export class ProductoService {
   /**
    * Obtiene la lista de prendas de vestir con filtros opcionales de categoría o búsqueda
    */
-  getProductos(categoriaId?: number, search?: string, sucursalId?: number): Observable<Producto[]> {
+  getProductos(categoriaId?: number, search?: string, sucursalId?: number, tenantId?: string): Observable<Producto[]> {
     let params = new HttpParams();
     if (categoriaId) {
       params = params.set('categoria_id', categoriaId.toString());
@@ -25,6 +25,9 @@ export class ProductoService {
     }
     if (sucursalId) {
       params = params.set('sucursal_id', sucursalId.toString());
+    }
+    if (tenantId) {
+      params = params.set('tenant_id', tenantId);
     }
     return this.http.get<Producto[]>(`${this.apiUrl}/`, { params });
   }

@@ -99,6 +99,17 @@ def registrar_empresa(
         rol_id=rol_admin.id,
         activo=True
     )
+    suc_central = Sucursal(
+        tenant_id=new_tenant.id,
+        ciudad_id=1,
+        nombre=f"Sucursal Central {new_tenant.razon_social}",
+        direccion="Av. Principal #100, Zona Comercial",
+        telefono="70012345",
+        activo=True
+    )
+    db.add(suc_central)
+    db.flush()
+    admin_user.sucursal_id = suc_central.id
     db.add(admin_user)
     db.commit()
     emitir_notificacion_push(
@@ -195,6 +206,17 @@ def onboarding_empresa(
         rol_id=rol_admin.id,
         activo=True
     )
+    suc_central = Sucursal(
+        tenant_id=new_tenant.id,
+        ciudad_id=1,
+        nombre=f"Sucursal Central {new_tenant.razon_social}",
+        direccion="Av. Principal #100, Zona Comercial",
+        telefono="70012345",
+        activo=True
+    )
+    db.add(suc_central)
+    db.flush()
+    admin_user.sucursal_id = suc_central.id
     db.add(admin_user)
     db.commit()
     emitir_notificacion_push(
@@ -445,3 +467,29 @@ def listar_planes(db: Session = Depends(get_db)):
     Retorna la lista de planes SaaS disponibles y sus características.
     """
     return db.query(Plan).filter(Plan.activo == True).order_by(Plan.max_sucursales.asc()).all()
+
+
+# =============================================================================
+# DIRECTORIO PÚBLICO DE TIENDAS / MARCAS ACTIVAS PARA EL CATÁLOGO WEB Y MÓVIL
+# =============================================================================
+@router.get("/tiendas")
+def listar_tiendas_publicas(db: Session = Depends(get_db)):
+    """
+    Retorna las empresas (marcas de ropa) activas suscritas en la plataforma
+    para que los clientes puedan filtrar el catálogo por tienda.
+    """
+    tenants = db.query(Tenant).filter(Tenant.estado == "ACTIVA").order_by(Tenant.creado_en.asc()).all()
+    resultado = []
+    for t in tenants:
+        sub = (
+            db.query(Suscripcion)
+            .join(Plan, Suscripcion.plan_id == Plan.id)
+            .filter(Suscripcion.tenant_id == t.id, Suscripcion.estado == "ACTIVA")
+            .first()
+        )
+        resultado.append({
+            "id": str(t.id),
+            "razon_social": t.razon_social,
+            "plan": sub.plan.nombre if (sub and sub.plan) else "Basico"
+        })
+    return resultado

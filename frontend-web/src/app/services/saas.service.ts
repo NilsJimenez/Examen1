@@ -53,6 +53,10 @@ export class SaasService {
     });
   }
 
+  getTiendasPublicas(): Observable<{ id: string; razon_social: string; plan: string }[]> {
+    return this.http.get<{ id: string; razon_social: string; plan: string }[]>(`${this.apiUrl}/tiendas`);
+  }
+
   getPlanes(): Observable<PlanSaaS[]> {
     return this.http.get<PlanSaaS[]>(`${this.apiUrl}/planes`);
   }

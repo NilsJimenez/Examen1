@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.models.usuario import Usuario, Cliente
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login", auto_error=False)
 
 
 def get_current_user(
@@ -50,6 +51,42 @@ def get_current_user(
         "email": user.email,
         "tenant_id": getattr(user, "tenant_id", None)
     }
+
+
+def get_optional_user(
+    db: Session = Depends(get_db),
+    token: Optional[str] = Depends(oauth2_scheme_optional)
+) -> Optional[dict]:
+    """
+    Retorna el usuario autenticado si existe un token válido en la petición,
+    o None si es un visitante público.
+    """
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id_str: str = payload.get("sub")
+        role: str = payload.get("role")
+        user_type: str = payload.get("user_type")
+        if user_id_str is None:
+            return None
+        user_id = int(user_id_str)
+        if user_type == "cliente":
+            user = db.query(Cliente).filter(Cliente.id == user_id, Cliente.activo == True).first()
+        else:
+            user = db.query(Usuario).filter(Usuario.id == user_id, Usuario.activo == True).first()
+        if not user:
+            return None
+        return {
+            "user": user,
+            "role": role,
+            "user_type": user_type,
+            "id": user.id,
+            "email": user.email,
+            "tenant_id": getattr(user, "tenant_id", None)
+        }
+    except Exception:
+        return None
 
 
 def require_roles(allowed_roles: list[str]):

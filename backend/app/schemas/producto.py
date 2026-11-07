@@ -4,6 +4,8 @@ from pydantic import BaseModel
 
 class CategoriaOut(BaseModel):
     id: int
+    tenant_id: Optional[str] = None
+    empresa_nombre: Optional[str] = None
     nombre: str
     descripcion: Optional[str] = None
 

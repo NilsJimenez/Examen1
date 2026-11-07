@@ -1,16 +1,20 @@
+import uuid
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
 from app.db.session import get_db
+from app.api.deps import get_optional_user, require_roles
 from app.models.producto import Producto, Categoria, Talla, Color, ProductoVariante
+from app.models.inventario import InventarioSucursal
+from app.models.saas import Tenant
+from app.models.interacciones import SesionVestidorVirtual
 from app.schemas.producto import (
     ProductoOut, ProductoDetailOut, CategoriaOut, TallaOut, ColorOut
 )
+from app.schemas.vestidor import SesionVestidorCreate, SesionVestidorOut
 
 router = APIRouter()
 
-
-from app.models.inventario import InventarioSucursal
 
 @router.get("/", response_model=List[ProductoOut])
 def listar_productos(
@@ -22,16 +26,35 @@ def listar_productos(
     precio_max: Optional[float] = Query(None, description="Precio máximo"),
     search: Optional[str] = Query(None, description="Buscar por nombre o descripción"),
     sucursal_id: Optional[int] = Query(None, description="Filtrar por sucursal con stock disponible"),
-    db: Session = Depends(get_db)
+    tenant_id: Optional[str] = Query(None, description="Filtrar por empresa/marca SaaS"),
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_optional_user)
 ):
     """
-    RF07 / CU-10 / CU-11: Consultar catálogo de prendas con múltiples filtros.
+    RF07 / CU-10 / CU-11: Consultar catálogo de prendas con aislamiento Multi-Tenant.
+    - Si quien consulta es un empleado/administrador de una empresa y no especifica 'TODAS',
+      filtra automáticamente por su propia empresa (tenant_id).
+    - Si un cliente o visitante elige una marca en el catálogo (tenant_id), filtra por esa empresa.
     """
+    tenants_map = {str(t.id): t.razon_social for t in db.query(Tenant).all()}
+
     query = db.query(Producto).options(
         joinedload(Producto.categoria),
         joinedload(Producto.variantes).joinedload(ProductoVariante.talla),
         joinedload(Producto.variantes).joinedload(ProductoVariante.color)
     ).filter(Producto.activo == True)
+
+    effective_tenant_uuid = None
+    if tenant_id and tenant_id.upper() != "TODAS":
+        try:
+            effective_tenant_uuid = uuid.UUID(str(tenant_id))
+        except Exception:
+            effective_tenant_uuid = None
+    elif not tenant_id and current_user and current_user.get("user_type") == "usuario" and current_user.get("tenant_id"):
+        effective_tenant_uuid = current_user.get("tenant_id")
+
+    if effective_tenant_uuid:
+        query = query.filter(Producto.tenant_id == effective_tenant_uuid)
 
     if categoria_id:
         query = query.filter(Producto.categoria_id == categoria_id)
@@ -87,13 +110,17 @@ def listar_productos(
             if stock_sucursal <= 0:
                 continue
 
+        tid_str = str(p.tenant_id) if p.tenant_id else None
         prod_dict = {
             "id": p.id,
+            "tenant_id": tid_str,
+            "empresa_nombre": tenants_map.get(tid_str, "FashionStore") if tid_str else "FashionStore",
             "nombre": p.nombre,
             "descripcion": p.descripcion,
             "precio_base": p.precio_base,
             "imagen_url": p.imagen_url,
             "modelo_ar_url": p.modelo_ar_url,
+            "genero": getattr(p, "genero", "Unisex") or "Unisex",
             "categoria": p.categoria,
             "activo": p.activo,
             "stock_total": stock_total,
@@ -160,41 +187,12 @@ def obtener_detalle_producto(producto_id: int, db: Session = Depends(get_db)):
     return producto
 
 
-
-@router.get("/meta/categorias", response_model=List[CategoriaOut])
-def listar_categorias(db: Session = Depends(get_db)):
-    """Lista las categorías de ropa disponibles y activas."""
-    return db.query(Categoria).filter(Categoria.activo == True).all()
-
-
-@router.get("/meta/tallas", response_model=List[TallaOut])
-def listar_tallas(db: Session = Depends(get_db)):
-    """Lista las tallas ordenadas y activas."""
-    return db.query(Talla).filter(Talla.activo == True).order_by(Talla.orden.asc()).all()
-
-
-@router.get("/meta/colores", response_model=List[ColorOut])
-def listar_colores(db: Session = Depends(get_db)):
-    """Lista los colores disponibles y activos."""
-    return db.query(Color).filter(Color.activo == True).all()
-
-
-# =============================================================================
-# VESTIDOR VIRTUAL AR (RF13, CU-13)
-# =============================================================================
-from app.api.deps import require_roles
-from app.models.interacciones import SesionVestidorVirtual
-from app.schemas.vestidor import SesionVestidorCreate, SesionVestidorOut
-
 @router.post("/vestidor-virtual/sesion", response_model=SesionVestidorOut, status_code=status.HTTP_201_CREATED)
 def registrar_sesion_vestidor(
     data: SesionVestidorCreate,
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(["cliente"]))
 ):
-    """
-    Registra una sesión de prueba en el Vestidor Virtual (AR) desde la aplicación móvil.
-    """
     variante = db.query(ProductoVariante).filter(ProductoVariante.id == data.variante_id).first()
     if not variante:
         raise HTTPException(status_code=404, detail="La prenda seleccionada no existe.")
@@ -209,6 +207,3 @@ def registrar_sesion_vestidor(
     db.commit()
     db.refresh(nueva_sesion)
     return nueva_sesion
-
-
-
