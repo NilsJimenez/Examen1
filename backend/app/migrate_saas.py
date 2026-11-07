@@ -108,7 +108,7 @@ def run_migration():
         # Add tenant_id to tables
         tables_with_tenant = [
             "usuarios", "clientes", "sucursales", "proveedores", "categorias",
-            "temporadas", "colecciones", "productos", "inventario_sucursal",
+            "temporadas", "colecciones", "tallas", "colores", "productos", "inventario_sucursal",
             "movimientos_inventario", "alertas_reabastecimiento",
             "ventas", "venta_detalle", "pagos", "comprobantes",
             "reservas", "reserva_detalle"
