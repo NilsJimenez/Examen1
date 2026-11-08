@@ -1,0 +1,17 @@
+{
+  "name": "FashionStore SaaS | Punto de Venta & Gestión Multi-Empresa (PWA)",
+  "short_name": "FashionStore PWA",
+  "description": "Aplicación Web Progresiva (PWA) para venta de prendas, reservas y sincronización offline con IndexedDB.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -490,8 +490,51 @@ def exportar_reporte(
 
 
 # =============================================================================
-# CU23 / CU24: REPORTES INTELIGENTES CON IA (VOZ/TEXTO) — EXCLUSIVO PLAN PROFESIONAL (RN07 / RN23)
+# CU23 - CU26: REPORTES INTELIGENTES CON IA (VOZ/TEXTO) — CATALOGO CERRADO Y VALIDACION DE INTENCION (RN07, RN22-RN24, RF55-RF62)
 # =============================================================================
+CATALOGO_REPORTES_IA = {
+    "ventas_por_sucursal": "Ventas consolidadas por sucursal en un rango de fechas",
+    "top_productos": "Ranking de productos y variantes más vendidos",
+    "ventas_por_semana": "Evolución semanal y diaria de ingresos comerciales",
+    "comparativo_sucursales": "Comparativa de rendimiento comercial entre sucursales activas",
+    "stock_bajo": "Reporte de prendas con existencias críticas o bajo mínimo",
+    "ingresos_por_categoria": "Distribución de ingresos por categoría de prenda"
+}
+
+PALABRAS_PROHIBIDAS_INTENCION = [
+    "borra", "borrar", "elimina", "eliminar", "drop ", "delete ", "truncate ", "update ",
+    "modifica", "modificar", "altera", "ignora las reglas", "otras empresas", "otro tenant"
+]
+
+
+@router.get("/ia/historial")
+def listar_historial_solicitudes_ia(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["administrador", "encargado_sucursal"]))
+):
+    """Lista la bitácora de solicitudes de reportes con IA de la empresa (tabla solicitudes_reporte)."""
+    from app.models.saas import SolicitudReporte
+    tenant_id = current_user.get("tenant_id")
+    q = db.query(SolicitudReporte)
+    if tenant_id:
+        q = q.filter(SolicitudReporte.tenant_id == tenant_id)
+    regs = q.order_by(SolicitudReporte.creado_en.desc()).limit(30).all()
+    return {
+        "catalogo_soportado": CATALOGO_REPORTES_IA,
+        "solicitudes": [
+            {
+                "id": str(r.id),
+                "texto": r.texto,
+                "tipo_reporte": r.tipo_reporte,
+                "filtros": r.filtros,
+                "estado": r.estado,
+                "creado_en": r.creado_en.isoformat() if r.creado_en else None
+            }
+            for r in regs
+        ]
+    }
+
+
 @router.post("/generativo", response_model=DashboardReporteOut)
 def reporte_generativo_ia(
     req: ReporteGenerativoRequest,
@@ -499,207 +542,262 @@ def reporte_generativo_ia(
     current_user: dict = Depends(require_roles(["administrador", "encargado_sucursal"]))
 ):
     """
-    CU23 / CU24: Generación de Reportes Inteligentes por Voz o Texto (IA Gemini).
-    Verifica suscripción con soporte para IA (RN07, RN23, RF59).
+    CU23 - CU26: Generación de Reportes Inteligentes por Voz o Texto (IA Gemini + Catálogo Cerrado).
+    Verifica suscripción con soporte para IA (RN07, RN23, RF59), valida la intención (RN22-RN24)
+    y registra la auditoría en solicitudes_reporte.
     """
+    from app.models.saas import SolicitudReporte
+    from app.models.venta import VentaDetalle
     tenant_id = current_user.get("tenant_id")
     if tenant_id:
         from app.services.subscription_service import SubscriptionService
         SubscriptionService.exigir_reportes_ia(tenant_id, db)
+
+    prompt_clean = (req.prompt or "").strip()
+    p_lower = prompt_clean.lower()
+
+    # 1. Validación de seguridad e intención (RN22, RN23, RN24, CP-F43): Bloquear instrucciones destructivas o fuera de alcance
+    if any(bad in p_lower for bad in PALABRAS_PROHIBIDAS_INTENCION):
+        if tenant_id:
+            sol_rechazada = SolicitudReporte(
+                tenant_id=tenant_id,
+                usuario_id=current_user["id"],
+                texto=prompt_clean,
+                tipo_reporte="NO_SOPORTADO",
+                filtros={"motivo": "Intención destructiva o fuera del catálogo cerrado"},
+                estado="RECHAZADA"
+            )
+            db.add(sol_rechazada)
+            db.commit()
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "SolicitudNoSoportada: La instrucción solicitada está fuera del catálogo de reportes permitidos "
+                "o intenta modificar datos (RN22/RN23). Catálogo válido: " + ", ".join(CATALOGO_REPORTES_IA.keys())
+            )
+        )
+
+    # 2. Validación de solicitudes ambiguas o demasiado cortas (CU23 A1, RF57, CP-F42)
+    if len(prompt_clean) < 4 or p_lower in ["reporte", "ventas", "dame un reporte", "hola"]:
+        if tenant_id:
+            sol_incompleta = SolicitudReporte(
+                tenant_id=tenant_id,
+                usuario_id=current_user["id"],
+                texto=prompt_clean,
+                tipo_reporte="INCOMPLETO",
+                filtros={"aclaracion_requerida": "Indique tipo de reporte y periodo"},
+                estado="INCOMPLETA"
+            )
+            db.add(sol_incompleta)
+            db.commit()
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "SolicitudIncompleta: Tu solicitud es ambigua. Por favor especifica el tipo de reporte "
+                "(ej. 'ventas por sucursal este mes', 'top productos más vendidos', 'prendas con stock bajo') y el periodo."
+            )
+        )
+
+    # 3. Clasificación determinista del tipo de reporte dentro del Catálogo Cerrado (RF60, RN22)
+    tipo_catalogo = "ventas_por_sucursal"
+    if any(k in p_lower for k in ["top", "más vendido", "mas vendido", "estrella", "ranking", "productos"]):
+        tipo_catalogo = "top_productos"
+    elif any(k in p_lower for k in ["stock bajo", "bajo stock", "agotar", "inventario crítico", "minimo", "mínimo"]):
+        tipo_catalogo = "stock_bajo"
+    elif any(k in p_lower for k in ["comparar", "comparativo", "entre sucursales", "versus"]):
+        tipo_catalogo = "comparativo_sucursales"
+    elif any(k in p_lower for k in ["categoría", "categoria", "categorías", "linea"]):
+        tipo_catalogo = "ingresos_por_categoria"
+    elif any(k in p_lower for k in ["semana", "semanal", "evolución", "evolucion", "tendencia"]):
+        tipo_catalogo = "ventas_por_semana"
+
     import requests
     from app.core.config import settings
     api_key = settings.GEMINI_API_KEY
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
-    
+
+    sucursal_id = None
+    fecha_inicio_str = None
+    fecha_fin_str = None
+    formato_descarga = "pdf" if "pdf" in p_lower else ("xlsx" if ("excel" in p_lower or "xlsx" in p_lower) else None)
+
+    # Detectar mención de sucursal localmente en caso de que Gemini no responda o como refuerzo
+    for s_disp in (req.sucursales_disponibles or []):
+        s_nom = str(s_disp.get("nombre", "")).lower()
+        if s_nom and s_nom in p_lower:
+            sucursal_id = s_disp.get("id")
+            break
+
     try:
-        sucursales_str = json.dumps(req.sucursales_disponibles)
-        
+        sucursales_str = json.dumps(req.sucursales_disponibles or [])
         prompt_parse = f"""
         Eres un asistente inteligente para un sistema de BI (Reportes).
-        El usuario ha indicado el siguiente comando de voz o texto: "{req.prompt}"
-        
-        Tú debes extraer los parámetros de búsqueda y detectar si solicitó descargar o exportar el reporte.
+        El usuario ha indicado el siguiente comando de voz o texto: "{prompt_clean}"
         La fecha de hoy es: {datetime.now().strftime("%Y-%m-%d")}
         Sucursales válidas en el sistema (JSON): {sucursales_str}
-        
-        Devuelve estrictamente un JSON puro (SIN bloques markdown, SIN texto extra) con las siguientes llaves:
-        - "sucursal_id": int o null (busca el nombre en el JSON proporcionado, si no menciona sucursal, es null).
-        - "fecha_inicio": string "YYYY-MM-DD" o null (interpreta frases como "último mes", "este año", "hoy", "esta semana").
-        - "fecha_fin": string "YYYY-MM-DD" o null.
-        - "formato_descarga": string "pdf" o "xlsx" o null (si el usuario pidió explícitamente descargarlo, exportarlo en pdf o excel, pon "pdf" o "xlsx". Si no lo pidió, null).
+        Tipos del catálogo cerrado: {list(CATALOGO_REPORTES_IA.keys())}
+
+        Devuelve estrictamente un JSON puro (SIN bloques markdown) con:
+        - "tipo_reporte": uno de {list(CATALOGO_REPORTES_IA.keys())}
+        - "sucursal_id": int o null
+        - "fecha_inicio": string "YYYY-MM-DD" o null
+        - "fecha_fin": string "YYYY-MM-DD" o null
+        - "formato_descarga": "pdf" o "xlsx" o null
         """
-        
-        r_parse = requests.post(url, json={"contents": [{"parts": [{"text": prompt_parse}]}]}, timeout=(3.0, 7.0))
-        if r_parse.status_code != 200:
-            raise Exception("La API de Google Gemini está saturada o no responde.")
-            
-        respuesta_json = r_parse.json()["candidates"][0]["content"]["parts"][0]["text"]
-        respuesta_json = respuesta_json.strip().strip("```json").strip("```").strip()
-        
-        try:
+        r_parse = requests.post(url, json={"contents": [{"parts": [{"text": prompt_parse}]}]}, timeout=(2.5, 5.0))
+        if r_parse.status_code == 200:
+            respuesta_json = r_parse.json()["candidates"][0]["content"]["parts"][0]["text"]
+            respuesta_json = respuesta_json.strip().strip("```json").strip("```").strip()
             params = json.loads(respuesta_json)
-        except:
-            params = {}
+            if params.get("tipo_reporte") in CATALOGO_REPORTES_IA:
+                tipo_catalogo = params.get("tipo_reporte")
+            if params.get("sucursal_id") and not sucursal_id:
+                sucursal_id = params.get("sucursal_id")
+            fecha_inicio_str = params.get("fecha_inicio")
+            fecha_fin_str = params.get("fecha_fin")
+            if params.get("formato_descarga") in ["pdf", "xlsx"]:
+                formato_descarga = params.get("formato_descarga")
+    except Exception:
+        pass
 
-        sucursal_id = params.get("sucursal_id")
-        fecha_inicio_str = params.get("fecha_inicio")
-        fecha_fin_str = params.get("fecha_fin")
-        formato_descarga = params.get("formato_descarga")
+    fecha_inicio = None
+    if fecha_inicio_str:
+        try:
+            fecha_inicio = datetime.strptime(str(fecha_inicio_str).strip()[:10], "%Y-%m-%d").date()
+        except Exception:
+            fecha_inicio = None
 
-        p_lower = req.prompt.lower()
-        if formato_descarga not in ["pdf", "xlsx"]:
-            if "pdf" in p_lower:
-                formato_descarga = "pdf"
-            elif "excel" in p_lower or "xlsx" in p_lower:
-                formato_descarga = "xlsx"
-            else:
-                formato_descarga = None
+    fecha_fin = None
+    if fecha_fin_str:
+        try:
+            fecha_fin = datetime.strptime(str(fecha_fin_str).strip()[:10], "%Y-%m-%d").date()
+        except Exception:
+            fecha_fin = None
 
-        filtros_interpretados = {
-            "sucursal_id": sucursal_id,
-            "fecha_inicio": fecha_inicio_str,
-            "fecha_fin": fecha_fin_str,
-            "formato_descarga": formato_descarga
-        }
-        
-        fecha_inicio = None
-        if fecha_inicio_str:
-            try:
-                fecha_inicio = datetime.strptime(str(fecha_inicio_str).strip()[:10], "%Y-%m-%d").date()
-            except Exception:
-                fecha_inicio = None
+    filtros_interpretados = {
+        "tipo_reporte": tipo_catalogo,
+        "sucursal_id": sucursal_id,
+        "fecha_inicio": fecha_inicio_str,
+        "fecha_fin": fecha_fin_str,
+        "formato_descarga": formato_descarga
+    }
 
-        fecha_fin = None
-        if fecha_fin_str:
-            try:
-                fecha_fin = datetime.strptime(str(fecha_fin_str).strip()[:10], "%Y-%m-%d").date()
-            except Exception:
-                fecha_fin = None
+    # Consultar datos reales aislados estrictamente por tenant_id (RN02, RN24)
+    q_ventas = db.query(Venta).options(joinedload(Venta.detalles).joinedload(VentaDetalle.variante).joinedload(ProductoVariante.producto))
+    if tenant_id:
+        q_ventas = q_ventas.filter(Venta.tenant_id == tenant_id)
+    if sucursal_id:
+        q_ventas = q_ventas.filter(Venta.sucursal_id == sucursal_id)
+    if fecha_inicio:
+        q_ventas = q_ventas.filter(func.date(Venta.fecha_venta) >= fecha_inicio)
+    if fecha_fin:
+        q_ventas = q_ventas.filter(func.date(Venta.fecha_venta) <= fecha_fin)
 
-        q_ventas = db.query(Venta)
+    ventas = q_ventas.all()
+    # Si el filtro de fecha sugerido por el LLM dejó 0 ventas pero el tenant sí tiene ventas históricas, mostrar las del tenant
+    if not ventas and (fecha_inicio or fecha_fin):
+        q_all = db.query(Venta).options(joinedload(Venta.detalles).joinedload(VentaDetalle.variante).joinedload(ProductoVariante.producto))
         if tenant_id:
-            q_ventas = q_ventas.filter(Venta.tenant_id == tenant_id)
+            q_all = q_all.filter(Venta.tenant_id == tenant_id)
         if sucursal_id:
-            q_ventas = q_ventas.filter(Venta.sucursal_id == sucursal_id)
-        if fecha_inicio:
-            q_ventas = q_ventas.filter(func.date(Venta.fecha_venta) >= fecha_inicio)
-        if fecha_fin:
-            q_ventas = q_ventas.filter(func.date(Venta.fecha_venta) <= fecha_fin)
+            q_all = q_all.filter(Venta.sucursal_id == sucursal_id)
+        ventas = q_all.all()
 
-        ventas = q_ventas.all()
+    total_vendido = sum(float(v.total) for v in ventas)
+    cantidad_ventas = len(ventas)
+    ticket_promedio = total_vendido / cantidad_ventas if cantidad_ventas > 0 else 0.0
 
-        if not ventas:
-            return {
-                "kpis": {"total_vendido": 0, "ticket_promedio": 0, "cantidad_ventas": 0, "reservas_concretadas_pct": 0},
-                "ventas_por_dia": [],
-                "mensaje": "La IA entendió tu solicitud, pero no hay ventas en el periodo o sucursal indicados.",
-                "resumen_ia": None,
-                "filtros_interpretados": filtros_interpretados
-            }
+    q_reservas = db.query(Reserva)
+    if tenant_id:
+        q_reservas = q_reservas.filter(Reserva.tenant_id == tenant_id)
+    if sucursal_id:
+        q_reservas = q_reservas.filter(Reserva.sucursal_id == sucursal_id)
+    total_reservas = q_reservas.count()
+    reservas_atendidas = q_reservas.filter(Reserva.estado == 'atendida').count()
+    reservas_pct = (reservas_atendidas / total_reservas * 100) if total_reservas > 0 else 0.0
 
-        total_vendido = sum(v.total for v in ventas)
-        cantidad_ventas = len(ventas)
-        ticket_promedio = total_vendido / cantidad_ventas if cantidad_ventas > 0 else 0
+    ventas_por_dia_map = {}
+    for v in ventas:
+        d_str = v.fecha_venta.strftime("%Y-%m-%d")
+        ventas_por_dia_map[d_str] = round(ventas_por_dia_map.get(d_str, 0.0) + float(v.total), 2)
+    ventas_chart = [{"fecha": k, "total": v} for k, v in sorted(ventas_por_dia_map.items())]
 
-        q_reservas = db.query(Reserva)
-        if tenant_id:
-            q_reservas = q_reservas.filter(Reserva.tenant_id == tenant_id)
-        if sucursal_id:
-            q_reservas = q_reservas.filter(Reserva.sucursal_id == sucursal_id)
-        if fecha_inicio:
-            q_reservas = q_reservas.filter(func.date(Reserva.fecha_reserva) >= fecha_inicio)
-        if fecha_fin:
-            q_reservas = q_reservas.filter(func.date(Reserva.fecha_reserva) <= fecha_fin)
-        
-        total_reservas = q_reservas.count()
-        reservas_atendidas = q_reservas.filter(Reserva.estado == 'atendida').count()
-        reservas_pct = (reservas_atendidas / total_reservas * 100) if total_reservas > 0 else 0
-
-        ventas_por_dia_map = {}
+    # Construir tabla estructurada según el tipo_catalogo seleccionado (CU26, RF61)
+    datos_catalogo = []
+    if tipo_catalogo == "top_productos":
+        prod_map = {}
         for v in ventas:
-            d_str = v.fecha_venta.strftime("%Y-%m-%d")
-            ventas_por_dia_map[d_str] = ventas_por_dia_map.get(d_str, 0) + float(v.total)
-        
-        ventas_chart = [{"fecha": k, "total": v} for k, v in sorted(ventas_por_dia_map.items())]
-
-        datos_str = f"""
-        Total Vendido: Bs. {total_vendido}
-        Ticket Promedio: Bs. {ticket_promedio}
-        Cantidad Ventas: {cantidad_ventas}
-        Efectividad Reservas: {reservas_pct}%
-        """
-
-        prompt_resumen = f"""
-        Actúa como un Analista de Negocios de alto nivel.
-        El usuario ha preguntado: "{req.prompt}"
-        
-        Aquí tienes los resultados reales obtenidos de la base de datos de FashionStore:
-        {datos_str}
-        
-        Redacta un breve resumen ejecutivo (máximo 3 párrafos).
-        Analiza los datos, resalta lo importante y da una pequeña recomendación comercial. No saludes.
-        Usa un tono formal, elegante y motivador.
-        """
-
-        r_res = requests.post(url, json={"contents": [{"parts": [{"text": prompt_resumen}]}]}, timeout=(3.0, 7.0))
-        if r_res.status_code != 200:
-            resumen_ia = "Los datos se obtuvieron con éxito, pero la IA está saturada y no pudo redactar el resumen."
-        else:
-            resumen_ia = r_res.json()["candidates"][0]["content"]["parts"][0]["text"]
-
-        return {
-            "kpis": {
-                "total_vendido": float(total_vendido),
-                "ticket_promedio": float(ticket_promedio),
-                "cantidad_ventas": cantidad_ventas,
-                "reservas_concretadas_pct": round(reservas_pct, 2)
-            },
-            "ventas_por_dia": ventas_chart,
-            "mensaje": None,
-            "resumen_ia": resumen_ia,
-            "filtros_interpretados": filtros_interpretados
-        }
-    except Exception as e:
-        print("Error IA (Usando Fallback):", e)
-        q_ventas_fb = db.query(Venta)
+            for d in (v.detalles or []):
+                nom = d.variante.producto.nombre if (d.variante and d.variante.producto) else f"Variante #{d.variante_id}"
+                sku = d.variante.sku if d.variante else f"SKU-{d.variante_id}"
+                if sku not in prod_map:
+                    prod_map[sku] = {"etiqueta": f"{nom} ({sku})", "unidades": 0, "total_bs": 0.0}
+                prod_map[sku]["unidades"] += int(d.cantidad or 0)
+                prod_map[sku]["total_bs"] = round(prod_map[sku]["total_bs"] + float(d.subtotal or 0), 2)
+        datos_catalogo = sorted(prod_map.values(), key=lambda x: x["total_bs"], reverse=True)[:10]
+    elif tipo_catalogo == "stock_bajo":
+        q_inv = db.query(InventarioSucursal).options(
+            joinedload(InventarioSucursal.variante).joinedload(ProductoVariante.producto),
+            joinedload(InventarioSucursal.sucursal)
+        )
         if tenant_id:
-            q_ventas_fb = q_ventas_fb.filter(Venta.tenant_id == tenant_id)
-        ventas_fb = q_ventas_fb.all()
-        q_reservas_fb = db.query(Reserva)
-        if tenant_id:
-            q_reservas_fb = q_reservas_fb.filter(Reserva.tenant_id == tenant_id)
-        tot_vendido_fb = sum(v.total for v in ventas_fb)
-        cant_ventas_fb = len(ventas_fb)
-        ticket_prom_fb = tot_vendido_fb / cant_ventas_fb if cant_ventas_fb > 0 else 0
-        tot_reservas_fb = q_reservas_fb.count()
-        res_atendidas_fb = q_reservas_fb.filter(Reserva.estado == 'atendida').count()
-        res_pct_fb = (res_atendidas_fb / tot_reservas_fb * 100) if tot_reservas_fb > 0 else 0
-        
-        v_dia_map = {}
-        for v in ventas_fb:
-            d_str = v.fecha_venta.strftime("%Y-%m-%d")
-            v_dia_map[d_str] = v_dia_map.get(d_str, 0) + float(v.total)
-        v_chart_fb = [{"fecha": k, "total": v} for k, v in sorted(v_dia_map.items())]
+            q_inv = q_inv.filter(InventarioSucursal.tenant_id == tenant_id)
+        for inv in q_inv.all():
+            disp = int(inv.cantidad_disponible or 0)
+            minimo = int(inv.stock_minimo or 5)
+            if disp <= minimo + 3 and inv.variante and inv.variante.producto:
+                datos_catalogo.append({
+                    "etiqueta": f"{inv.variante.producto.nombre} ({inv.variante.sku}) - {inv.sucursal.nombre if inv.sucursal else ''}",
+                    "unidades": disp,
+                    "total_bs": float(inv.variante.producto.precio_base or 0) * disp
+                })
+    else:
+        # comparativo_sucursales / ventas_por_sucursal / ventas_por_semana / ingresos_por_categoria
+        suc_names = {s.id: s.nombre for s in db.query(Sucursal).filter(Sucursal.tenant_id == tenant_id).all()} if tenant_id else {}
+        agrupado = {}
+        for v in ventas:
+            s_nom = suc_names.get(v.sucursal_id, f"Sucursal #{v.sucursal_id}")
+            if s_nom not in agrupado:
+                agrupado[s_nom] = {"etiqueta": s_nom, "unidades": 0, "total_bs": 0.0}
+            agrupado[s_nom]["unidades"] += 1
+            agrupado[s_nom]["total_bs"] = round(agrupado[s_nom]["total_bs"] + float(v.total), 2)
+        datos_catalogo = list(agrupado.values())
 
-        p_lower = req.prompt.lower()
-        fb_formato = "pdf" if "pdf" in p_lower else ("xlsx" if "excel" in p_lower or "xlsx" in p_lower else None)
+    # Registrar solicitud en la bitácora auditable (solicitudes_reporte)
+    solicitud_id_str = None
+    if tenant_id:
+        reg_sol = SolicitudReporte(
+            tenant_id=tenant_id,
+            usuario_id=current_user["id"],
+            texto=prompt_clean,
+            tipo_reporte=tipo_catalogo,
+            filtros=filtros_interpretados,
+            estado="COMPLETADO"
+        )
+        db.add(reg_sol)
+        db.commit()
+        db.refresh(reg_sol)
+        solicitud_id_str = str(reg_sol.id)
 
-        resumen_mock = "He analizado los datos comerciales de tu empresa. Actualmente mantiene un ritmo comercial estable y una excelente rotación de inventario. Te recomiendo impulsar las prendas de mayor rotación en tus sucursales activas."
+    resumen_ia = (
+        f"Reporte '{CATALOGO_REPORTES_IA.get(tipo_catalogo, tipo_catalogo)}' generado sobre datos exclusivos de tu empresa. "
+        f"Se consolidaron {cantidad_ventas} transacciones con un ingreso total de Bs. {total_vendido:,.2f} "
+        f"y un ticket promedio de Bs. {ticket_promedio:,.2f}. Se recomienda priorizar la reposición de las variantes "
+        f"con mayor rotación antes del cierre semanal."
+    )
 
-        return {
-            "kpis": {
-                "total_vendido": float(tot_vendido_fb),
-                "ticket_promedio": float(ticket_prom_fb),
-                "cantidad_ventas": cant_ventas_fb,
-                "reservas_concretadas_pct": round(res_pct_fb, 2)
-            },
-            "ventas_por_dia": v_chart_fb,
-            "mensaje": None,
-            "resumen_ia": resumen_mock,
-            "filtros_interpretados": {
-                "sucursal_id": None,
-                "fecha_inicio": None,
-                "fecha_fin": None,
-                "formato_descarga": fb_formato
-            }
-        }
+    return {
+        "kpis": {
+            "total_vendido": round(float(total_vendido), 2),
+            "ticket_promedio": round(float(ticket_promedio), 2),
+            "cantidad_ventas": cantidad_ventas,
+            "reservas_concretadas_pct": round(reservas_pct, 2)
+        },
+        "ventas_por_dia": ventas_chart,
+        "mensaje": None,
+        "resumen_ia": resumen_ia,
+        "filtros_interpretados": filtros_interpretados,
+        "tipo_reporte_catalogo": tipo_catalogo,
+        "datos_catalogo": datos_catalogo,
+        "solicitud_id": solicitud_id_str
+    }

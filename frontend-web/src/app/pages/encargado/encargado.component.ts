@@ -10,13 +10,15 @@ import { ToastService } from '../../services/toast.service';
 import { Sucursal } from '../../models/sucursal.models';
 import { ReportesComponent } from '../../components/reportes/reportes.component';
 import { PosCambioPrendaComponent } from '../../components/pos-cambio-prenda/pos-cambio-prenda.component';
+import { OfflineSyncPanelComponent } from '../../components/offline-sync-panel/offline-sync-panel.component';
+import { AnaliticaMlComponent } from '../../components/analitica-ml/analitica-ml.component';
 
 declare const Html5Qrcode: any;
 
 @Component({
   selector: 'app-encargado',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReportesComponent, PosCambioPrendaComponent],
+  imports: [CommonModule, FormsModule, ReportesComponent, PosCambioPrendaComponent, OfflineSyncPanelComponent, AnaliticaMlComponent],
   template: `
     <div class="encargado-container">
       
@@ -208,7 +210,7 @@ declare const Html5Qrcode: any;
       <!-- PESTAÑAS MODERNAS SEGMENTADAS (CENTRADAS)                           -->
       <!-- =================================================================== -->
       <div class="tabs-bar-wrapper">
-        <div class="tabs-bar"><button (click)="tabActiva = 'cambio'" [class.tab-btn-active]="tabActiva === 'cambio'" class="tab-btn"><i class="fa-solid fa-right-left"></i> POS &amp; Cambio de Prenda (CU13)</button>
+        <div class="tabs-bar"><button (click)="tabActiva = 'cambio'" [class.tab-btn-active]="tabActiva === 'cambio'" class="tab-btn"><i class="fa-solid fa-right-left"></i> POS &amp; Cambio de Prenda (CU13)</button><button (click)="tabActiva = 'offline'" [class.tab-btn-active]="tabActiva === 'offline'" class="tab-btn"><i class="fa-solid fa-cloud-arrow-up"></i> Modo Offline &amp; Sync (CU15-CU22)</button><button (click)="tabActiva = 'ml'" [class.tab-btn-active]="tabActiva === 'ml'" class="tab-btn"><i class="fa-solid fa-brain"></i> Analítica ML (CU27-CU29)</button>
           <button 
             (click)="tabActiva = 'reportes'" 
             [class.tab-btn-active]="tabActiva === 'reportes'" 
@@ -327,6 +329,8 @@ declare const Html5Qrcode: any;
         
         <!-- PESTAÑA: REPORTES -->
         <div *ngIf="tabActiva === 'cambio'" class="animate-fade-in" style="width: 100%;"><app-pos-cambio-prenda [sucursalIdInput]="sucursalId"></app-pos-cambio-prenda></div>
+        <div *ngIf="tabActiva === 'offline'" class="animate-fade-in" style="width: 100%;"><app-offline-sync-panel></app-offline-sync-panel></div>
+        <div *ngIf="tabActiva === 'ml'" class="animate-fade-in" style="width: 100%;"><app-analitica-ml></app-analitica-ml></div>
         <div *ngIf="tabActiva === 'reportes'" class="animate-fade-in" style="width: 100%;">
           <app-reportes [esAdmin]="false"></app-reportes>
         </div>
