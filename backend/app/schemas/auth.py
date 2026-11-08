@@ -19,6 +19,7 @@ class TokenResponse(BaseModel):
     email: str
     tenant_id: Optional[str] = None
     tenant_nombre: Optional[str] = None
+    sucursal_id: Optional[int] = None
     plan: Optional[str] = None
     permite_reportes_ia: Optional[bool] = None
     max_sucursales: Optional[int] = None
@@ -57,6 +58,7 @@ class UserProfileResponse(BaseModel):
     user_type: str
     tenant_id: Optional[str] = None
     tenant_nombre: Optional[str] = None
+    sucursal_id: Optional[int] = None
     plan: Optional[str] = None
     permite_reportes_ia: Optional[bool] = None
     max_sucursales: Optional[int] = None

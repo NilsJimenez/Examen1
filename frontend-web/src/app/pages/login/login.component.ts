@@ -108,6 +108,69 @@ import { ToastService } from '../../services/toast.service';
               </button>
             </form>
 
+            <!-- Separador Estilizado -->
+            <div class="auth-divider">
+              <span>ACCESO RÁPIDO CON 1 CLIC (CREDENCIALES DEMO)</span>
+            </div>
+
+            <!-- Botones de Rápido Acceso Demo SaaS y Roles -->
+            <div class="demo-buttons-grid" style="grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin-top: 0.75rem;">
+              <button 
+                type="button" 
+                (click)="fillCredentials('superadmin')" 
+                class="demo-access-btn"
+                title="Super Administrador Global de la Plataforma SaaS (CU01-CU04)"
+                style="border-color: #f59e0b; padding: 0.65rem 0.5rem;"
+              >
+                <i class="fa-solid fa-crown mr-1.5" style="color: #f59e0b;"></i>
+                <span style="font-size: 0.75rem; font-weight: 700;">👑 SuperAdmin SaaS</span>
+              </button>
+
+              <button 
+                type="button" 
+                (click)="fillCredentials('admin')" 
+                class="demo-access-btn"
+                title="Administrador de Tienda / Sucursal"
+                style="border-color: #8b5cf6; padding: 0.65rem 0.5rem;"
+              >
+                <i class="fa-solid fa-shield-halved mr-1.5" style="color: #8b5cf6;"></i>
+                <span style="font-size: 0.75rem; font-weight: 700;">🛡️ Admin Tienda</span>
+              </button>
+
+              <button 
+                type="button" 
+                (click)="fillCredentials('encargado')" 
+                class="demo-access-btn"
+                title="Encargado de Sucursal"
+                style="border-color: #3b82f6; padding: 0.65rem 0.5rem;"
+              >
+                <i class="fa-solid fa-warehouse mr-1.5" style="color: #3b82f6;"></i>
+                <span style="font-size: 0.75rem; font-weight: 700;">👔 Encargado</span>
+              </button>
+
+              <button 
+                type="button" 
+                (click)="fillCredentials('cajero')" 
+                class="demo-access-btn"
+                title="Cajero POS"
+                style="border-color: #10b981; padding: 0.65rem 0.5rem;"
+              >
+                <i class="fa-solid fa-cash-register mr-1.5" style="color: #10b981;"></i>
+                <span style="font-size: 0.75rem; font-weight: 700;">💳 Cajero</span>
+              </button>
+
+              <button 
+                type="button" 
+                (click)="fillCredentials('cliente')" 
+                class="demo-access-btn"
+                title="Cliente Final"
+                style="grid-column: span 2; border-color: #ec4899; padding: 0.65rem 0.5rem;"
+              >
+                <i class="fa-solid fa-user mr-1.5" style="color: #ec4899;"></i>
+                <span style="font-size: 0.75rem; font-weight: 700;">🛍️ Cliente Web (Valeria)</span>
+              </button>
+            </div>
+
             <!-- Enlace a Registro -->
             <div class="auth-footer-switch">
               <span>¿Aún no tienes cuenta?</span>
@@ -795,25 +858,28 @@ export class LoginComponent implements OnInit {
     this.mostrarPassword = !this.mostrarPassword;
   }
 
-  fillCredentials(role: 'superadmin' | 'empresa_a' | 'empresa_b' | 'cliente' | 'admin' | 'encargado'): void {
+  fillCredentials(role: 'superadmin' | 'empresa_a' | 'empresa_b' | 'cliente' | 'admin' | 'encargado' | 'cajero'): void {
     if (role === 'superadmin') {
       this.email = 'admin@fashionstore.saas';
-      this.password = 'cambiar-en-produccion';
-    } else if (role === 'empresa_a') {
-      this.email = 'admin@1023451010.test';
-      this.password = 'cambiar-en-produccion';
-    } else if (role === 'empresa_b') {
-      this.email = 'admin@2045602018.test';
-      this.password = 'cambiar-en-produccion';
+      this.password = 'Admin123!';
     } else if (role === 'admin') {
       this.email = 'admin@fashionstore.com';
       this.password = 'Admin123!';
     } else if (role === 'encargado') {
       this.email = 'encargado@fashionstore.com';
-      this.password = 'Encargado123!';
+      this.password = 'Admin123!';
+    } else if (role === 'cajero') {
+      this.email = 'cajero@fashionstore.com';
+      this.password = 'Admin123!';
     } else if (role === 'cliente') {
       this.email = 'cliente@fashionstore.com';
-      this.password = 'Cliente123!';
+      this.password = 'Admin123!';
+    } else if (role === 'empresa_a') {
+      this.email = 'admin@1023451010.test';
+      this.password = 'Admin123!';
+    } else if (role === 'empresa_b') {
+      this.email = 'admin@2045602018.test';
+      this.password = 'Admin123!';
     }
     this.onSubmit();
   }

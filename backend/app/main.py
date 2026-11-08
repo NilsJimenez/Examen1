@@ -47,3 +47,17 @@ def root():
 @app.get("/health", tags=["General"])
 def health_check():
     return {"status": "ok"}
+
+
+from fastapi.responses import FileResponse
+
+@app.get("/descargar-apk", tags=["Mobile"])
+def descargar_apk():
+    apk_path = r"D:\PROYECTO EXAMEN SI1\Examen1\frontend_mobile\build\app\outputs\flutter-apk\app-debug.apk"
+    if os.path.exists(apk_path):
+        return FileResponse(
+            path=apk_path,
+            filename="FashionStore-debug.apk",
+            media_type="application/vnd.android.package-archive"
+        )
+    raise HTTPException(status_code=404, detail="APK no encontrado en el servidor.")

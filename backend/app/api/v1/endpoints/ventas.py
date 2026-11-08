@@ -463,11 +463,15 @@ def obtener_catalogo_variantes_sucursal(
 
 
 @router.post("/cambio-prenda", status_code=status.HTTP_201_CREATED)
+@router.post("/{venta_id}/cambio", status_code=status.HTTP_201_CREATED)
 def registrar_cambio_prenda(
     data: CambioPrendaInput,
+    venta_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(["administrador", "cajero", "encargado_sucursal"]))
 ):
+    if venta_id is not None:
+        data.venta_id = venta_id
     """
     CU13: Gestionar cambio de prenda (RF21, RN20, RN21).
     1. Valida que la venta exista y pertenezca a la empresa (tenant_id).

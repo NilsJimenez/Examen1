@@ -7,6 +7,7 @@ from app.api.deps import get_current_user, require_roles
 from app.models.inventario import InventarioSucursal, MovimientoInventario
 from app.models.producto import ProductoVariante
 from app.models.sucursal import Sucursal
+from app.services.push_service import emitir_notificacion_push
 
 router = APIRouter()
 
@@ -128,6 +129,22 @@ def registrar_movimiento(data: MovimientoCreate, db: Session = Depends(get_db), 
     mov = MovimientoInventario(variante_id=data.variante_id, sucursal_id=data.sucursal_id, tipo_movimiento=tipo, cantidad=cant, observaciones=data.observaciones)
     db.add(mov)
     db.commit()
+    if inv.cantidad_disponible <= (inv.stock_minimo or 3):
+        emitir_notificacion_push(
+            titulo="⚠️ Alerta de Stock Bajo",
+            cuerpo=f"La variante #{data.variante_id} en sucursal #{data.sucursal_id} cuenta con solo {inv.cantidad_disponible} unidades disponibles.",
+            categoria="stock",
+            rol_destino="ENCARGADO",
+            referencia=str(data.variante_id)
+        )
+    elif tipo in ("ingreso", "devolucion", "ajuste"):
+        emitir_notificacion_push(
+            titulo="📦 Ingreso de Stock Actualizado",
+            cuerpo=f"Se registraron {cant} unidades ({tipo}) para variante #{data.variante_id} en sucursal #{data.sucursal_id}. Stock actual: {inv.cantidad_disponible}.",
+            categoria="stock",
+            rol_destino="ENCARGADO",
+            referencia=str(data.variante_id)
+        )
     return {"message": f"Movimiento '{tipo}' registrado. Nuevo stock: {inv.cantidad_disponible}"}
 
 @router.get("/movimientos")

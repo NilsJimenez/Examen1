@@ -31,7 +31,7 @@ class PushNotificationHub:
                 "id": self._counter,
                 "titulo": titulo,
                 "cuerpo": cuerpo,
-                "categoria": categoria,  # 'reserva', 'venta', 'catalogo', 'stock', 'saas', 'promo'
+                "categoria": categoria,  # 'reserva', 'venta', 'catalogo', 'stock', 'saas', 'promo', 'sync'
                 "rol_destino": rol_destino,
                 "referencia": referencia,
                 "timestamp": now_ts,
@@ -61,12 +61,17 @@ class PushNotificationHub:
                 if n["timestamp"] < first_seen:
                     delivered.add(n["id"])
                     continue
+                # Filtro inteligente de rol
+                dest = (n.get("rol_destino") or "TODOS").upper()
+                u_rol = (rol or "TODOS").upper()
+                if dest != "TODOS" and u_rol != "TODOS" and dest != u_rol:
+                    continue
                 nuevas.append(n)
                 delivered.add(n["id"])
 
             return nuevas
 
-    def listar_historial(self, limit: int = 25) -> List[Dict[str, Any]]:
+    def listar_historial(self, limit: int = 30) -> List[Dict[str, Any]]:
         with self._lock:
             return list(reversed(self._notifications[-limit:]))
 

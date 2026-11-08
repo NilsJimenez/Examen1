@@ -7,16 +7,18 @@ import { InventarioService } from '../../services/inventario.service';
 import { ProductoService } from '../../services/producto.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
+import { SaasService } from '../../services/saas.service';
 import { Sucursal } from '../../models/sucursal.models';
 import { ReportesComponent } from '../../components/reportes/reportes.component';
 import { PosCambioPrendaComponent } from '../../components/pos-cambio-prenda/pos-cambio-prenda.component';
+import { CajaTurnoComponent } from '../../components/caja-turno/caja-turno.component';
 
 declare const Html5Qrcode: any;
 
 @Component({
   selector: 'app-encargado',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReportesComponent, PosCambioPrendaComponent],
+  imports: [CommonModule, FormsModule, ReportesComponent, PosCambioPrendaComponent, CajaTurnoComponent],
   template: `
     <div class="encargado-container">
       
@@ -100,6 +102,16 @@ declare const Html5Qrcode: any;
           </div>
 
           <!-- Botón de Actualizar / Refrescar -->
+          <!-- Boton Notificacion Push Movil -->
+          <button 
+            (click)="abrirModalPush()" 
+            class="btn btn-primary" 
+            style="padding: 0.6rem 1rem; font-size: 0.85rem; background: linear-gradient(135deg, #f59e0b, #d97706); color: #09090b; border: none; font-weight: 700; display: inline-flex; align-items: center; gap: 0.45rem;"
+            title="Enviar Notificacion Push a Celulares"
+          >
+            <i class="fa-solid fa-bell"></i> Push Movil
+          </button>
+
           <button 
             (click)="recargarTodo()" 
             class="btn btn-outline" 
@@ -208,7 +220,7 @@ declare const Html5Qrcode: any;
       <!-- PESTAÑAS MODERNAS SEGMENTADAS (CENTRADAS)                           -->
       <!-- =================================================================== -->
       <div class="tabs-bar-wrapper">
-        <div class="tabs-bar"><button (click)="tabActiva = 'cambio'" [class.tab-btn-active]="tabActiva === 'cambio'" class="tab-btn"><i class="fa-solid fa-right-left"></i> POS &amp; Cambio de Prenda (CU13)</button>
+        <div class="tabs-bar"><button (click)="tabActiva = 'caja'" [class.tab-btn-active]="tabActiva === 'caja'" class="tab-btn"><i class="fa-solid fa-vault"></i> Control Caja (CU30)</button><button (click)="tabActiva = 'cambio'" [class.tab-btn-active]="tabActiva === 'cambio'" class="tab-btn"><i class="fa-solid fa-right-left"></i> POS &amp; Cambio de Prenda (CU13)</button>
           <button 
             (click)="tabActiva = 'reportes'" 
             [class.tab-btn-active]="tabActiva === 'reportes'" 
@@ -326,6 +338,7 @@ declare const Html5Qrcode: any;
 
         
         <!-- PESTAÑA: REPORTES -->
+        <div *ngIf="tabActiva === 'caja'" class="animate-fade-in" style="width: 100%;"><app-caja-turno [sucursalIdInput]="sucursalId"></app-caja-turno></div>
         <div *ngIf="tabActiva === 'cambio'" class="animate-fade-in" style="width: 100%;"><app-pos-cambio-prenda [sucursalIdInput]="sucursalId"></app-pos-cambio-prenda></div>
         <div *ngIf="tabActiva === 'reportes'" class="animate-fade-in" style="width: 100%;">
           <app-reportes [esAdmin]="false"></app-reportes>
@@ -746,7 +759,137 @@ declare const Html5Qrcode: any;
 
       </div>
 
-    </div>
+    
+      <!-- =================================================================== -->
+      <!-- MODAL: CENTRO DE NOTIFICACIONES PUSH AL MOVIL                       -->
+      <!-- =================================================================== -->
+      <div *ngIf="mostrarModalPush" class="modal-overlay">
+        <div class="modal-content saas-modal-card" style="max-width: 560px; border: 1.5px solid rgba(245, 158, 11, 0.5);">
+          <div class="saas-modal-header">
+            <div class="saas-modal-title-wrap">
+              <div class="saas-modal-icon gold">
+                <i class="fa-solid fa-mobile-screen-button"></i>
+              </div>
+              <div>
+                <h3 class="font-serif" style="font-size: 1.22rem; font-weight: 700; color: #ffffff;">
+                  Notificaciones Push al Celular
+                </h3>
+                <p style="font-size: 0.76rem; color: #a1a1aa;">
+                  Envía avisos directos a la app móvil de clientes, cajeros o a toda la sucursal
+                </p>
+              </div>
+            </div>
+            <button type="button" (click)="mostrarModalPush = false" class="saas-modal-close">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Plantillas Rápidas de 1 Clic -->
+          <div style="margin-bottom: 1rem;">
+            <span style="font-size: 0.72rem; font-weight: 800; color: #a1a1aa; text-transform: uppercase; display: block; margin-bottom: 0.5rem;">
+              Plantillas Rápidas (1 Clic):
+            </span>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+              <button
+                type="button"
+                (click)="aplicarPlantillaPush('reserva')"
+                class="saas-plan-option"
+              >
+                <span class="plan-name" style="color: #34d399;">🛍️ Reserva Lista</span>
+                <span class="plan-desc">Aviso de retiro en vestidores</span>
+              </button>
+              <button
+                type="button"
+                (click)="aplicarPlantillaPush('catalogo')"
+                class="saas-plan-option"
+              >
+                <span class="plan-name" style="color: #fbbf24;">🔥 Descuento Tienda</span>
+                <span class="plan-desc">Promo exclusiva en sucursal</span>
+              </button>
+              <button
+                type="button"
+                (click)="aplicarPlantillaPush('stock')"
+                class="saas-plan-option"
+              >
+                <span class="plan-name" style="color: #f87171;">⚠️ Stock Bajo</span>
+                <span class="plan-desc">Alerta a encargados y cajeros</span>
+              </button>
+              <button
+                type="button"
+                (click)="aplicarPlantillaPush('sync')"
+                class="saas-plan-option"
+              >
+                <span class="plan-name" style="color: #38bdf8;">🔄 Sincronización OK</span>
+                <span class="plan-desc">Ventas offline sincronizadas</span>
+              </button>
+            </div>
+          </div>
+
+          <form (ngSubmit)="dispararPushManual()" class="saas-modal-form">
+            <div style="margin-bottom: 0.75rem;">
+              <label class="form-label" style="font-size: 0.75rem; text-transform: uppercase; color: #d4d4d8;">Destinatario / Rol</label>
+              <select [(ngModel)]="pushForm.rol_destino" name="push_rol" class="form-select" style="background: #18181b; color: #fff; border-color: #3f3f46;">
+                <option value="TODOS">📢 Todos los Usuarios</option>
+                <option value="CLIENTE">🛍️ Clientes</option>
+                <option value="CAJERO">💳 Cajeros</option>
+                <option value="ENCARGADO">👔 Encargados</option>
+                <option value="ADMIN">👑 Administradores</option>
+              </select>
+            </div>
+
+            <div style="margin-bottom: 0.75rem;">
+              <label class="form-label" style="font-size: 0.75rem; text-transform: uppercase; color: #d4d4d8;">Título de la Notificación *</label>
+              <input
+                type="text"
+                [(ngModel)]="pushForm.titulo"
+                name="push_titulo"
+                required
+                placeholder="Ej: 🛍️ ¡Tu prenda está lista en vestidores!"
+                class="form-input"
+              />
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+              <label class="form-label" style="font-size: 0.75rem; text-transform: uppercase; color: #d4d4d8;">Mensaje que sonará en el celular *</label>
+              <textarea
+                [(ngModel)]="pushForm.cuerpo"
+                name="push_cuerpo"
+                rows="3"
+                required
+                placeholder="Escribe el mensaje que sonará y bajará en la barra de notificaciones del teléfono..."
+                class="form-textarea"
+              ></textarea>
+            </div>
+
+            <button
+              type="submit"
+              [disabled]="enviandoPush"
+              class="btn btn-primary w-full"
+              style="padding: 0.85rem; font-weight: 800; border-radius: 12px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #09090b; border: none;"
+            >
+              <span *ngIf="enviandoPush"><i class="fa-solid fa-spinner fa-spin"></i> Enviando al Celular...</span>
+              <span *ngIf="!enviandoPush"><i class="fa-solid fa-paper-plane"></i> Enviar Notificación Push Ahora</span>
+            </button>
+          </form>
+
+          <!-- Historial Reciente de Eventos Push -->
+          <div *ngIf="historialPush.length > 0" style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #272732;">
+            <span style="font-size: 0.72rem; font-weight: 800; color: #a1a1aa; text-transform: uppercase; display: block; margin-bottom: 0.5rem;">
+              Últimas Notificaciones Emitidas:
+            </span>
+            <div style="max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.4rem;">
+              <div *ngFor="let h of historialPush.slice(0, 5)" style="padding: 0.5rem 0.75rem; border-radius: 10px; background: #0e0e13; border: 1px solid #22222c; font-size: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; font-weight: 700; color: #fbbf24;">
+                  <span>{{ h.titulo }}</span>
+                  <span style="color: #71717a; font-size: 0.68rem;">{{ h.fecha_hora }}</span>
+                </div>
+                <div style="color: #d4d4d8; margin-top: 0.15rem;">{{ h.cuerpo }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+</div>
   `,
   styles: [`
     .encargado-container {
@@ -1042,9 +1185,77 @@ declare const Html5Qrcode: any;
         grid-template-columns: 1fr;
       }
     }
-  `]
+  
+    /* Modales Limpios Push */
+    .saas-modal-card {
+      background: #14141a !important;
+      color: #f4f4f5 !important;
+      border-radius: 22px !important;
+      padding: 1.75rem !important;
+    }
+    .saas-modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.35rem;
+    }
+    .saas-modal-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+    .saas-modal-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+    }
+    .saas-modal-icon.gold {
+      background: rgba(245, 158, 11, 0.16);
+      color: #fbbf24;
+    }
+    .saas-modal-close {
+      background: transparent;
+      border: none;
+      color: #a1a1aa;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+    .saas-modal-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .saas-plan-option {
+      padding: 0.75rem;
+      border-radius: 12px;
+      background: #0e0e13;
+      border: 1.5px solid #272732;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .saas-plan-option .plan-name {
+      display: block;
+      font-size: 0.76rem;
+      font-weight: 800;
+      color: #ffffff;
+    }
+    .saas-plan-option .plan-desc {
+      display: block;
+      font-size: 0.68rem;
+      color: #a1a1aa;
+      margin-top: 0.2rem;
+    }
+`]
 })
 export class EncargadoComponent implements OnInit, OnDestroy {
+  private saasService = inject(SaasService);
+
   private reservaService = inject(ReservaService);
   private inventarioService = inject(InventarioService);
   private productoService = inject(ProductoService);
@@ -1443,4 +1654,72 @@ export class EncargadoComponent implements OnInit, OnDestroy {
       }
     });
   }
+
+  // ===================================================================
+  // NOTIFICACIONES PUSH MOVIL
+  // ===================================================================
+  mostrarModalPush: boolean = false;
+  enviandoPush: boolean = false;
+  pushForm = {
+    titulo: '',
+    cuerpo: '',
+    categoria: 'reserva',
+    rol_destino: 'TODOS'
+  };
+  historialPush: any[] = [];
+
+  abrirModalPush(): void {
+    this.mostrarModalPush = true;
+    this.aplicarPlantillaPush('reserva');
+    this.saasService.getHistorialNotificacionesPush().subscribe({
+      next: (list) => this.historialPush = list || [],
+      error: () => {}
+    });
+  }
+
+  aplicarPlantillaPush(tipo: 'reserva' | 'catalogo' | 'stock' | 'sync'): void {
+    this.pushForm.categoria = tipo;
+    if (tipo === 'reserva') {
+      this.pushForm.rol_destino = 'CLIENTE';
+      this.pushForm.titulo = `🛍️ ${this.sucursalNombreActual} • Reserva Lista para Vestidor`;
+      this.pushForm.cuerpo = `Tu prenda reservada ya se encuentra apartada y lista en ${this.sucursalNombreActual}. Presenta tu código QR para ingresar a vestidores.`;
+    } else if (tipo === 'catalogo') {
+      this.pushForm.rol_destino = 'TODOS';
+      this.pushForm.titulo = `🔥 Oferta Especial en ${this.sucursalNombreActual}`;
+      this.pushForm.cuerpo = `¡Nuevas prendas y 20% de descuento disponibles hoy en tienda física! Visítanos o reserva en la app móvil.`;
+    } else if (tipo === 'stock') {
+      this.pushForm.rol_destino = 'ENCARGADO';
+      this.pushForm.titulo = `⚠️ Alerta de Inventario en ${this.sucursalNombreActual}`;
+      this.pushForm.cuerpo = `Se detectaron variantes con stock crítico. Revisa el listado de alertas de reabastecimiento.`;
+    } else if (tipo === 'sync') {
+      this.pushForm.rol_destino = 'CAJERO';
+      this.pushForm.titulo = `🔄 Sincronización Offline Completada`;
+      this.pushForm.cuerpo = `Las ventas y reservas registradas fuera de línea se integraron correctamente al sistema central.`;
+    }
+  }
+
+  dispararPushManual(): void {
+    if (!this.pushForm.titulo.trim() || !this.pushForm.cuerpo.trim()) {
+      this.toastService.warning('Campos Requeridos', 'Escribe un título y un mensaje para la notificación.');
+      return;
+    }
+    this.enviandoPush = true;
+    this.saasService.enviarNotificacionPush(this.pushForm).subscribe({
+      next: () => {
+        this.enviandoPush = false;
+        this.toastService.success('¡Push Enviado al Celular!', 'La notificación fue enviada a la bandeja del dispositivo móvil.');
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(this.pushForm.titulo, { body: this.pushForm.cuerpo });
+        }
+        this.saasService.getHistorialNotificacionesPush().subscribe({
+          next: (list) => this.historialPush = list || []
+        });
+      },
+      error: () => {
+        this.enviandoPush = false;
+        this.toastService.error('Error', 'No se pudo enviar la notificación push.');
+      }
+    });
+  }
+
 }

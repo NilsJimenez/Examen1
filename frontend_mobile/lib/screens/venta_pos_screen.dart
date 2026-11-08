@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../offline/offline_models.dart';
+import '../offline/offline_sync_provider.dart';
 import '../services/catalogo_service.dart';
 import '../services/reserva_service.dart';
 import '../services/venta_service.dart';
+import '../widgets/offline_status_banner.dart';
+import 'offline/pos_offline_screen.dart';
 
 class VentaPosScreen extends StatefulWidget {
   const VentaPosScreen({super.key});
@@ -38,9 +43,9 @@ class _VentaPosScreenState extends State<VentaPosScreen> {
     
     if (mounted) {
       setState(() {
-        _sucursales = sucursales ?? [];
+        _sucursales = sucursales;
         if (_sucursales.isNotEmpty) _sucursalId = _sucursales.first['id'];
-        _productos = productos ?? [];
+        _productos = productos;
         _isLoading = false;
       });
     }
@@ -114,7 +119,9 @@ class _VentaPosScreenState extends State<VentaPosScreen> {
       return;
     }
 
-    // Modal de cobrar
+    // Modal de cobrar con bloqueo estricto de pagos digitales sin conexión (Sección 6.3 y Regla 7.2)
+    final offlineProv = context.read<OfflineSyncProvider>();
+    final enLinea = offlineProv.estaConectado;
     String metodoPago = 'efectivo';
     
     final result = await showDialog<String>(
@@ -129,7 +136,21 @@ class _VentaPosScreenState extends State<VentaPosScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text('Total a cobrar: Bs ${_subtotal.toStringAsFixed(2)}', style: const TextStyle(color: Color(0xFFEAB308), fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
+                  if (!enLinea)
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2B1D0E),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.45)),
+                      ),
+                      child: const Text(
+                        'Modo Sin Conexión (Regla 7.2): Solo se permite Efectivo. Tarjeta y QR requieren confirmación bancaria en línea.',
+                        style: TextStyle(color: Color(0xFFFDE68A), fontSize: 11.5),
+                      ),
+                    ),
                   RadioListTile<String>(
                     title: const Text('Efectivo', style: TextStyle(color: Colors.white)),
                     value: 'efectivo',
@@ -138,18 +159,20 @@ class _VentaPosScreenState extends State<VentaPosScreen> {
                     onChanged: (val) => setStateSB(() => metodoPago = val!),
                   ),
                   RadioListTile<String>(
-                    title: const Text('Tarjeta de Crédito/Débito', style: TextStyle(color: Colors.white)),
+                    title: Text('Tarjeta de Crédito/Débito', style: TextStyle(color: enLinea ? Colors.white : Colors.white38)),
+                    subtitle: enLinea ? null : const Text('Bloqueado sin conexión', style: TextStyle(color: Colors.redAccent, fontSize: 11)),
                     value: 'tarjeta',
                     groupValue: metodoPago,
                     activeColor: const Color(0xFFEAB308),
-                    onChanged: (val) => setStateSB(() => metodoPago = val!),
+                    onChanged: enLinea ? (val) => setStateSB(() => metodoPago = val!) : null,
                   ),
                   RadioListTile<String>(
-                    title: const Text('QR Transferencia', style: TextStyle(color: Colors.white)),
+                    title: Text('QR Transferencia', style: TextStyle(color: enLinea ? Colors.white : Colors.white38)),
+                    subtitle: enLinea ? null : const Text('Bloqueado sin conexión', style: TextStyle(color: Colors.redAccent, fontSize: 11)),
                     value: 'qr',
                     groupValue: metodoPago,
                     activeColor: const Color(0xFFEAB308),
-                    onChanged: (val) => setStateSB(() => metodoPago = val!),
+                    onChanged: enLinea ? (val) => setStateSB(() => metodoPago = val!) : null,
                   ),
                 ],
               ),
@@ -169,7 +192,33 @@ class _VentaPosScreenState extends State<VentaPosScreen> {
 
     if (result != null) {
       setState(() => _isLoading = true);
-      
+
+      if (!enLinea) {
+        try {
+          final draftItems = _ticket
+              .map((i) => OfflineDraftItem(
+                    varianteId: i['variante_id'] as int,
+                    cantidad: i['cantidad'] as int,
+                    precioUnitario: (i['precio_unitario'] as num).toDouble(),
+                  ))
+              .toList();
+          final ventaLocal = await offlineProv.registrarVentaContado(
+            sucursalId: _sucursalId,
+            items: draftItems,
+          );
+          if (!mounted) return;
+          setState(() => _isLoading = false);
+          _mostrarRecibo('LOCAL-${ventaLocal.localId.substring(0, 8)} (En cola SQLite)');
+        } catch (e) {
+          if (!mounted) return;
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error offline: $e')),
+          );
+        }
+        return;
+      }
+
       final reqItems = _ticket.map((i) => {
         'variante_id': i['variante_id'],
         'cantidad': i['cantidad'],
@@ -238,10 +287,48 @@ class _VentaPosScreenState extends State<VentaPosScreen> {
         title: const Text('Venta POS', style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: _isLoading
-        ? const Center(child: CircularProgressIndicator(color: Color(0xFFEAB308)))
-        : Column(
-            children: [
+      body: Column(
+        children: [
+          const OfflineStatusBanner(),
+          Consumer<OfflineSyncProvider>(
+            builder: (context, prov, _) {
+              if (prov.estaConectado) return const SizedBox.shrink();
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                color: const Color(0xFF1F1633),
+                child: Row(
+                  children: [
+                    const Icon(Icons.storage_rounded, color: Color(0xFFEAB308), size: 16),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Sin internet: use el POS SQLite para buscar productos locales al instante.',
+                        style: TextStyle(color: Colors.white70, fontSize: 11.5),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const PosOfflineScreen()),
+                        );
+                      },
+                      child: const Text(
+                        'Abrir POS Offline',
+                        style: TextStyle(color: Color(0xFFEAB308), fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFFEAB308)))
+                : Column(
+                    children: [
               Container(
                 padding: const EdgeInsets.all(16),
                 color: const Color(0xFF1A1A1F),
@@ -343,8 +430,11 @@ class _VentaPosScreenState extends State<VentaPosScreen> {
                   },
                 ),
               ),
-            ],
+                    ],
+                  ),
           ),
+        ],
+      ),
       bottomNavigationBar: _ticket.isEmpty
         ? null
         : Container(

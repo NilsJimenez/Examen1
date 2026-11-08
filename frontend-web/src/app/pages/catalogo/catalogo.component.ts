@@ -8,6 +8,8 @@ import { RecomendacionService, RecomendacionIA } from '../../services/recomendac
 import { ProductoService } from '../../services/producto.service';
 import { Producto, Categoria } from '../../models/producto.models';
 import { Sucursal } from '../../models/sucursal.models';
+import { OfflineStorageService } from '../../services/offline-storage.service';
+import { OfflineSyncService } from '../../services/offline-sync.service';
 
 @Component({
   selector: 'app-catalogo',
@@ -219,13 +221,16 @@ import { Sucursal } from '../../models/sucursal.models';
             </div>
 
             <!-- Contador de Resultados -->
-            <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">
+            <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               <span *ngIf="selectedSucursalId; else todasMsg">
                 Mostrando <strong style="color: var(--text-main);">{{ productos.length }}</strong> prendas en <strong style="color: var(--accent);">{{ selectedSucursalNombre }}</strong>
               </span>
               <ng-template #todasMsg>
                 Mostrando <strong style="color: var(--text-main);">{{ productos.length }}</strong> prendas disponibles
               </ng-template>
+              <span *ngIf="isOfflineMode" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.72rem; padding: 0.15rem 0.6rem; border-radius: 9999px; font-weight: bold;">
+                <i class="fa-solid fa-cloud-bolt mr-1"></i> Modo Offline (IndexedDB)
+              </span>
             </div>
 
           </div>
@@ -369,14 +374,26 @@ import { Sucursal } from '../../models/sucursal.models';
         <!-- Sin Resultados -->
         <div *ngIf="!loading && productos.length === 0" class="text-center py-16 card p-8">
           <div class="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
-            <i class="fa-solid fa-shop-slash text-2xl opacity-40"></i>
+            <i [class]="isOfflineMode ? 'fa-solid fa-wifi-slash text-2xl text-amber-500' : 'fa-solid fa-store-slash text-2xl opacity-40'"></i>
           </div>
-          <h3 class="font-serif text-xl font-bold" style="color: var(--text-main);">No hay prendas disponibles en esta sucursal</h3>
-          <p class="text-sm mt-1" style="color: var(--text-muted);">No se encontraron prendas con stock disponible en {{ selectedSucursalNombre }}.</p>
-          <div class="mt-5">
-            <button (click)="selectSucursal(null)" class="btn btn-outline">
-              <i class="fa-solid fa-store mr-1.5"></i> Ver Todas las Tiendas
+          <h3 class="font-serif text-xl font-bold" style="color: var(--text-main);">
+            {{ isOfflineMode ? 'Catálogo Offline No Encontrado o Filtro Vacío' : 'No hay prendas disponibles en esta sucursal' }}
+          </h3>
+          <p class="text-sm mt-1" style="color: var(--text-muted);">
+            <span *ngIf="isOfflineMode">
+              Estás en modo sin conexión. Si aún no descargaste el catálogo, conéctate a internet y haz clic en <strong>"PWA Offline"</strong> para sincronizarlo a tu dispositivo.
+            </span>
+            <span *ngIf="!isOfflineMode">
+              No se encontraron prendas con stock disponible en {{ selectedSucursalNombre }}.
+            </span>
+          </p>
+          <div class="mt-5 flex items-center justify-center gap-3">
+            <button (click)="searchTerm = ''; selectSucursal(null); selectCategoria(null); cargarProductos()" class="btn btn-outline">
+              <i class="fa-solid fa-rotate-left mr-1.5"></i> Limpiar Filtros
             </button>
+            <a *ngIf="isOfflineMode" routerLink="/offline" class="btn btn-primary" style="background: var(--accent); color: #000; font-weight: bold; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none;">
+              <i class="fa-solid fa-cloud-bolt mr-1.5"></i> Ir a Centro PWA Offline
+            </a>
           </div>
         </div>
 
@@ -1876,6 +1893,10 @@ export class CatalogoComponent implements OnInit {
 
   menuSucursalesAbierto: boolean = false;
   loading: boolean = true;
+  isOfflineMode: boolean = false;
+
+  public offlineStorage = inject(OfflineStorageService);
+  public syncService = inject(OfflineSyncService);
 
   @HostListener('document:click')
   onDocumentClick(): void {
@@ -1909,12 +1930,26 @@ export class CatalogoComponent implements OnInit {
   }
 
   cargarCategorias(): void {
+    if (!this.syncService.isOnline()) {
+      this.cargarCategoriasDesdeIndexedDB();
+      return;
+    }
     this.productoService.getCategorias().subscribe({
-      next: (data) => (this.categorias = data || [])
+      next: (data) => (this.categorias = data || []),
+      error: () => this.cargarCategoriasDesdeIndexedDB()
     });
   }
 
+  private async cargarCategoriasDesdeIndexedDB(): Promise<void> {
+    const cats = await this.offlineStorage.obtenerCategoriasOffline();
+    if (cats && cats.length > 0) this.categorias = cats;
+  }
+
   cargarSucursales(): void {
+    if (!this.syncService.isOnline()) {
+      this.cargarSucursalesDesdeIndexedDB();
+      return;
+    }
     this.productoService.getSucursales().subscribe({
       next: (data) => {
         this.sucursales = data || [];
@@ -1922,13 +1957,26 @@ export class CatalogoComponent implements OnInit {
           const suc = this.sucursales.find(s => s.id === this.selectedSucursalId);
           if (suc) this.selectedSucursalNombre = suc.nombre;
         }
-      }
+      },
+      error: () => this.cargarSucursalesDesdeIndexedDB()
     });
+  }
+
+  private async cargarSucursalesDesdeIndexedDB(): Promise<void> {
+    const sucs = await this.offlineStorage.obtenerSucursalesOffline();
+    if (sucs && sucs.length > 0) {
+      this.sucursales = sucs;
+      if (this.selectedSucursalId) {
+        const suc = this.sucursales.find(s => s.id === this.selectedSucursalId);
+        if (suc) this.selectedSucursalNombre = suc.nombre;
+      }
+    }
   }
 
   cargarTiendasSaaS(): void {
     this.saasService.getTiendasPublicas().subscribe({
-      next: (data) => (this.tiendasSaaS = data || [])
+      next: (data) => (this.tiendasSaaS = data || []),
+      error: () => (this.tiendasSaaS = [])
     });
   }
 
@@ -1939,6 +1987,12 @@ export class CatalogoComponent implements OnInit {
 
   cargarProductos(): void {
     this.loading = true;
+
+    if (!this.syncService.isOnline()) {
+      this.cargarProductosDesdeIndexedDB();
+      return;
+    }
+
     this.productoService
       .getProductos(
         this.selectedCategoriaId || undefined,
@@ -1950,7 +2004,7 @@ export class CatalogoComponent implements OnInit {
         next: (data) => {
           this.productos = data || [];
           this.loading = false;
-          // Pre-cargar imágenes de variantes en caché para cambios instantáneos al hacer hover/click
+          this.isOfflineMode = false;
           this.productos.forEach(p => {
             if (p.variantes) {
               p.variantes.forEach(v => {
@@ -1963,10 +2017,33 @@ export class CatalogoComponent implements OnInit {
           });
         },
         error: () => {
-          this.productos = [];
-          this.loading = false;
+          console.warn('[Catálogo] Error al consultar API. Cargando catálogo offline desde IndexedDB...');
+          this.cargarProductosDesdeIndexedDB();
         }
       });
+  }
+
+  private async cargarProductosDesdeIndexedDB(): Promise<void> {
+    try {
+      this.isOfflineMode = true;
+      const prods = await this.offlineStorage.obtenerCatalogoCompletoOffline(
+        this.selectedCategoriaId || undefined,
+        this.searchTerm || undefined,
+        this.selectedSucursalId || undefined
+      );
+      this.productos = prods;
+      if (this.sucursales.length === 0) {
+        await this.cargarSucursalesDesdeIndexedDB();
+      }
+      if (this.categorias.length === 0) {
+        await this.cargarCategoriasDesdeIndexedDB();
+      }
+    } catch (err) {
+      console.warn('[Catálogo] Error al cargar prendas desde IndexedDB:', err);
+      this.productos = [];
+    } finally {
+      this.loading = false;
+    }
   }
 
   getColoresProducto(p: Producto): { nombre: string; codigo_hex: string; imagen_url?: string }[] {

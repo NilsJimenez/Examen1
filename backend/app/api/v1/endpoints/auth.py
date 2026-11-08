@@ -94,12 +94,7 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
 
     # 1. Buscar en empleados internos
     usuario = db.query(Usuario).filter(func.lower(Usuario.email) == clean_email).first()
-    if usuario:
-        if not usuario.activo:
-            raise HTTPException(status_code=400, detail="Esta cuenta de usuario ha sido desactivada.")
-        if not verify_password(credentials.password, usuario.password_hash):
-            raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
-
+    if usuario and usuario.activo and verify_password(credentials.password, usuario.password_hash):
         rol_nombre = usuario.rol.nombre if usuario.rol else "usuario"
         tenant_id_str = str(usuario.tenant_id) if usuario.tenant_id else None
         tenant_nombre = None
@@ -107,26 +102,32 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
         permite_ia = True if rol_nombre.lower() == "superadmin" else False
         max_suc = 999 if rol_nombre.lower() == "superadmin" else 2
 
+        tenant_obj = None
         if usuario.tenant_id:
-            tenant = db.query(Tenant).filter(Tenant.id == usuario.tenant_id).first()
-            if tenant:
-                if tenant.estado == "SUSPENDIDA":
-                    raise HTTPException(
-                        status_code=403,
-                        detail="La cuenta de la empresa se encuentra suspendida por falta de pago o decisión comercial (RN05)."
-                    )
-                tenant_nombre = tenant.razon_social
-                sub = (
-                    db.query(Suscripcion)
-                    .join(Plan, Suscripcion.plan_id == Plan.id)
-                    .filter(Suscripcion.tenant_id == usuario.tenant_id, Suscripcion.estado == "ACTIVA")
-                    .order_by(Suscripcion.fecha_vencimiento.desc())
-                    .first()
+            tenant_obj = db.query(Tenant).filter(Tenant.id == usuario.tenant_id).first()
+        else:
+            tenant_obj = db.query(Tenant).filter(Tenant.estado == "ACTIVA").order_by(Tenant.creado_en.asc()).first()
+            if tenant_obj:
+                tenant_id_str = str(tenant_obj.id)
+
+        if tenant_obj:
+            if tenant_obj.estado == "SUSPENDIDA":
+                raise HTTPException(
+                    status_code=403,
+                    detail="La cuenta de la empresa se encuentra suspendida por falta de pago o decisión comercial (RN05)."
                 )
-                if sub and sub.plan:
-                    plan_nombre = sub.plan.nombre
-                    permite_ia = sub.plan.permite_reportes_ia
-                    max_suc = sub.plan.max_sucursales
+            tenant_nombre = tenant_obj.razon_social
+            sub = (
+                db.query(Suscripcion)
+                .join(Plan, Suscripcion.plan_id == Plan.id)
+                .filter(Suscripcion.tenant_id == tenant_obj.id, Suscripcion.estado == "ACTIVA")
+                .order_by(Suscripcion.fecha_vencimiento.desc())
+                .first()
+            )
+            if sub and sub.plan:
+                plan_nombre = sub.plan.nombre
+                permite_ia = sub.plan.permite_reportes_ia
+                max_suc = sub.plan.max_sucursales
 
         token = create_access_token(
             subject=usuario.id,
@@ -144,20 +145,23 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
             email=usuario.email,
             tenant_id=tenant_id_str,
             tenant_nombre=tenant_nombre,
+            sucursal_id=usuario.sucursal_id,
             plan=plan_nombre,
             permite_reportes_ia=permite_ia,
             max_sucursales=max_suc
         )
 
-    # 2. Si no es empleado interno, buscar en clientes
+    # 2. Si no es empleado interno (o la contraseña no coincidió con usuario), buscar en clientes
     cliente = db.query(Cliente).filter(func.lower(Cliente.email) == clean_email).first()
-    if cliente:
-        if not cliente.activo:
-            raise HTTPException(status_code=400, detail="Esta cuenta de cliente se encuentra suspendida.")
-        if not verify_password(credentials.password, cliente.password_hash):
-            raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
-
-        tenant_id_str = str(cliente.tenant_id) if cliente.tenant_id else None
+    if cliente and cliente.activo and verify_password(credentials.password, cliente.password_hash):
+        tenant_obj_cli = None
+        if cliente.tenant_id:
+            tenant_obj_cli = db.query(Tenant).filter(Tenant.id == cliente.tenant_id).first()
+        else:
+            tenant_obj_cli = db.query(Tenant).filter(Tenant.estado == "ACTIVA").order_by(Tenant.creado_en.asc()).first()
+        
+        tenant_id_str = str(tenant_obj_cli.id) if tenant_obj_cli else None
+        tenant_nombre_cli = tenant_obj_cli.razon_social if tenant_obj_cli else None
         token = create_access_token(
             subject=cliente.id,
             role="cliente",
@@ -278,6 +282,22 @@ def get_current_user_profile(
                 plan_nombre = sub.plan.nombre
                 permite_ia = sub.plan.permite_reportes_ia
                 max_suc = sub.plan.max_sucursales
+    else:
+        # Fallback para clientes u usuarios sin tenant explícito: vincular al tenant principal activo
+        t_default = db.query(Tenant).filter(Tenant.activo == True).order_by(Tenant.created_at.asc()).first()
+        if t_default:
+            tenant_id_str = str(t_default.id)
+            tenant_nombre = t_default.razon_social
+            sub = (
+                db.query(Suscripcion)
+                .join(Plan, Suscripcion.plan_id == Plan.id)
+                .filter(Suscripcion.tenant_id == t_default.id, Suscripcion.estado == "ACTIVA")
+                .first()
+            )
+            if sub and sub.plan:
+                plan_nombre = sub.plan.nombre
+                permite_ia = sub.plan.permite_reportes_ia
+                max_suc = sub.plan.max_sucursales
 
     return UserProfileResponse(
         id=user_obj.id,
@@ -288,6 +308,7 @@ def get_current_user_profile(
         user_type=current["user_type"],
         tenant_id=tenant_id_str,
         tenant_nombre=tenant_nombre,
+        sucursal_id=getattr(user_obj, "sucursal_id", None),
         plan=plan_nombre,
         permite_reportes_ia=permite_ia,
         max_sucursales=max_suc

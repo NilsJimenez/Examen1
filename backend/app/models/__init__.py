@@ -10,7 +10,7 @@ from app.models.producto import (
 )
 from app.models.inventario import InventarioSucursal, MovimientoInventario, AlertaReabastecimiento
 from app.models.reserva import Reserva, ReservaDetalle
-from app.models.venta import Venta, VentaDetalle, Pago, Comprobante
+from app.models.venta import Venta, VentaDetalle, Pago, Comprobante, CajaTurno
 from app.models.interacciones import (
     Carrito, CarritoDetalle, Promocion, HistorialInteraccion,
     Recomendacion, InteraccionChatbot, SesionVestidorVirtual, ReporteIA
@@ -47,6 +47,7 @@ __all__ = [
     "VentaDetalle",
     "Pago",
     "Comprobante",
+    "CajaTurno",
     "Carrito",
     "CarritoDetalle",
     "Promocion",

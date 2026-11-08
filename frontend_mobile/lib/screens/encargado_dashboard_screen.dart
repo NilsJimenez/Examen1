@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:provider/provider.dart';
+import '../offline/offline_models.dart';
+import '../offline/offline_sync_provider.dart';
 import '../services/reserva_service.dart';
-import '../services/admin_service.dart';
+import '../widgets/offline_status_banner.dart';
 import 'inventario_screen.dart';
+import 'offline/catalogo_offline_screen.dart';
+import 'offline/centro_sincronizacion_screen.dart';
+import 'offline/reserva_offline_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'reportes_screen.dart';
 import 'alertas_screen.dart';
+import 'notificaciones_screen.dart';
+import '../services/push_notification_service.dart';
 
 class EncargadoDashboardScreen extends StatefulWidget {
   final String rol;
@@ -16,12 +24,12 @@ class EncargadoDashboardScreen extends StatefulWidget {
 }
 
 class _EncargadoDashboardScreenState extends State<EncargadoDashboardScreen> {
-  final AdminService _adminService = AdminService();
   bool _isLoading = true;
   List<dynamic> _sucursales = [];
   int? _selectedSucursalId;
   int _activeTabIndex = 2; // Default to 'Reservas en Probadores' as in the design
   List<dynamic> _reservas = [];
+  List<LocalReservationRecord> _reservasLocales = [];
   bool _isLoadingReservas = false;
 
   @override
@@ -32,11 +40,25 @@ class _EncargadoDashboardScreenState extends State<EncargadoDashboardScreen> {
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    final sucursales = await ReservaService().getSucursales();
+    final offlineProv = context.read<OfflineSyncProvider>();
+    await offlineProv.recargarEstadoLocal();
+
+    List<dynamic> sucursales = [];
+    if (offlineProv.estaConectado) {
+      sucursales = await ReservaService().getSucursales();
+    }
+    if (sucursales.isEmpty && offlineProv.sucursales.isNotEmpty) {
+      sucursales = offlineProv.sucursales
+          .map((s) => {'id': s.id, 'nombre': s.nombre})
+          .toList();
+    }
+
+    if (!mounted) return;
     setState(() {
       _sucursales = sucursales;
       if (_sucursales.isNotEmpty) {
-        _selectedSucursalId = _sucursales.first['id'];
+        _selectedSucursalId =
+            offlineProv.sucursalActiva?.id ?? _sucursales.first['id'];
       }
       _isLoading = false;
     });
@@ -48,9 +70,22 @@ class _EncargadoDashboardScreenState extends State<EncargadoDashboardScreen> {
   Future<void> _fetchReservas() async {
     if (_selectedSucursalId == null) return;
     setState(() => _isLoadingReservas = true);
-    final res = await ReservaService().getReservasSucursal(_selectedSucursalId!);
+    final offlineProv = context.read<OfflineSyncProvider>();
+    List<dynamic> res = [];
+    if (offlineProv.estaConectado) {
+      res = await ReservaService().getReservasSucursal(_selectedSucursalId!);
+    }
+    List<LocalReservationRecord> locales = [];
+    if (offlineProv.sesion != null) {
+      final todasLocales = await offlineProv.repository.listarReservasLocales();
+      locales = todasLocales
+          .where((r) => r.sucursalId == _selectedSucursalId)
+          .toList();
+    }
+    if (!mounted) return;
     setState(() {
       _reservas = res;
+      _reservasLocales = locales;
       _isLoadingReservas = false;
     });
   }
@@ -68,29 +103,119 @@ class _EncargadoDashboardScreenState extends State<EncargadoDashboardScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
+          ValueListenableBuilder<int>(
+            valueListenable: PushNotificationService.instance.unreadCountNotifier,
+            builder: (context, unreadCount, child) {
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                    tooltip: 'Bandeja de Notificaciones',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const NotificacionesScreen()),
+                      );
+                    },
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFEF4444),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          unreadCount > 9 ? '9+' : '$unreadCount',
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _loadData,
           )
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFEAB308)))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(),
-                  const SizedBox(height: 24),
-                  _buildStatCards(),
-                  const SizedBox(height: 32),
-                  _buildTabs(),
-                  const SizedBox(height: 16),
-                  _buildActiveTabContent(),
-                ],
-              ),
-            ),
+      body: Column(
+        children: [
+          const OfflineStatusBanner(),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFFEAB308)))
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(),
+                        const SizedBox(height: 16),
+                        _buildOfflineActionsRow(),
+                        const SizedBox(height: 24),
+                        _buildStatCards(),
+                        const SizedBox(height: 32),
+                        _buildTabs(),
+                        const SizedBox(height: 16),
+                        _buildActiveTabContent(),
+                      ],
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOfflineActionsRow() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        ActionChip(
+          backgroundColor: const Color(0xFF1A1A1F),
+          side: const BorderSide(color: Color(0xFF10B981)),
+          avatar: const Icon(Icons.inventory_2_outlined, size: 16, color: Color(0xFF10B981)),
+          label: const Text('Stock Local SQLite', style: TextStyle(color: Colors.white, fontSize: 12)),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CatalogoOfflineScreen()),
+            ).then((_) => _loadData());
+          },
+        ),
+        ActionChip(
+          backgroundColor: const Color(0xFF1A1A1F),
+          side: const BorderSide(color: Color(0xFFA78BFA)),
+          avatar: const Icon(Icons.bookmark_add_outlined, size: 16, color: Color(0xFFA78BFA)),
+          label: const Text('Nueva Reserva Offline', style: TextStyle(color: Colors.white, fontSize: 12)),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ReservaOfflineScreen()),
+            ).then((_) => _fetchReservas());
+          },
+        ),
+        ActionChip(
+          backgroundColor: const Color(0xFF1A1A1F),
+          side: const BorderSide(color: Color(0xFFF59E0B)),
+          avatar: const Icon(Icons.sync_alt, size: 16, color: Color(0xFFF59E0B)),
+          label: const Text('Cola / Conflictos', style: TextStyle(color: Colors.white, fontSize: 12)),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CentroSincronizacionScreen()),
+            ).then((_) => _fetchReservas());
+          },
+        ),
+      ],
     );
   }
 
@@ -375,9 +500,44 @@ class _EncargadoDashboardScreenState extends State<EncargadoDashboardScreen> {
             const Divider(color: Colors.white10, height: 1),
             if (_isLoadingReservas)
               const Padding(padding: EdgeInsets.all(32), child: Center(child: CircularProgressIndicator(color: Color(0xFFEAB308))))
-            else if (_reservas.isEmpty)
+            else if (_reservas.isEmpty && _reservasLocales.isEmpty)
               const Padding(padding: EdgeInsets.all(32), child: Center(child: Text('No hay reservas pendientes o preparadas.', style: TextStyle(color: Colors.grey))))
-            else
+            else ...[
+              ..._reservasLocales
+                  .where((rl) => rl.estadoSync == OfflineSyncStatus.pendiente || rl.estadoSync == OfflineSyncStatus.enConflicto)
+                  .map((rl) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 46,
+                              height: 46,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2B1D0E),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.cloud_off, color: Color(0xFFF59E0B), size: 20),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${rl.clienteNombres} ${rl.clienteApellidos ?? ""}'.trim(),
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    'Cita: ${rl.fechaReserva} (${rl.horarioAtencion}) • ${rl.estadoSync}',
+                                    style: const TextStyle(color: Color(0xFFF59E0B), fontSize: 11.5),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
               ..._reservas.map((r) {
                 final esPreparada = r['estado'] == 'preparada';
                 final itemsText = (r['items'] as List).map((i) => '${i['cantidad']}x ${i['producto']} (T: ${i['talla']})').join('\n');
@@ -437,6 +597,7 @@ class _EncargadoDashboardScreenState extends State<EncargadoDashboardScreen> {
                   ),
                 );
               }).toList(),
+            ],
           ],
         ),
       );

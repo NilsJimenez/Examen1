@@ -6,6 +6,6 @@ echo =========================================================
 cd /d "%~dp0backend"
 call .\venv\Scripts\activate.bat
 echo Entorno virtual activado correctamente!
-echo Ahora puedes ejecutar: uvicorn app.main:app --reload --port 8000
+echo Ahora puedes ejecutar: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 echo =========================================================
 cmd /k

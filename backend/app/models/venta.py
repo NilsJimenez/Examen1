@@ -133,3 +133,32 @@ class CambioPrenda(Base):
     variante_devuelta: Mapped["ProductoVariante"] = relationship("ProductoVariante", foreign_keys=[variante_devuelta_id])
     variante_entregada: Mapped["ProductoVariante"] = relationship("ProductoVariante", foreign_keys=[variante_entregada_id])
 
+
+
+class CajaTurno(Base):
+    """
+    CU30: Control de Apertura, Arqueo y Cierre de Caja por Turno de Cajero.
+    """
+    __tablename__ = "caja_turnos"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    sucursal_id: Mapped[int] = mapped_column(Integer, ForeignKey("sucursales.id"), nullable=False)
+    usuario_id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    fecha_apertura: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    monto_apertura: Mapped[float] = mapped_column(Numeric(10, 2), default=0.0)
+    observaciones_apertura: Mapped[Optional[str]] = mapped_column(String(250), nullable=True)
+    fecha_cierre: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    total_ventas_efectivo: Mapped[float] = mapped_column(Numeric(10, 2), default=0.0)
+    total_ventas_digitales: Mapped[float] = mapped_column(Numeric(10, 2), default=0.0)
+    monto_cierre_esperado: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
+    monto_cierre_real: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
+    diferencia: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
+    estado: Mapped[str] = mapped_column(String(20), default="ABIERTA")
+    observaciones_cierre: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    sucursal: Mapped["Sucursal"] = relationship("Sucursal")
+    usuario: Mapped["Usuario"] = relationship("Usuario")

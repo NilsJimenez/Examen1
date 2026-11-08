@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import '../offline/offline_sync_provider.dart';
 import '../services/auth_service.dart';
-import '../services/carrito_service.dart';
+import '../widgets/offline_status_banner.dart';
 import '../widgets/recomendaciones_widget.dart';
 import 'login_screen.dart';
+import 'offline/catalogo_offline_screen.dart';
+import 'offline/centro_sincronizacion_screen.dart';
+import 'offline/pos_offline_screen.dart';
+import 'offline/reserva_offline_screen.dart';
 import 'roles_screen.dart';
 import 'usuarios_screen.dart';
 import 'sucursales_screen.dart';
@@ -22,6 +27,8 @@ import 'inventario_screen.dart';
 import 'carrito_screen.dart';
 import 'mis_reservas_screen.dart';
 import 'lookbook_screen.dart';
+import 'notificaciones_screen.dart';
+import '../services/push_notification_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final String nombre;
@@ -40,6 +47,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _checkSession();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<OfflineSyncProvider>().recargarEstadoLocal();
+      }
+    });
   }
 
   void _checkSession() async {
@@ -89,6 +101,42 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
+          ValueListenableBuilder<int>(
+            valueListenable: PushNotificationService.instance.unreadCountNotifier,
+            builder: (context, unreadCount, child) {
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                    tooltip: 'Bandeja de Notificaciones',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const NotificacionesScreen()),
+                      );
+                    },
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFEF4444),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          unreadCount > 9 ? '9+' : '$unreadCount',
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white70),
             onPressed: _logout,
@@ -218,6 +266,136 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
             ],
+            Consumer<OfflineSyncProvider>(
+              builder: (context, offlineProv, _) {
+                final alertasCola =
+                    offlineProv.pendientesCount + offlineProv.conflictosCount;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Divider(color: Color(0xFF2A2A35)),
+                    const Padding(
+                      padding: EdgeInsets.only(left: 16, top: 8, bottom: 8),
+                      child: Text(
+                        'MODO OFFLINE & SQLITE',
+                        style: TextStyle(
+                          color: Color(0xFFF59E0B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.inventory, color: Color(0xFF10B981)),
+                      title: const Text(
+                        'Catálogo y Stock Local',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      subtitle: const Text(
+                        'Consulta instantánea en SQLite',
+                        style: TextStyle(color: Colors.grey, fontSize: 11),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CatalogoOfflineScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.payments_outlined, color: Color(0xFFEAB308)),
+                      title: const Text(
+                        'POS Offline (Efectivo)',
+                        style: TextStyle(
+                          color: Color(0xFFEAB308),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        'Ventas al contado sin conexión',
+                        style: TextStyle(color: Colors.grey, fontSize: 11),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PosOfflineScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.bookmark_add_outlined, color: Color(0xFFA78BFA)),
+                      title: const Text(
+                        'Registrar Reserva Offline',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ReservaOfflineScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: Icon(
+                        offlineProv.conflictosCount > 0
+                            ? Icons.warning_amber_rounded
+                            : Icons.sync_alt,
+                        color: offlineProv.conflictosCount > 0
+                            ? Colors.redAccent
+                            : const Color(0xFF8B5CF6),
+                      ),
+                      title: const Text(
+                        'Cola y Conflictos Sync',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      trailing: alertasCola > 0
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: offlineProv.conflictosCount > 0
+                                    ? Colors.redAccent
+                                    : const Color(0xFFEAB308),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '$alertasCola',
+                                style: TextStyle(
+                                  color: offlineProv.conflictosCount > 0
+                                      ? Colors.white
+                                      : Colors.black,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            )
+                          : null,
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CentroSincronizacionScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                );
+              },
+            ),
             if (isAdmin) ...[
               const Divider(color: Color(0xFF2A2A35)),
               const Padding(
@@ -284,20 +462,28 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeroSection(),
-            if (widget.rol == 'cliente') ...[
-              const SizedBox(height: 30),
-              const RecomendacionesWidget(),
-            ],
-            const SizedBox(height: 30),
-            _buildCatalogSection(),
-            const SizedBox(height: 40),
-          ],
-        ),
+      body: Column(
+        children: [
+          const OfflineStatusBanner(),
+          _buildTopGreetingBar(),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeroSection(),
+                  if (widget.rol == 'cliente') ...[
+                    const SizedBox(height: 30),
+                    const RecomendacionesWidget(),
+                  ],
+                  const SizedBox(height: 30),
+                  _buildCatalogSection(),
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: widget.rol == 'cliente' ? FloatingActionButton(
         backgroundColor: const Color(0xFFEAB308),
@@ -309,6 +495,219 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         child: const Icon(Icons.smart_toy, color: Colors.black),
       ) : null,
+    );
+  }
+
+  // =========================================================================
+  // BARRA SUPERIOR DE SALUDO Y CAMPANITA (ESTILO IMAGEN)
+  // =========================================================================
+  Widget _buildTopGreetingBar() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 16, 16, 14),
+      decoration: const BoxDecoration(
+        color: Color(0xFF131317),
+        border: Border(
+          bottom: BorderSide(color: Color(0xFF22222B), width: 1),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Izquierda: Hola, [Nombre] y subtitulo
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hola, ${widget.nombre}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.3,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    const Icon(Icons.checkroom, color: Color(0xFFEAB308), size: 14),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        'FashionStore • ${widget.rol.toUpperCase()}',
+                        style: const TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Derecha: (?), 🔔 (campanita), 💬 (asistente), [Avatar Iniciales]
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. Ayuda (?)
+              IconButton(
+                icon: const Icon(Icons.help_outline, color: Colors.white70, size: 22),
+                tooltip: 'Ayuda',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                onPressed: () => _mostrarAyudaUsuario(),
+              ),
+
+              // 2. Campanita 🔔 con Badge de Conteo Reactivo
+              ValueListenableBuilder<int>(
+                valueListenable: PushNotificationService.instance.unreadCountNotifier,
+                builder: (context, unreadCount, _) {
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 24),
+                        tooltip: 'Notificaciones',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const NotificacionesScreen()),
+                          );
+                        },
+                      ),
+                      if (unreadCount > 0)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: Container(
+                            padding: const EdgeInsets.all(3.5),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF2563EB),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              unreadCount > 9 ? '9+' : '$unreadCount',
+                              style: const TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+
+              // 3. Chat Asistente 💬
+              IconButton(
+                icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white70, size: 21),
+                tooltip: 'Chatbot IA Asistente',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ChatbotScreen()),
+                  );
+                },
+              ),
+              const SizedBox(width: 6),
+
+              // 4. Avatar Circular con Iniciales en Azul Oscuro [VQ]
+              Builder(
+                builder: (btnContext) => GestureDetector(
+                  onTap: () {
+                    Scaffold.of(btnContext).openDrawer();
+                  },
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF1E3A8A),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _obtenerIniciales(widget.nombre),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _obtenerIniciales(String nombre) {
+    if (nombre.trim().isEmpty) return 'FS';
+    final partes = nombre.trim().split(RegExp(r'\s+'));
+    if (partes.length >= 2) {
+      return '${partes[0][0]}${partes[1][0]}'.toUpperCase();
+    }
+    return nombre.length >= 2 ? nombre.substring(0, 2).toUpperCase() : nombre[0].toUpperCase();
+  }
+
+  void _mostrarAyudaUsuario() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A1F),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: const [
+                Icon(Icons.help_outline, color: Color(0xFFEAB308)),
+                SizedBox(width: 10),
+                Text('Bienvenido a FashionStore', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              '• Explora el catálogo de moda y pruébate prendas en Realidad Aumentada (AR).\n'
+              '• Toca la campanita 🔔 para ver tus notificaciones de reservas, ventas y alertas en tiempo real.\n'
+              '• Usa el icono 💬 para conversar con el Asistente IA de recomendaciones de estilo.\n'
+              '• Abre el menú lateral tocando tu avatar para acceder a todas las funciones.',
+              style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEAB308),
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Entendido', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

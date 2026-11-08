@@ -1,0 +1,39 @@
+{
+  "name": "FashionStore SaaS — Plataforma de Moda & PWA Offline",
+  "short_name": "FashionStore",
+  "description": "Plataforma de comercio omnicanal con operación offline, vestidores AR y gestión SaaS multitenant.",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#09090b",
+  "theme_color": "#d97706",
+  "categories": ["shopping", "business", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Catálogo de Moda",
+      "url": "/catalogo",
+      "description": "Explora el catálogo de prendas"
+    },
+    {
+      "name": "Operaciones Offline",
+      "url": "/offline",
+      "description": "Gestión de ventas y reservas offline"
+    }
+  ]
+}

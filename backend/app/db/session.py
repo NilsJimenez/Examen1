@@ -17,7 +17,8 @@ engine = create_engine(
     pool_size=3,
     max_overflow=5,
     pool_recycle=180,
-    pool_timeout=30
+    pool_timeout=30,
+    connect_args={"connect_timeout": 10},
 )
 
 # Fábrica de sesiones de base de datos

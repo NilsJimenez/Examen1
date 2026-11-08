@@ -4,3 +4,6 @@ __pycache__/
 venv/
 .env
 .pytest_cache/
+.tests_archive/
+*.db
+*.apk

@@ -225,3 +225,52 @@ def require_superadmin() -> Callable:
             )
         return ctx
     return superadmin_checker
+
+
+def get_tenant_context_optional(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: Session = Depends(get_db)
+) -> TenantContext:
+    if credentials and credentials.credentials:
+        try:
+            return get_tenant_context(request, credentials, db)
+        except HTTPException:
+            pass
+
+    tenant = db.query(Tenant).filter(Tenant.estado == 'ACTIVA').order_by(Tenant.creado_en.asc()).first()
+    if not tenant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='No se encontro ningun inquilino activo en la plataforma.'
+        )
+
+    suscripcion = (
+        db.query(Suscripcion)
+        .join(Plan, Suscripcion.plan_id == Plan.id)
+        .filter(
+            Suscripcion.tenant_id == tenant.id,
+            Suscripcion.estado == 'ACTIVA'
+        )
+        .order_by(Suscripcion.fecha_vencimiento.desc())
+        .first()
+    )
+
+    plan_nombre = suscripcion.plan.nombre if (suscripcion and suscripcion.plan) else 'Profesional'
+    max_sucursales = suscripcion.plan.max_sucursales if (suscripcion and suscripcion.plan) else 10
+    permite_ia = suscripcion.plan.permite_reportes_ia if (suscripcion and suscripcion.plan) else True
+
+    ctx = TenantContext(
+        user_id=0,
+        email='visitante@fashionstore.local',
+        rol='CLIENTE',
+        user_type='cliente',
+        tenant_id=tenant.id,
+        tenant_nombre=tenant.razon_social,
+        plan_nombre=plan_nombre,
+        max_sucursales=max_sucursales,
+        permite_reportes_ia=permite_ia,
+        is_superadmin=False
+    )
+    request.state.tenant_context = ctx
+    return ctx

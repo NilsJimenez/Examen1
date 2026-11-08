@@ -12,6 +12,9 @@ import { MisComprasComponent } from './pages/mis-compras/mis-compras.component';
 import { EncargadoComponent } from './pages/encargado/encargado.component';
 import { LookbookComponent } from './components/lookbook/lookbook.component';
 import { PlanesSaasComponent } from './pages/planes-saas/planes-saas.component';
+import { OfflineCentroComponent } from './pages/offline-centro/offline-centro.component';
+import { PosCambioPrendaComponent } from './components/pos-cambio-prenda/pos-cambio-prenda.component';
+import { CajaTurnoComponent } from './components/caja-turno/caja-turno.component';
 
 export const routes: Routes = [
   { path: '', component: PlanesSaasComponent, pathMatch: 'full' },
@@ -28,5 +31,10 @@ export const routes: Routes = [
   { path: 'pago/:id', component: PagoComponent },
   { path: 'mis-compras', component: MisComprasComponent },
   { path: 'encargado', component: EncargadoComponent },
+  { path: 'offline', component: OfflineCentroComponent },
+  { path: 'pos-cambio', component: PosCambioPrendaComponent },
+  { path: 'cambio-prenda', component: PosCambioPrendaComponent },
+  { path: 'caja', component: CajaTurnoComponent },
+  { path: 'control-caja', component: CajaTurnoComponent },
   { path: '**', redirectTo: '' }
 ];

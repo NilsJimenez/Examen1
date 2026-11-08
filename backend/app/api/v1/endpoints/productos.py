@@ -65,7 +65,15 @@ def listar_productos(
     if precio_max is not None:
         query = query.filter(Producto.precio_base <= precio_max)
     if search:
-        query = query.filter(Producto.nombre.ilike(f"%{search}%"))
+        s_clean = search.strip()
+        s_root = s_clean[:-1] if (s_clean.lower().endswith("s") and len(s_clean) > 3) else s_clean
+        query = query.filter(
+            (Producto.nombre.ilike(f"%{s_clean}%"))
+            | (Producto.nombre.ilike(f"%{s_root}%"))
+            | (Producto.descripcion.ilike(f"%{s_clean}%"))
+            | (Producto.categoria.has(Categoria.nombre.ilike(f"%{s_clean}%")))
+            | (Producto.categoria.has(Categoria.nombre.ilike(f"%{s_root}%")))
+        )
     if talla_id:
         query = query.filter(Producto.variantes.any(ProductoVariante.talla_id == talla_id))
     if color_id:

@@ -1,10 +1,10 @@
-from typing import Optional, List
+from typing import Optional, List, Any
 from pydantic import BaseModel
 
 
 class CategoriaOut(BaseModel):
     id: int
-    tenant_id: Optional[str] = None
+    tenant_id: Optional[Any] = None
     empresa_nombre: Optional[str] = None
     nombre: str
     descripcion: Optional[str] = None
@@ -46,6 +46,8 @@ class VarianteOut(BaseModel):
 
 class ProductoOut(BaseModel):
     id: int
+    tenant_id: Optional[Any] = None
+    empresa_nombre: Optional[str] = "FashionStore"
     nombre: str
     descripcion: Optional[str] = None
     precio_base: float
