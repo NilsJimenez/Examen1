@@ -1,4 +1,5 @@
 {
+
   "name": "FashionStore SaaS — Plataforma de Moda & PWA Offline",
   "short_name": "FashionStore",
   "description": "Plataforma de comercio omnicanal con operación offline, vestidores AR y gestión SaaS multitenant.",
@@ -37,3 +38,4 @@
     }
   ]
 }
+

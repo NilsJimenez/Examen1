@@ -4,6 +4,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
 import { CarritoService } from '../../services/carrito.service';
+import { OfflineSyncService } from '../../services/offline-sync.service';
 
 @Component({
   selector: 'app-navbar',
@@ -89,6 +90,12 @@ import { CarritoService } from '../../services/carrito.service';
         <!-- Acciones Derecha (Desktop) y Hamburger (Mobile) -->
         <div class="flex items-center gap-2.5 sm:gap-3 lg:gap-4 flex-shrink-0">
 
+          <!-- Indicador PWA de Conectividad y Cola Offline (RF32) -->
+          <button *ngIf="authService.isLoggedIn && (esAdmin || esEncargado || esCajero)" (click)="syncService.toggleModoOfflineSimulado()" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-extrabold border transition" [ngClass]="syncService.enLinea() ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border-amber-500/50 animate-pulse'" title="Estado de red PWA (Clic para simular corte/reconexión)">
+            <i class="fa-solid" [ngClass]="syncService.enLinea() ? 'fa-wifi' : 'fa-plane'"></i>
+            <span>{{ syncService.enLinea() ? 'Online' : 'Offline' }}</span>
+            <span *ngIf="syncService.pendientesCount() > 0" class="px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black">{{ syncService.pendientesCount() }}</span>
+          </button>
           <!-- Botón de Modo Claro/Oscuro -->
           <button (click)="themeService.toggleTheme()" class="theme-toggle-btn" [title]="themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro'">
             <i *ngIf="themeService.isDarkMode()" class="fa-solid fa-sun" style="color: #f59e0b;"></i>
@@ -353,6 +360,7 @@ export class NavbarComponent implements OnInit {
   public authService = inject(AuthService);
   public themeService = inject(ThemeService);
   public carritoService = inject(CarritoService);
+  public syncService = inject(OfflineSyncService);
 
   isMobileMenuOpen = false;
 
