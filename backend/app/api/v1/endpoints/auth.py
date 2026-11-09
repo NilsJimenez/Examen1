@@ -129,6 +129,50 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
                 permite_ia = sub.plan.permite_reportes_ia
                 max_suc = sub.plan.max_sucursales
 
+        if rol_nombre.lower() == "cliente":
+            cliente_rec = db.query(Cliente).filter(func.lower(Cliente.email) == clean_email).first()
+            if not cliente_rec:
+                cliente_rec = Cliente(
+                    tenant_id=usuario.tenant_id,
+                    nombres=usuario.nombres,
+                    apellidos=usuario.apellidos,
+                    email=usuario.email,
+                    password_hash=usuario.password_hash,
+                    telefono=usuario.telefono,
+                    activo=True
+                )
+                db.add(cliente_rec)
+                db.commit()
+                db.refresh(cliente_rec)
+            else:
+                cliente_rec.nombres = usuario.nombres
+                cliente_rec.apellidos = usuario.apellidos
+                cliente_rec.password_hash = usuario.password_hash
+                db.commit()
+                db.refresh(cliente_rec)
+
+            token = create_access_token(
+                subject=cliente_rec.id,
+                role="cliente",
+                user_type="cliente",
+                tenant_id=tenant_id_str
+            )
+            return TokenResponse(
+                access_token=token,
+                token_type="bearer",
+                role="cliente",
+                user_type="cliente",
+                user_id=cliente_rec.id,
+                nombre_completo=f"{cliente_rec.nombres} {cliente_rec.apellidos}",
+                email=cliente_rec.email,
+                tenant_id=tenant_id_str,
+                tenant_nombre=tenant_nombre,
+                sucursal_id=None,
+                plan=plan_nombre,
+                permite_reportes_ia=permite_ia,
+                max_sucursales=max_suc
+            )
+
         token = create_access_token(
             subject=usuario.id,
             role=rol_nombre,

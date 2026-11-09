@@ -3,6 +3,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.usuario import Usuario, Cliente
@@ -43,6 +44,27 @@ def get_current_user(
     if user is None:
         raise credentials_exception
 
+    # Normalización para clientes: si el usuario tiene rol 'Cliente' o user_type 'cliente',
+    # garantizar que user_type sea 'cliente' y que esté asociado a su registro en la tabla 'clientes'
+    if (role and role.lower() == "cliente") or user_type == "cliente":
+        user_type = "cliente"
+        if not isinstance(user, Cliente):
+            cliente_rec = db.query(Cliente).filter(func.lower(Cliente.email) == func.lower(user.email)).first()
+            if not cliente_rec:
+                cliente_rec = Cliente(
+                    tenant_id=getattr(user, "tenant_id", None),
+                    nombres=getattr(user, "nombres", "Cliente"),
+                    apellidos=getattr(user, "apellidos", ""),
+                    email=user.email,
+                    password_hash=getattr(user, "password_hash", ""),
+                    telefono=getattr(user, "telefono", None),
+                    activo=True
+                )
+                db.add(cliente_rec)
+                db.commit()
+                db.refresh(cliente_rec)
+            user = cliente_rec
+
     return {
         "user": user,
         "role": role,
@@ -77,6 +99,14 @@ def get_optional_user(
             user = db.query(Usuario).filter(Usuario.id == user_id, Usuario.activo == True).first()
         if not user:
             return None
+
+        if (role and role.lower() == "cliente") or user_type == "cliente":
+            user_type = "cliente"
+            if not isinstance(user, Cliente):
+                cliente_rec = db.query(Cliente).filter(func.lower(Cliente.email) == func.lower(user.email)).first()
+                if cliente_rec:
+                    user = cliente_rec
+
         return {
             "user": user,
             "role": role,

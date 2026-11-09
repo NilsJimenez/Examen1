@@ -3,6 +3,7 @@ from datetime import datetime, date, time
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from pydantic import BaseModel
 from app.db.session import get_db
 from app.api.deps import get_current_user, require_roles
@@ -38,11 +39,38 @@ def generar_qr_base64(texto: str) -> str:
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
 def get_cliente(current_user: dict, db: Session) -> Cliente:
-    if current_user["user_type"] != "cliente":
+    es_cliente = (
+        current_user.get("user_type") == "cliente"
+        or current_user.get("role", "").lower() == "cliente"
+    )
+    if not es_cliente:
         raise HTTPException(status_code=403, detail="Solo clientes pueden hacer reservas.")
-    cliente = db.query(Cliente).filter(Cliente.id == current_user["id"]).first()
+
+    if isinstance(current_user.get("user"), Cliente):
+        return current_user["user"]
+
+    cliente = None
+    if current_user.get("user_type") == "cliente":
+        cliente = db.query(Cliente).filter(Cliente.id == current_user["id"]).first()
+
+    if not cliente and current_user.get("email"):
+        cliente = db.query(Cliente).filter(func.lower(Cliente.email) == func.lower(current_user["email"])).first()
+
     if not cliente:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado.")
+        user_model = current_user.get("user")
+        cliente = Cliente(
+            tenant_id=current_user.get("tenant_id"),
+            nombres=getattr(user_model, "nombres", "Cliente"),
+            apellidos=getattr(user_model, "apellidos", ""),
+            email=current_user.get("email"),
+            password_hash=getattr(user_model, "password_hash", ""),
+            telefono=getattr(user_model, "telefono", None),
+            activo=True
+        )
+        db.add(cliente)
+        db.commit()
+        db.refresh(cliente)
+
     return cliente
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
