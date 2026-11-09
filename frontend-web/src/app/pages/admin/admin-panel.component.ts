@@ -11,14 +11,12 @@ import { Producto, Categoria, Talla, Color } from '../../models/producto.models'
 import { Sucursal } from '../../models/sucursal.models';
 import { ReportesComponent } from '../../components/reportes/reportes.component';
 import { PosCambioPrendaComponent } from '../../components/pos-cambio-prenda/pos-cambio-prenda.component';
-import { OfflineSyncPanelComponent } from '../../components/offline-sync-panel/offline-sync-panel.component';
-import { AnaliticaMlComponent } from '../../components/analitica-ml/analitica-ml.component';
 import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../services/saas.service';
 
 @Component({
   selector: 'app-admin-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReportesComponent, PosCambioPrendaComponent, OfflineSyncPanelComponent, AnaliticaMlComponent],
+  imports: [CommonModule, FormsModule, ReportesComponent, PosCambioPrendaComponent],
   template: `
     <div class="container py-10">
       
@@ -114,7 +112,7 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
           <i class="fa-solid fa-chart-pie" style="color: #60a5fa;"></i> Reportes &amp; BI (CU14)
         </button>
         <button (click)="activeTab = 'cambio'" [class.tab-btn-active]="activeTab === 'cambio'" class="admin-tab-btn shrink-0" style="flex-shrink: 0; min-width: max-content;">
-          <i class="fa-solid fa-right-left" style="color: #f59e0b;"></i> POS &amp; Cambio de Prenda (CU13)</button><button (click)="activeTab = 'offline'" [class.tab-btn-active]="activeTab === 'offline'" class="admin-tab-btn shrink-0" style="flex-shrink: 0; min-width: max-content;"><i class="fa-solid fa-cloud-arrow-up" style="color: #38bdf8;"></i> Modo Offline &amp; Sync (CU15-CU22)</button><button (click)="activeTab = 'ml'" [class.tab-btn-active]="activeTab === 'ml'" class="admin-tab-btn shrink-0" style="flex-shrink: 0; min-width: max-content;"><i class="fa-solid fa-brain" style="color: #a855f7;"></i> Analítica ML (CU27-CU29)
+          <i class="fa-solid fa-right-left" style="color: #f59e0b;"></i> POS &amp; Cambio de Prenda (CU13)
         </button>
       </div>
 
@@ -140,7 +138,7 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
               title="Registrar Nueva Empresa (CU01)"
             >
               <i class="fa-solid fa-plus"></i>
-              <span>Nueva Empresa</span></button><button type="button" (click)="activeTab = 'ml'" class="saas-icon-btn" style="border-color: rgba(168, 85, 247, 0.45); color: #c084fc;" title="Entrenar y Visualizar Modelos Machine Learning (CU27-CU29)"><i class="fa-solid fa-brain"></i><span>Modelos ML (CU27)</span>
+              <span>Nueva Empresa</span>
             </button>
 
             <button
@@ -795,15 +793,6 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
 
       <!-- PESTAÑA: REPORTES -->
       <div *ngIf="activeTab === 'cambio'" class="animate-fade-in" style="width: 100%;"><app-pos-cambio-prenda></app-pos-cambio-prenda></div>
-      <div *ngIf="activeTab === 'offline'" class="animate-fade-in" style="width: 100%;"><app-offline-sync-panel></app-offline-sync-panel></div>
-      <div *ngIf="activeTab === 'ml'" class="animate-fade-in" style="width: 100%;">
-        <div *ngIf="esSuperAdmin" class="mb-4">
-          <button (click)="activeTab = 'saas'" class="btn btn-outline" style="padding: 0.5rem 1rem;">
-            <i class="fa-solid fa-arrow-left mr-1.5"></i> Volver al Portafolio SaaS Multi-Tenant
-          </button>
-        </div>
-        <app-analitica-ml></app-analitica-ml>
-      </div>
       <div *ngIf="activeTab === 'reportes'" class="animate-fade-in" style="width: 100%;">
          <app-reportes [esAdmin]="true"></app-reportes>
       </div>
@@ -3599,7 +3588,7 @@ export class AdminPanelComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
 
-  activeTab: 'saas' | 'prendas' | 'atributos' | 'sucursales' | 'proveedores' | 'usuarios' | 'alertas' | 'reportes' | 'cambio' | 'offline' | 'ml' = 'prendas';
+  activeTab: 'saas' | 'prendas' | 'atributos' | 'sucursales' | 'proveedores' | 'usuarios' | 'alertas' | 'reportes' | 'cambio' = 'prendas';
   private alertaService = inject(AlertaService);
   private saasService = inject(SaasService);
 
