@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timezone
 from typing import List, Optional, Literal, Dict, Any
 from pydantic import BaseModel, Field
 
@@ -104,6 +104,10 @@ class SyncItemDetalleIn(BaseModel):
         default=None,
         description="Precio unitario registrado en el punto de venta local"
     )
+    sku: Optional[str] = None
+    nombre: Optional[str] = None
+    talla: Optional[str] = None
+    color: Optional[str] = None
 
 
 class ClienteMinimoOfflineIn(BaseModel):
@@ -128,8 +132,12 @@ class OperacionOfflineIn(BaseModel):
     sucursal_id: int
     cliente_id: Optional[int] = None
     cliente_offline: Optional[ClienteMinimoOfflineIn] = None
+    cliente_nombre: Optional[str] = Field(default=None, description="Nombre descriptivo del cliente offline")
     metodo_pago: str = "efectivo"
-    fecha_local: datetime = Field(..., description="Marca de tiempo local en que se originó la operación")
+    fecha_local: Optional[datetime] = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Marca de tiempo local en que se originó la operación"
+    )
     fecha_reserva: Optional[date] = None
     horario_atencion: Optional[time] = None
     observaciones: Optional[str] = None
@@ -164,6 +172,7 @@ class SyncLoteResponse(BaseModel):
     en_conflicto: int
     rechazadas: int
     idempotentes: int
+    resumen: Optional[Dict[str, Any]] = None
     resultados: List[ResultadoOperacionOut]
 
 
@@ -192,6 +201,15 @@ class SyncHistorialResponse(BaseModel):
 
 
 class ResolverConflictoRequest(BaseModel):
-    accion: Literal["DESCARTADA_LOCALMENTE", "AJUSTADA_NUEVA_OPERACION", "REVISADA"]
+    accion: Literal["DESCARTADA_LOCALMENTE", "AJUSTADA_NUEVA_OPERACION", "REVISADA", "anular", "ajustar_reenviar"]
     nueva_operation_id: Optional[uuid.UUID] = None
     nota: Optional[str] = None
+    justificacion: Optional[str] = None
+    items_ajustados: Optional[List[SyncItemDetalleIn]] = None
+
+
+class ConflictResolutionRequest(BaseModel):
+    accion: str  # 'ajustar_reenviar' | 'anular' | 'DESCARTADA_LOCALMENTE'
+    justificacion: Optional[str] = None
+    nueva_operation_id: Optional[str] = None
+    items_ajustados: Optional[List[SyncItemDetalleIn]] = None

@@ -104,7 +104,7 @@ def get_tenant_context(
     tenant_uuid: Optional[uuid.UUID] = None
     email_res: str = ""
 
-    if user_type == "usuario":
+    if user_type in ("usuario", "staff"):
         user = db.query(Usuario).filter(Usuario.id == user_id, Usuario.activo == True).first()
         if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no encontrado o inactivo.")

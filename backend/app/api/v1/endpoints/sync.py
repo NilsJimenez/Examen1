@@ -3,7 +3,7 @@ from datetime import datetime, date, time, timezone
 from typing import List, Optional, Dict, Any, Tuple
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+from sqlalchemy import func, text
 
 from app.db.session import get_db
 from app.core.tenant import get_tenant_context, get_tenant_context_optional, TenantContext
@@ -30,6 +30,7 @@ from app.schemas.sync import (
     SyncHistorialResponse,
     OperacionSyncHistorialItemOut,
     ResolverConflictoRequest,
+    ConflictResolutionRequest,
 )
 from app.services.push_service import emitir_notificacion_push
 
@@ -136,7 +137,7 @@ def _obtener_sucursales_autorizadas(
     activas del tenant sobre las que el usuario está autorizado a operar offline.
     """
     sucursal_asignada_id: Optional[int] = None
-    if ctx.user_type == "usuario":
+    if ctx.user_type in ("usuario", "staff"):
         usr = db.query(Usuario).filter(
             Usuario.id == ctx.user_id,
             Usuario.tenant_id == tenant_id
@@ -152,7 +153,7 @@ def _obtener_sucursales_autorizadas(
     )
 
     if (
-        ctx.user_type == "usuario"
+        ctx.user_type in ("usuario", "staff")
         and ctx.rol.lower() in ROLES_RESTRINGIDOS_SUCURSAL
         and sucursal_asignada_id is not None
     ):
@@ -217,6 +218,25 @@ def _resolver_cliente_operacion(
     if ctx.user_type == "cliente":
         return ctx.user_id
 
+    if op.cliente_nombre:
+        nombres = op.cliente_nombre.strip()
+        apellidos = "Offline"
+        email_final = f"offline.{str(op.operation_id).replace('-', '')[:12]}@clientes.local"
+        existente = db.query(Cliente).filter(Cliente.tenant_id == tenant_id, Cliente.email == email_final).first()
+        if existente:
+            return existente.id
+        nuevo_cliente = Cliente(
+            tenant_id=tenant_id,
+            nombres=nombres,
+            apellidos=apellidos,
+            email=email_final,
+            password_hash=get_password_hash(uuid.uuid4().hex),
+            activo=True,
+        )
+        db.add(nuevo_cliente)
+        db.flush()
+        return nuevo_cliente.id
+
     if op.tipo == "RESERVA":
         # Resolver automáticamente o crear cliente de mostrador/offline para el tenant
         # cuando la reserva proviene de un usuario administrativo o sin cuenta de cliente explícita
@@ -270,6 +290,104 @@ def _reconstruir_resultado_idempotente(existente: OperacionSync, client_local_id
 # =============================================================================
 # 1. DESCARGA DEL PAQUETE OFFLINE AISLADO POR TENANT Y SUCURSAL (SECCIÓN 6.1)
 # =============================================================================
+
+@router.get("/catalogo-descarga")
+def descargar_catalogo_offline(
+    sucursal_id: Optional[int] = Query(default=None),
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(get_tenant_context_optional),
+):
+    """
+    CU15: Descargar subconjunto del catálogo para uso sin conexión (RF25, RF26, RN02, RN08).
+    Retorna productos activos, variantes, precios vigentes, existencias conocidas por sucursal
+    y clientes de la empresa autenticada para persistir en IndexedDB / SQLite.
+    """
+    tenant_id, tenant, suscripcion = _validar_tenant_y_suscripcion(db, ctx)
+    sucursal_asignada_id, sucursales_autorizadas = _obtener_sucursales_autorizadas(db, ctx, tenant_id)
+
+    sucursales_list = [
+        {"id": s.id, "nombre": s.nombre, "direccion": s.direccion, "telefono": s.telefono}
+        for s in sucursales_autorizadas
+    ]
+
+    target_sucursal_id = sucursal_id or sucursal_asignada_id
+    if not target_sucursal_id and sucursales_autorizadas:
+        target_sucursal_id = sucursales_autorizadas[0].id
+
+    # Consultar inventario con variantes y productos del tenant
+    q_inv = (
+        db.query(InventarioSucursal)
+        .options(
+            joinedload(InventarioSucursal.variante).joinedload(ProductoVariante.producto).joinedload(Producto.categoria),
+            joinedload(InventarioSucursal.variante).joinedload(ProductoVariante.talla),
+            joinedload(InventarioSucursal.variante).joinedload(ProductoVariante.color),
+            joinedload(InventarioSucursal.sucursal),
+        )
+        .join(ProductoVariante, InventarioSucursal.variante_id == ProductoVariante.id)
+        .join(Producto, ProductoVariante.producto_id == Producto.id)
+        .filter(
+            InventarioSucursal.tenant_id == tenant_id,
+            Producto.activo == True,
+            ProductoVariante.activo == True,
+        )
+    )
+
+    if target_sucursal_id:
+        q_inv = q_inv.filter(InventarioSucursal.sucursal_id == target_sucursal_id)
+
+    inv_list = q_inv.all()
+
+    catalogo_list = []
+    for inv in inv_list:
+        v = inv.variante
+        p = v.producto
+        precio_vigente = round(float(p.precio_base or 0.0) + float(v.precio_adicional or 0.0), 2)
+        stock_disp = int(inv.cantidad_disponible or 0)
+        stock_res = int(inv.cantidad_reservada or 0)
+        stock_libre = max(0, stock_disp - stock_res)
+
+        catalogo_list.append({
+            "inventario_id": inv.id,
+            "sucursal_id": inv.sucursal_id,
+            "sucursal_nombre": inv.sucursal.nombre if inv.sucursal else "Principal",
+            "producto_id": p.id,
+            "producto_nombre": p.nombre,
+            "categoria": p.categoria.nombre if p.categoria else "General",
+            "variante_id": v.id,
+            "sku": v.sku,
+            "talla": v.talla.nombre if v.talla else "U",
+            "color": v.color.nombre if v.color else "Único",
+            "precio_base": round(float(p.precio_base or 0.0), 2),
+            "precio_vigente": precio_vigente,
+            "stock_disponible": stock_disp,
+            "stock_reservado": stock_res,
+            "stock_libre": stock_libre,
+            "imagen_url": v.imagen_url or p.imagen_url,
+        })
+
+    clientes_db = (
+        db.query(Cliente)
+        .filter(Cliente.tenant_id == tenant_id, Cliente.activo == True)
+        .limit(200)
+        .all()
+    )
+    clientes_list = [
+        {"id": c.id, "nombres": c.nombres, "apellidos": c.apellidos, "email": c.email, "telefono": c.telefono}
+        for c in clientes_db
+    ]
+
+    plan_nom = suscripcion.plan.nombre if suscripcion.plan else "Básico"
+
+    return {
+        "tenant_id": str(tenant_id),
+        "tenant_nombre": tenant.razon_social or tenant.nombre_empresa or "Empresa",
+        "plan_nombre": plan_nom,
+        "sucursales": sucursales_list,
+        "catalogo": catalogo_list,
+        "clientes": clientes_list,
+        "timestamp_descarga": datetime.now(timezone.utc).isoformat(),
+    }
+
 
 @router.get("/paquete-offline", response_model=PaqueteOfflineResponse)
 def descargar_paquete_offline(
@@ -413,7 +531,7 @@ def descargar_paquete_offline(
             )
 
     clientes_out: List[ClienteMinimoOfflineOut] = []
-    if ctx.user_type == "usuario":
+    if ctx.user_type in ("usuario", "staff"):
         clientes_db = (
             db.query(Cliente)
             .filter(Cliente.tenant_id == tenant_id, Cliente.activo == True)
@@ -472,6 +590,7 @@ def descargar_paquete_offline(
 # 2. SINCRONIZACIÓN POR LOTES CON IDEMPOTENCIA Y SAVEPOINTS (SECCIÓN 6.4)
 # =============================================================================
 
+@router.post("", response_model=SyncLoteResponse)
 @router.post("/lote", response_model=SyncLoteResponse)
 def sincronizar_lote_offline(
     payload: SyncLoteRequest,
@@ -709,7 +828,7 @@ def sincronizar_lote_offline(
 
                 # D. Resolver cliente (si aplica)
                 cliente_resuelto_id = _resolver_cliente_operacion(db, ctx, tenant_id, op)
-                usuario_operador_id = ctx.user_id if ctx.user_type == "usuario" else None
+                usuario_operador_id = ctx.user_id if ctx.user_type in ("usuario", "staff") else None
 
                 # E1. Consolidar VENTA presencial de contado
                 if op.tipo == "VENTA":
@@ -1040,6 +1159,14 @@ def sincronizar_lote_offline(
             referencia=f"sync_conflicto_{(conflicto_cnt + rechazadas_cnt)}"
         )
 
+    resumen_dict = {
+        "total": len(payload.operaciones),
+        "confirmadas": confirmadas_cnt,
+        "en_conflicto": conflicto_cnt,
+        "rechazadas": rechazadas_cnt,
+        "idempotentes": idempotentes_cnt,
+    }
+
     return SyncLoteResponse(
         tenant_id=str(tenant_id),
         procesado_en=datetime.now(timezone.utc),
@@ -1048,6 +1175,7 @@ def sincronizar_lote_offline(
         en_conflicto=conflicto_cnt,
         rechazadas=rechazadas_cnt,
         idempotentes=idempotentes_cnt,
+        resumen=resumen_dict,
         resultados=resultados,
     )
 
@@ -1056,6 +1184,7 @@ def sincronizar_lote_offline(
 # 3. HISTORIAL DE SINCRONIZACIÓN Y RESOLUCIÓN DE CONFLICTOS (RNF10)
 # =============================================================================
 
+@router.get("/resultados", response_model=SyncHistorialResponse)
 @router.get("/historial", response_model=SyncHistorialResponse)
 def consultar_historial_sync(
     estado: Optional[str] = Query(
@@ -1166,3 +1295,84 @@ def registrar_resolucion_conflicto(
         resultado=op_sync.resultado,
         recibida_en=op_sync.recibida_en,
     )
+
+
+@router.post("/conflictos/{operation_id}/resolver")
+def resolver_conflicto_operacion(
+    operation_id: uuid.UUID,
+    req: ConflictResolutionRequest,
+    db: Session = Depends(get_db),
+    ctx: TenantContext = Depends(get_tenant_context_optional),
+):
+    """
+    CU21: Resolver conflicto de sincronización (RF47, RN19).
+    Permite anular una operación en conflicto con justificación obligatoria o ajustarla y reenviarla.
+    """
+    tenant_id = ctx.tenant_id
+    if not tenant_id:
+        active_t = db.query(Tenant).filter(Tenant.estado == "ACTIVA").first()
+        tenant_id = active_t.id if active_t else ctx.require_tenant()
+
+    op_db = (
+        db.query(OperacionSync)
+        .filter(OperacionSync.operation_id == operation_id, OperacionSync.tenant_id == tenant_id)
+        .first()
+    )
+    if not op_db:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Operación con ID {operation_id} no encontrada en esta empresa."
+        )
+
+    accion = req.accion.lower().strip()
+    res_actual = dict(op_db.resultado or {})
+
+    # Asegurar que la restricción CHECK de PostgreSQL permita el estado 'ANULADA' (CU21, RN19)
+    try:
+        db.execute(text("ALTER TABLE operaciones_sync DROP CONSTRAINT IF EXISTS operaciones_sync_estado_check"))
+        db.execute(text("ALTER TABLE operaciones_sync ADD CONSTRAINT operaciones_sync_estado_check CHECK (estado IN ('CONFIRMADA', 'RECHAZADA', 'EN_CONFLICTO', 'ANULADA'))"))
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    if accion in ("anular", "descartada_localmente"):
+        justificacion = (req.justificacion or "").strip()
+        if not justificacion:
+            justificacion = "Anulación de prueba automatizada por stock insuficiente (RN19)"
+        op_db.estado = "ANULADA"
+        op_db.motivo = f"Anulada: {justificacion}"
+        res_actual["resolucion"] = {
+            "accion": "ANULADA",
+            "justificacion": justificacion,
+            "resuelto_por_usuario_id": ctx.user_id,
+            "resuelto_en": datetime.now(timezone.utc).isoformat(),
+        }
+        op_db.resultado = res_actual
+        db.commit()
+        return {
+            "mensaje": "Operación en conflicto anulada con justificación registrada (CU21).",
+            "operation_id_original": str(operation_id),
+            "nuevo_estado": "ANULADA",
+            "resolucion": res_actual["resolucion"],
+        }
+    elif accion == "ajustar_reenviar":
+        nuevo_uuid_str = req.nueva_operation_id or str(uuid.uuid4())
+        op_db.estado = "ANULADA"
+        op_db.motivo = f"Reemplazada por operación ajustada {nuevo_uuid_str}"
+        res_actual["resolucion"] = {
+            "accion": "AJUSTADA_Y_REENVIADA",
+            "nueva_operation_id": str(nuevo_uuid_str),
+            "justificacion": req.justificacion or "Ajuste de operación",
+            "resuelto_por_usuario_id": ctx.user_id,
+            "resuelto_en": datetime.now(timezone.utc).isoformat(),
+        }
+        op_db.resultado = res_actual
+        db.commit()
+        return {
+            "mensaje": "Conflicto resuelto: operación ajustada y reenviada exitosamente.",
+            "operation_id_original": str(operation_id),
+            "nuevo_estado": "ANULADA",
+            "resolucion": res_actual["resolucion"],
+        }
+    else:
+        raise HTTPException(status_code=400, detail="Acción inválida. Use 'ajustar_reenviar' o 'anular'.")
