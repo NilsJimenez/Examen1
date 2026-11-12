@@ -66,7 +66,7 @@ import { CarritoService } from '../../services/carrito.service';
             <i class="fa-solid fa-cash-register"></i> Caja & Ventas
           </a>
           <a *ngIf="esAdmin || esEncargado || esCajero" routerLink="/caja" routerLinkActive="active-link" class="nav-link font-bold" style="color: #f59e0b;">
-            <i class="fa-solid fa-vault"></i> Control Caja (CU30)
+            <i class="fa-solid fa-vault"></i> Control de Caja
           </a>
 
           <!-- Opción exclusiva Administrador de Empresa (Tenant) -->
@@ -178,7 +178,7 @@ import { CarritoService } from '../../services/carrito.service';
 
           <a *ngIf="esEncargado" routerLink="/encargado" (click)="closeMenu()" class="nav-link font-bold" style="color: #6366f1;"><i class="fa-solid fa-warehouse"></i> Panel de Sucursal</a>
           <a *ngIf="esCajero" routerLink="/encargado" (click)="closeMenu()" class="nav-link font-bold" style="color: #10b981;"><i class="fa-solid fa-cash-register"></i> Caja & Ventas</a>
-          <a *ngIf="esAdmin || esEncargado || esCajero" routerLink="/caja" (click)="closeMenu()" class="nav-link font-bold" style="color: #f59e0b;"><i class="fa-solid fa-vault"></i> Control Caja (CU30)</a>
+          <a *ngIf="esAdmin || esEncargado || esCajero" routerLink="/caja" (click)="closeMenu()" class="nav-link font-bold" style="color: #f59e0b;"><i class="fa-solid fa-vault"></i> Control de Caja</a>
           <a *ngIf="esAdmin && !esSuperAdmin" routerLink="/admin" (click)="closeMenu()" class="nav-link font-bold" style="color: var(--accent);"><i class="fa-solid fa-sliders"></i> Panel Empresa</a>
           <a *ngIf="esSuperAdmin" routerLink="/admin" (click)="closeMenu()" class="nav-link font-bold" style="color: #f59e0b;"><i class="fa-solid fa-crown"></i> Empresas SaaS &amp; Planes</a>
           <a routerLink="/offline" (click)="closeMenu()" class="nav-link font-semibold" style="color: #38bdf8;"><i class="fa-solid fa-cloud-bolt"></i> {{ esPersonalTienda ? 'PWA Offline POS' : 'Catálogo Offline' }}</a>

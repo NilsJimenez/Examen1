@@ -109,10 +109,10 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
           [class.tab-btn-active]="activeTab === 'reportes'" 
           class="admin-tab-btn shrink-0" style="flex-shrink: 0; min-width: max-content;"
         >
-          <i class="fa-solid fa-chart-pie" style="color: #60a5fa;"></i> Reportes &amp; BI (CU14)
+          <i class="fa-solid fa-chart-pie" style="color: #60a5fa;"></i> Reportes &amp; BI
         </button>
         <button (click)="activeTab = 'cambio'" [class.tab-btn-active]="activeTab === 'cambio'" class="admin-tab-btn shrink-0" style="flex-shrink: 0; min-width: max-content;">
-          <i class="fa-solid fa-right-left" style="color: #f59e0b;"></i> POS &amp; Cambio de Prenda (CU13)
+          <i class="fa-solid fa-right-left" style="color: #f59e0b;"></i> POS &amp; Cambio de Prenda
         </button>
       </div>
 
@@ -135,7 +135,7 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
               type="button"
               (click)="abrirModalCrearTenant()"
               class="saas-icon-btn saas-icon-btn-add"
-              title="Registrar Nueva Empresa (CU01)"
+              title="Registrar Nueva Empresa"
             >
               <i class="fa-solid fa-plus"></i>
               <span>Nueva Empresa</span>
@@ -264,7 +264,7 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
                     type="button"
                     class="saas-card-menu-btn"
                     (click)="abrirModalCambiarPlan(t); $event.stopPropagation()"
-                    title="Cambiar Plan de Suscripción (CU02)"
+                    title="Cambiar Plan de Suscripción"
                   >
                     <i class="fa-solid fa-ellipsis-vertical"></i>
                   </button>
@@ -308,7 +308,7 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
                       class="saas-avatar-add-btn"
                       [ngClass]="'btn-theme-' + getCardTheme(t)"
                       (click)="abrirModalCambiarPlan(t); $event.stopPropagation()"
-                      title="Cambiar Plan (CU02)"
+                      title="Cambiar Plan"
                     >
                       <i class="fa-solid fa-sliders"></i>
                     </button>
@@ -460,7 +460,7 @@ import { SaasService, TenantSaaS, PlanSaaS, CrearTenantDto } from '../../service
                 <i class="fa-solid fa-building-circle-check"></i>
               </div>
               <div>
-                <h3 class="font-serif" style="font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Registrar Nueva Empresa (CU01)</h3>
+                <h3 class="font-serif" style="font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Registrar Nueva Empresa</h3>
                 <p style="font-size: 0.78rem; color: var(--text-muted);">Alta de Tenant SaaS, suscripción y cuenta administradora</p>
               </div>
             </div>
@@ -5191,7 +5191,7 @@ export class AdminPanelComponent implements OnInit {
         t.plan_activo = actualizado.plan_activo;
         t.max_sucursales = actualizado.max_sucursales;
         t.permite_reportes_ia = actualizado.permite_reportes_ia;
-        this.toastService.success('Plan Actualizado', `"${t.razon_social}" actualizado exitosamente al Plan ${nuevoPlan} (CU02).`);
+        this.toastService.success('Plan Actualizado', `"${t.razon_social}" actualizado exitosamente al Plan ${nuevoPlan}.`);
         this.mostrarModalCambiarPlan = false;
         this.tenantSeleccionadoParaPlan = null;
       },

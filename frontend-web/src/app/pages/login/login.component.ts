@@ -119,7 +119,7 @@ import { ToastService } from '../../services/toast.service';
                 type="button" 
                 (click)="fillCredentials('superadmin')" 
                 class="demo-access-btn"
-                title="Super Administrador Global de la Plataforma SaaS (CU01-CU04)"
+                title="Super Administrador Global de la Plataforma SaaS"
                 style="border-color: #f59e0b; padding: 0.65rem 0.5rem;"
               >
                 <i class="fa-solid fa-crown mr-1.5" style="color: #f59e0b;"></i>

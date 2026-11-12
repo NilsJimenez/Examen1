@@ -19,7 +19,7 @@ import { Sucursal } from '../../models/sucursal.models';
         <div class="caja-header-left">
           <div class="caja-badges-row">
             <span class="badge-gold">
-              <i class="fa-solid fa-vault"></i> APORTE PROPIO &bull; CU30
+              <i class="fa-solid fa-vault"></i> CONTROL DE CAJA & TURNOS
             </span>
             <span class="badge-dark">
               <i class="fa-solid fa-shield-halved"></i> Control de Caja, Arqueo Físico & Cierre por Turno

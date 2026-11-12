@@ -220,7 +220,7 @@ declare const Html5Qrcode: any;
       <!-- PESTAÑAS MODERNAS SEGMENTADAS (CENTRADAS)                           -->
       <!-- =================================================================== -->
       <div class="tabs-bar-wrapper">
-        <div class="tabs-bar"><button (click)="tabActiva = 'caja'" [class.tab-btn-active]="tabActiva === 'caja'" class="tab-btn"><i class="fa-solid fa-vault"></i> Control Caja (CU30)</button><button (click)="tabActiva = 'cambio'" [class.tab-btn-active]="tabActiva === 'cambio'" class="tab-btn"><i class="fa-solid fa-right-left"></i> POS &amp; Cambio de Prenda (CU13)</button>
+        <div class="tabs-bar"><button (click)="tabActiva = 'caja'" [class.tab-btn-active]="tabActiva === 'caja'" class="tab-btn"><i class="fa-solid fa-vault"></i> Control de Caja</button><button (click)="tabActiva = 'cambio'" [class.tab-btn-active]="tabActiva === 'cambio'" class="tab-btn"><i class="fa-solid fa-right-left"></i> POS &amp; Cambio de Prenda</button>
           <button 
             (click)="tabActiva = 'reportes'" 
             [class.tab-btn-active]="tabActiva === 'reportes'" 

@@ -30,7 +30,7 @@ import {
         <div class="header-left">
           <div class="badge-pwa" [class.badge-pwa-client]="esCliente">
             <i class="fa-solid fa-cloud-bolt mr-1"></i>
-            {{ esCliente ? 'MODO CLIENTE OFFLINE' : 'DESAFÍO II — PWA OFFLINE' }}
+            {{ esCliente ? 'MODO CLIENTE OFFLINE' : 'PWA OFFLINE' }}
           </div>
           <h1 class="font-serif text-3xl font-bold text-white mt-1">
             {{ esCliente ? 'Catálogo & Reservas Offline' : 'Centro de Operaciones Offline & Sincronización' }}
@@ -40,7 +40,7 @@ import {
               Explora las prendas en almacenamiento local y reserva tu probador sin conexión. Se sincronizará automáticamente al reconectar.
             </span>
             <span *ngIf="esPersonalTienda">
-              Gestión de persistencia local IndexedDB, ventas de contado (Regla 7.2), reservas y consistencia de inventario omnicanal.
+              Gestión de persistencia local IndexedDB, ventas de contado, reservas y consistencia de inventario omnicanal.
             </span>
           </p>
         </div>
@@ -132,12 +132,12 @@ import {
       </section>
 
       <!-- =================================================================== -->
-      <!-- 3. ALERTA OBLIGATORIA DE INFORMACIÓN DESACTUALIZADA (SEC. 5.3)      -->
+      <!-- 3. ALERTA DE INFORMACIÓN DESACTUALIZADA                             -->
       <!-- =================================================================== -->
       <div *ngIf="syncService.estadoDesactualizado().desactualizado" class="alert-box alert-warning">
         <i class="fa-solid fa-triangle-exclamation text-xl mr-3 text-amber-400"></i>
         <div>
-          <h4 class="font-bold text-amber-200">Aviso Oficial — Información Potencialmente Desactualizada (Sec. 5.3)</h4>
+          <h4 class="font-bold text-amber-200">Aviso Oficial — Información Potencialmente Desactualizada</h4>
           <p class="text-xs text-amber-300/90 mt-0.5">
             El paquete de datos local tiene {{ syncService.estadoDesactualizado().horas }} horas de antigüedad (supera el umbral de 12 horas).
             Las existencias o precios pueden haber cambiado en el servidor central. Si dispones de conexión a Internet, actualiza el catálogo.
@@ -149,7 +149,7 @@ import {
       <!-- 4. PESTAÑAS DE NAVEGACIÓN FUNCIONAL (ADAPTADAS POR ROL)             -->
       <!-- =================================================================== -->
       <nav class="tabs-nav">
-        <!-- 1. POS Offline (Solo Personal de Tienda: Cajero, Encargado, Admin) -->
+        <!-- POS Offline (Solo Personal de Tienda: Cajero, Encargado, Admin) -->
         <button
           *ngIf="esPersonalTienda"
           (click)="tabActiva.set('pos')"
@@ -157,30 +157,30 @@ import {
           [class.active]="tabActiva() === 'pos'"
         >
           <i class="fa-solid fa-cash-register mr-1.5"></i>
-          1. POS Offline (Venta Contado)
+          POS Offline (Venta Contado)
         </button>
 
-        <!-- 2. Catálogo Local (Visible para Todos; Pestaña #1 para Clientes) -->
+        <!-- Catálogo Local (Visible para Todos; Pestaña principal para Clientes) -->
         <button
           (click)="tabActiva.set('catalogo')"
           class="tab-btn"
           [class.active]="tabActiva() === 'catalogo'"
         >
           <i class="fa-solid fa-shirt mr-1.5"></i>
-          {{ esCliente ? '1. Catálogo Offline' : '3. Catálogo Local' }} ({{ productos().length }})
+          {{ esCliente ? 'Catálogo Offline' : 'Catálogo Local' }} ({{ productos().length }})
         </button>
 
-        <!-- 3. Reserva Offline (Visible para Todos) -->
+        <!-- Reserva Offline (Visible para Todos) -->
         <button
           (click)="tabActiva.set('reserva')"
           class="tab-btn"
           [class.active]="tabActiva() === 'reserva'"
         >
           <i class="fa-solid fa-calendar-check mr-1.5"></i>
-          {{ esCliente ? '2. Mis Reservas & Probador' : '2. Reserva Offline' }}
+          {{ esCliente ? 'Mis Reservas & Probador' : 'Reserva Offline' }}
         </button>
 
-        <!-- 4. Historial & Auditoría Sincronización (Solo Personal de Tienda) -->
+        <!-- Historial & Auditoría Sincronización (Solo Personal de Tienda) -->
         <button
           *ngIf="esPersonalTienda"
           (click)="tabActiva.set('operaciones')"
@@ -188,10 +188,10 @@ import {
           [class.active]="tabActiva() === 'operaciones'"
         >
           <i class="fa-solid fa-list-check mr-1.5"></i>
-          4. Historial & Auditoría Sincronización ({{ operaciones().length }})
+          Historial & Auditoría ({{ operaciones().length }})
         </button>
 
-        <!-- 5. Cambio de Prenda (CU13) (Solo Personal de Tienda) -->
+        <!-- Cambio de Prenda (Solo Personal de Tienda) -->
         <button
           *ngIf="esPersonalTienda"
           (click)="tabActiva.set('cambio')"
@@ -199,10 +199,10 @@ import {
           [class.active]="tabActiva() === 'cambio'"
         >
           <i class="fa-solid fa-arrows-rotate mr-1.5"></i>
-          5. Cambio de Prenda (CU13)
+          Cambio de Prenda
         </button>
 
-        <!-- 6. Control de Caja (CU30) (Solo Personal de Tienda) -->
+        <!-- Control de Caja (Solo Personal de Tienda) -->
         <button
           *ngIf="esPersonalTienda"
           (click)="tabActiva.set('caja')"
@@ -210,12 +210,12 @@ import {
           [class.active]="tabActiva() === 'caja'"
         >
           <i class="fa-solid fa-vault mr-1.5"></i>
-          6. Control de Caja (CU30)
+          Control de Caja
         </button>
       </nav>
 
       <!-- =================================================================== -->
-      <!-- 5. TAB 1: POS OFFLINE (VENTA DE CONTADO - REGLA 7.2)                -->
+      <!-- 5. TAB 1: POS OFFLINE (VENTA DE CONTADO)                            -->
       <!-- =================================================================== -->
       <section *ngIf="esPersonalTienda && tabActiva() === 'pos'" class="tab-content animate-fade-in">
         <div class="pos-layout">
@@ -366,7 +366,7 @@ import {
       <section *ngIf="tabActiva() === 'reserva'" class="tab-content animate-fade-in">
         <div class="max-w-2xl mx-auto bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-xl">
           <div class="border-b border-zinc-800 pb-4 mb-5">
-            <span class="badge-tag">{{ esCliente ? 'Reserva de Probador / Prenda' : 'CU04 — Reserva Offline' }}</span>
+            <span class="badge-tag">{{ esCliente ? 'Reserva de Probador / Prenda' : 'Reserva Offline' }}</span>
             <h3 class="text-lg font-bold text-white mt-1">{{ esCliente ? 'Apartar Prenda para Prueba en Tienda' : 'Registrar Reserva Local de Prendas' }}</h3>
             <p class="text-xs text-zinc-400">
               {{ esCliente ? 'Aparta prendas en la sucursal seleccionada sin conexión. Se registrará localmente y se enviará al reconectar.' : 'Aparta stock en el inventario local de la sucursal para prueba en vestidor físico (Vigencia 48h).' }}

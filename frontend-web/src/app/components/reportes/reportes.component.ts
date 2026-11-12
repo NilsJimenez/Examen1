@@ -21,15 +21,15 @@ import { Sucursal } from '../../models/sucursal.models';
         <div>
           <div class="flex items-center gap-2 mb-1.5 flex-wrap">
             <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35); font-size: 0.72rem; font-weight: 800;">
-              <i class="fa-solid fa-table-list mr-1"></i> CU14: Reportes Convencionales Activos (RN07)
+              <i class="fa-solid fa-table-list mr-1"></i> Reportes Convencionales Activos
             </span>
             <span class="badge" [style.background]="permiteIA ? 'rgba(167, 139, 250, 0.16)' : 'rgba(239, 68, 68, 0.14)'" [style.color]="permiteIA ? '#a78bfa' : '#f87171'" style="font-size: 0.72rem; font-weight: 800;">
               <i class="fa-solid" [ngClass]="permiteIA ? 'fa-wand-magic-sparkles' : 'fa-lock'"></i>
-              {{ permiteIA ? 'Plan Profesional • IA Gemini + Voz Habilitada' : 'Plan ' + (planActual || 'Estándar/Básico') + ' • IA Generativa Bloqueada (RN07)' }}
+              {{ permiteIA ? 'Plan Profesional • IA Gemini + Voz Habilitada' : 'Plan ' + (planActual || 'Estándar/Básico') + ' • IA Generativa Bloqueada' }}
             </span>
           </div>
           <h2 style="color: var(--text-main); font-family: serif; font-size: 1.9rem; margin: 0;">
-            Reportes Convencionales de Ventas e Inventario (CU14)
+            Reportes Convencionales de Ventas e Inventario
           </h2>
           <p style="color: var(--text-muted); margin-top: 0.35rem; font-size: 0.9rem;">
             Consulta tablas estructuradas de ventas e inventario por sucursal exportables a PDF y Excel para tu empresa.
@@ -54,7 +54,7 @@ import { Sucursal } from '../../models/sucursal.models';
       <div *ngIf="permiteIA" class="p-5 mb-6 rounded-xl" style="background: linear-gradient(135deg, rgba(167, 139, 250, 0.12), rgba(99, 102, 241, 0.08)); border: 1px solid rgba(167, 139, 250, 0.35); box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
         <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
           <label style="font-size: 0.82rem; color: #a78bfa; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-            <i class="fa-solid fa-wand-magic-sparkles"></i> Consultas en Lenguaje Natural con IA Gemini &amp; Voz (CU23 / CU24)
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Consultas en Lenguaje Natural con IA Gemini &amp; Voz
           </label>
           <span class="text-xs" style="color: var(--text-muted); font-style: italic;">
             <i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> Escribe o habla por micrófono: "Analizar ventas de este mes" o "Descargar en PDF"
@@ -122,10 +122,10 @@ import { Sucursal } from '../../models/sucursal.models';
           </div>
           <div>
             <strong style="color: var(--text-main); font-size: 0.9rem; display: block;">
-              Reportes Generativos con IA Gemini y Voz bloqueados en tu Plan {{ planActual }} (Regla RN07 / RN23)
+              Reportes Generativos con IA Gemini y Voz bloqueados en tu Plan {{ planActual }}
             </strong>
             <span style="color: var(--text-muted); font-size: 0.78rem;">
-              Tu empresa tiene acceso completo a los <strong>Reportes Convencionales de Ventas e Inventario (CU14)</strong> abajo. Solicita al SuperAdmin actualizar al <strong>Plan Profesional</strong> para habilitar IA.
+              Tu empresa tiene acceso completo a los <strong>Reportes Convencionales de Ventas e Inventario</strong> abajo. Solicita al SuperAdmin actualizar al <strong>Plan Profesional</strong> para habilitar IA.
             </span>
           </div>
         </div>
@@ -249,7 +249,7 @@ import { Sucursal } from '../../models/sucursal.models';
           <div>
             <h3 style="font-size: 1.15rem; font-family: serif; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 0.6rem;">
               <i class="fa-solid fa-file-invoice-dollar" style="color: var(--accent);"></i>
-              Reporte Convencional de Ventas por Comprobante y Sucursal (CU14)
+              Reporte Convencional de Ventas por Comprobante y Sucursal
             </h3>
             <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
               Listado oficial de ventas presenciales (POS) y digitales confirmadas en tu empresa
@@ -303,7 +303,7 @@ import { Sucursal } from '../../models/sucursal.models';
           <div>
             <h3 style="font-size: 1.15rem; font-family: serif; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 0.6rem;">
               <i class="fa-solid fa-boxes-stacked" style="color: #10b981;"></i>
-              Reporte Convencional de Existencias e Inventario Valorizado (CU14)
+              Reporte Convencional de Existencias e Inventario Valorizado
             </h3>
             <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
               Control consolidado de stock físico, unidades reservadas y valorización en Bs. por variante y sucursal

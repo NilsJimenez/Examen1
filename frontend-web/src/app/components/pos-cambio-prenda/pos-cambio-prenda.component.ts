@@ -23,12 +23,12 @@ import { Sucursal } from '../../models/sucursal.models';
               <i class="fa-solid fa-arrows-rotate"></i> PAQUETE B • OPERACIÓN COMERCIAL
             </span>
             <span class="pos-badge-dark">
-              <i class="fa-solid fa-scale-balanced"></i> RN20 (Plazo 15 días) &amp; RN21 (Kárdex Atómico)
+              <i class="fa-solid fa-scale-balanced"></i> Plazo 15 días &amp; Kárdex Atómico
             </span>
           </div>
           <h2 class="pos-main-title">Punto de Venta (POS) &amp; Cambio de Prenda</h2>
           <p class="pos-main-subtitle">
-            Gestiona cambios de talla, color o modelo sobre ventas confirmadas (CU13) y registra ventas presenciales en caja (CU12).
+            Gestiona cambios de talla, color o modelo sobre ventas confirmadas y registra ventas presenciales en caja.
           </p>
         </div>
 
@@ -45,7 +45,7 @@ import { Sucursal } from '../../models/sucursal.models';
             </select>
           </div>
 
-          <!-- Conmutador Sub-Modo: Cambio de Prenda (CU13) vs Caja POS (CU12) -->
+          <!-- Conmutador Sub-Modo: Cambio de Prenda vs Caja POS -->
           <div class="pos-mode-switcher">
             <button
               type="button"
@@ -54,7 +54,7 @@ import { Sucursal } from '../../models/sucursal.models';
               [class.active]="subModo === 'cambio'"
             >
               <i class="fa-solid fa-right-left"></i>
-              <span>Cambio de Prenda (CU13)</span>
+              <span>Cambio de Prenda</span>
             </button>
             <button
               type="button"
@@ -63,7 +63,7 @@ import { Sucursal } from '../../models/sucursal.models';
               [class.active]="subModo === 'pos'"
             >
               <i class="fa-solid fa-cash-register"></i>
-              <span>Nueva Venta POS (CU12)</span>
+              <span>Nueva Venta POS</span>
             </button>
           </div>
         </div>
@@ -412,7 +412,7 @@ import { Sucursal } from '../../models/sucursal.models';
           <div class="pos-step-header">
             <span class="pos-step-number"><i class="fa-solid fa-shirt"></i></span>
             <div>
-              <h3 class="pos-step-title">Catálogo con Stock en Sucursal (CU12)</h3>
+              <h3 class="pos-step-title">Catálogo con Stock en Sucursal</h3>
               <p class="pos-step-desc">Haz clic en cualquier prenda para agregarla al ticket de venta presencial</p>
             </div>
           </div>
@@ -518,23 +518,23 @@ import { Sucursal } from '../../models/sucursal.models';
               class="pos-confirm-exchange-btn"
             >
               <i class="fa-solid" [ngClass]="procesandoPos ? 'fa-spinner fa-spin' : 'fa-receipt'"></i>
-              <span>{{ procesandoPos ? 'Emitiendo Comprobante POS...' : 'Cobrar y Emitir Comprobante POS (CU12)' }}</span>
+              <span>{{ procesandoPos ? 'Emitiendo Comprobante POS...' : 'Cobrar y Emitir Comprobante POS' }}</span>
             </button>
           </div>
         </div>
       </div>
 
       <!-- ================================================================= -->
-      <!-- HISTORIAL DE CAMBIOS DE PRENDA REALIZADOS EN LA EMPRESA (CU13)    -->
+      <!-- HISTORIAL DE CAMBIOS DE PRENDA REALIZADOS EN LA EMPRESA           -->
       <!-- ================================================================= -->
       <div class="pos-history-card" *ngIf="historialCambios.length > 0">
         <div class="pos-history-header">
           <div>
             <h3 class="pos-step-title">
               <i class="fa-solid fa-clock-rotate-left" style="color: #f59e0b; margin-right: 0.4rem;"></i>
-              Historial de Cambios de Prenda y Movimientos CAM (CU13)
+              Historial de Cambios de Prenda y Movimientos
             </h3>
-            <p class="pos-step-desc">Registro auditable de devoluciones y entregas procesadas bajo RN20 y RN21</p>
+            <p class="pos-step-desc">Registro auditable de devoluciones y entregas procesadas con control de Kárdex</p>
           </div>
           <span class="pos-badge-gold">{{ historialCambios.length }} cambio(s) registrado(s)</span>
         </div>
@@ -1450,7 +1450,7 @@ export class PosCambioPrendaComponent implements OnInit, OnChanges {
       },
       error: (err) => {
         this.procesandoCambio = false;
-        this.toastService.error('Error en Cambio (CU13)', err.error?.detail || 'No se pudo procesar el cambio de prenda.');
+        this.toastService.error('Error en Cambio', err.error?.detail || 'No se pudo procesar el cambio de prenda.');
       }
     });
   }

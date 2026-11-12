@@ -16,10 +16,10 @@ import { environment } from '../../../environments/environment';
           <div>
             <div class="flex flex-wrap items-center gap-2">
               <span class="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-200 text-xs font-extrabold">
-                <i class="fas fa-brain mr-1.5"></i> MACHINE LEARNING SUPERVISADO Y NO SUPERVISADO (CU27 – CU29)
+                <i class="fas fa-brain mr-1.5"></i> MACHINE LEARNING SUPERVISADO Y NO SUPERVISADO
               </span>
               <span class="px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs font-bold">
-                RN25: Datos Sintéticos Deterministas (Semilla = {{ semillaForm }})
+                Datos Sintéticos Deterministas (Semilla = {{ semillaForm }})
               </span>
             </div>
             <h2 class="text-2xl font-extrabold mt-2">Tablero Analítico de Predicción de Demanda y Segmentación RFM</h2>
@@ -42,7 +42,7 @@ import { environment } from '../../../environments/environment';
                     [disabled]="entrenando()"
                     class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg transition flex items-center gap-2">
               <i class="fas" [ngClass]="entrenando() ? 'fa-cog fa-spin' : 'fa-play'"></i>
-              {{ entrenando() ? 'Entrenando Modelos...' : 'Generar Datos y Entrenar ML (CU27)' }}
+              {{ entrenando() ? 'Entrenando Modelos...' : 'Generar Datos y Entrenar ML' }}
             </button>
           </div>
         </div>
