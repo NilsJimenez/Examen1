@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { OfflineSyncService } from '../../services/offline-sync.service';
 import { OfflineStorageService } from '../../services/offline-storage.service';
 import { ToastService } from '../../services/toast.service';
+import { AuthService } from '../../services/auth.service';
 import { PosCambioPrendaComponent } from '../../components/pos-cambio-prenda/pos-cambio-prenda.component';
 import { CajaTurnoComponent } from '../../components/caja-turno/caja-turno.component';
 import {
@@ -27,12 +28,20 @@ import {
       <!-- =================================================================== -->
       <header class="page-header">
         <div class="header-left">
-          <div class="badge-pwa">
-            <i class="fa-solid fa-cloud-bolt mr-1"></i> DESAFÍO II — PWA OFFLINE
+          <div class="badge-pwa" [class.badge-pwa-client]="esCliente">
+            <i class="fa-solid fa-cloud-bolt mr-1"></i>
+            {{ esCliente ? 'MODO CLIENTE OFFLINE' : 'DESAFÍO II — PWA OFFLINE' }}
           </div>
-          <h1 class="font-serif text-3xl font-bold text-white mt-1">Centro de Operaciones Offline & Sincronización</h1>
+          <h1 class="font-serif text-3xl font-bold text-white mt-1">
+            {{ esCliente ? 'Catálogo & Reservas Offline' : 'Centro de Operaciones Offline & Sincronización' }}
+          </h1>
           <p class="text-zinc-400 text-sm mt-1">
-            Gestión de persistencia local IndexedDB, ventas de contado (Regla 7.2), reservas y consistencia de inventario omnicanal.
+            <span *ngIf="esCliente">
+              Explora las prendas en almacenamiento local y reserva tu probador sin conexión. Se sincronizará automáticamente al reconectar.
+            </span>
+            <span *ngIf="esPersonalTienda">
+              Gestión de persistencia local IndexedDB, ventas de contado (Regla 7.2), reservas y consistencia de inventario omnicanal.
+            </span>
           </p>
         </div>
 
@@ -53,10 +62,10 @@ import {
             (click)="sincronizarLote()"
             [disabled]="syncService.sincronizando() || !syncService.isOnline() || syncService.pendientesCount() === 0"
             class="btn-primary"
-            title="Enviar operaciones pendientes al backend central"
+            [title]="esCliente ? 'Enviar mis reservas pendientes al servidor central' : 'Enviar operaciones pendientes al backend central'"
           >
             <i class="fa-solid fa-rotate mr-1.5" [class.fa-spin]="syncService.sincronizando()"></i>
-            {{ syncService.sincronizando() ? 'Sincronizando...' : 'Sincronizar Lote (' + syncService.pendientesCount() + ')' }}
+            {{ syncService.sincronizando() ? 'Sincronizando...' : (esCliente ? 'Sincronizar Mis Reservas (' + syncService.pendientesCount() + ')' : 'Sincronizar Lote (' + syncService.pendientesCount() + ')') }}
           </button>
         </div>
       </header>
@@ -110,12 +119,12 @@ import {
             <i class="fa-solid fa-cloud-arrow-up text-blue-500"></i>
           </div>
           <div class="metric-content">
-            <span class="metric-label">OPERACIONES PENDIENTES</span>
+            <span class="metric-label">{{ esCliente ? 'MIS RESERVAS PENDIENTES' : 'OPERACIONES PENDIENTES' }}</span>
             <strong class="metric-value text-white">
               {{ syncService.pendientesCount() }} en cola local
             </strong>
             <span class="metric-hint">
-              Ventas y reservas registradas localmente en este navegador
+              {{ esCliente ? 'Reservas guardadas en este dispositivo listas para sincronizar' : 'Ventas y reservas registradas localmente en este navegador' }}
             </span>
           </div>
         </div>
@@ -137,10 +146,12 @@ import {
       </div>
 
       <!-- =================================================================== -->
-      <!-- 4. PESTAÑAS DE NAVEGACIÓN FUNCIONAL                                 -->
+      <!-- 4. PESTAÑAS DE NAVEGACIÓN FUNCIONAL (ADAPTADAS POR ROL)             -->
       <!-- =================================================================== -->
       <nav class="tabs-nav">
+        <!-- 1. POS Offline (Solo Personal de Tienda: Cajero, Encargado, Admin) -->
         <button
+          *ngIf="esPersonalTienda"
           (click)="tabActiva.set('pos')"
           class="tab-btn"
           [class.active]="tabActiva() === 'pos'"
@@ -149,25 +160,29 @@ import {
           1. POS Offline (Venta Contado)
         </button>
 
-        <button
-          (click)="tabActiva.set('reserva')"
-          class="tab-btn"
-          [class.active]="tabActiva() === 'reserva'"
-        >
-          <i class="fa-solid fa-calendar-check mr-1.5"></i>
-          2. Reserva Offline
-        </button>
-
+        <!-- 2. Catálogo Local (Visible para Todos; Pestaña #1 para Clientes) -->
         <button
           (click)="tabActiva.set('catalogo')"
           class="tab-btn"
           [class.active]="tabActiva() === 'catalogo'"
         >
           <i class="fa-solid fa-shirt mr-1.5"></i>
-          3. Catálogo Local ({{ productos().length }})
+          {{ esCliente ? '1. Catálogo Offline' : '3. Catálogo Local' }} ({{ productos().length }})
         </button>
 
+        <!-- 3. Reserva Offline (Visible para Todos) -->
         <button
+          (click)="tabActiva.set('reserva')"
+          class="tab-btn"
+          [class.active]="tabActiva() === 'reserva'"
+        >
+          <i class="fa-solid fa-calendar-check mr-1.5"></i>
+          {{ esCliente ? '2. Mis Reservas & Probador' : '2. Reserva Offline' }}
+        </button>
+
+        <!-- 4. Historial & Auditoría Sincronización (Solo Personal de Tienda) -->
+        <button
+          *ngIf="esPersonalTienda"
           (click)="tabActiva.set('operaciones')"
           class="tab-btn"
           [class.active]="tabActiva() === 'operaciones'"
@@ -176,7 +191,9 @@ import {
           4. Historial & Auditoría Sincronización ({{ operaciones().length }})
         </button>
 
+        <!-- 5. Cambio de Prenda (CU13) (Solo Personal de Tienda) -->
         <button
+          *ngIf="esPersonalTienda"
           (click)="tabActiva.set('cambio')"
           class="tab-btn"
           [class.active]="tabActiva() === 'cambio'"
@@ -185,7 +202,9 @@ import {
           5. Cambio de Prenda (CU13)
         </button>
 
+        <!-- 6. Control de Caja (CU30) (Solo Personal de Tienda) -->
         <button
+          *ngIf="esPersonalTienda"
           (click)="tabActiva.set('caja')"
           class="tab-btn"
           [class.active]="tabActiva() === 'caja'"
@@ -198,7 +217,7 @@ import {
       <!-- =================================================================== -->
       <!-- 5. TAB 1: POS OFFLINE (VENTA DE CONTADO - REGLA 7.2)                -->
       <!-- =================================================================== -->
-      <section *ngIf="tabActiva() === 'pos'" class="tab-content animate-fade-in">
+      <section *ngIf="esPersonalTienda && tabActiva() === 'pos'" class="tab-content animate-fade-in">
         <div class="pos-layout">
           
           <!-- Lado Izquierdo: Selector de Prendas del Catálogo Local -->
@@ -347,10 +366,10 @@ import {
       <section *ngIf="tabActiva() === 'reserva'" class="tab-content animate-fade-in">
         <div class="max-w-2xl mx-auto bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-xl">
           <div class="border-b border-zinc-800 pb-4 mb-5">
-            <span class="badge-tag">CU04 — Reserva Offline</span>
-            <h3 class="text-lg font-bold text-white mt-1">Registrar Reserva Local de Prendas</h3>
+            <span class="badge-tag">{{ esCliente ? 'Reserva de Probador / Prenda' : 'CU04 — Reserva Offline' }}</span>
+            <h3 class="text-lg font-bold text-white mt-1">{{ esCliente ? 'Apartar Prenda para Prueba en Tienda' : 'Registrar Reserva Local de Prendas' }}</h3>
             <p class="text-xs text-zinc-400">
-              Aparta stock en el inventario local de la sucursal para prueba en vestidor físico (Vigencia 48h).
+              {{ esCliente ? 'Aparta prendas en la sucursal seleccionada sin conexión. Se registrará localmente y se enviará al reconectar.' : 'Aparta stock en el inventario local de la sucursal para prueba en vestidor físico (Vigencia 48h).' }}
             </p>
           </div>
 
@@ -417,6 +436,37 @@ import {
               {{ procesandoReserva() ? 'Registrando en Local...' : 'Confirmar Reserva Offline (IndexedDB)' }}
             </button>
           </form>
+
+          <!-- Historial de Mis Reservas Offline (Para clientes y personal) -->
+          <div *ngIf="obtenerReservasCliente().length > 0" class="mt-8 border-t border-zinc-800 pt-6">
+            <h4 class="font-bold text-white text-base mb-3 flex items-center gap-2">
+              <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+              {{ esCliente ? 'Mis Reservas Guardadas en este Dispositivo' : 'Reservas Registradas Localmente' }}
+              <span class="text-xs text-zinc-400 font-normal">({{ obtenerReservasCliente().length }})</span>
+            </h4>
+            <div class="space-y-3">
+              <div *ngFor="let res of obtenerReservasCliente()" class="p-3 bg-zinc-950 border border-zinc-800 rounded-lg flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-white">ID: {{ res.id.substring(0, 8) }}...</span>
+                    <span class="badge-estado" [class.estado-registrada]="res.estado === 'registrada_local'" [class.estado-confirmada]="res.estado === 'confirmada'">
+                      {{ res.estado === 'registrada_local' ? 'Pendiente Sincronizar' : 'Confirmada' }}
+                    </span>
+                  </div>
+                  <div class="text-xs text-zinc-300 mt-1">
+                    <span *ngIf="res.items && res.items.length > 0">
+                      {{ res.items[0].producto_nombre }} (Talla: {{ res.items[0].talla }}, Cant: {{ res.items[0].cantidad }})
+                    </span>
+                    <span class="text-zinc-500 ml-2">• Fecha: {{ formatearFecha(res.timestamp_local) }}</span>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <span class="font-bold text-amber-400 text-sm">Bs. {{ res.monto_total }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -457,8 +507,29 @@ import {
               </div>
 
               <div class="catalog-footer">
-                <span class="font-bold text-amber-400 text-lg">Bs. {{ prod.precio_base }}</span>
-                <span class="badge-offline-ok"><i class="fa-solid fa-check mr-1"></i> Disponible Offline</span>
+                <div>
+                  <span class="font-bold text-amber-400 text-lg">Bs. {{ prod.precio_base }}</span>
+                  <span class="badge-offline-ok block text-xs"><i class="fa-solid fa-check mr-1"></i> Disponible Offline</span>
+                </div>
+                <!-- Botón de acción rápida según rol -->
+                <button
+                  *ngIf="esCliente"
+                  (click)="iniciarReservaDesdeProducto(prod)"
+                  class="btn-primary"
+                  style="padding: 0.45rem 0.9rem; font-size: 0.78rem;"
+                  title="Reservar esta prenda para prueba física"
+                >
+                  <i class="fa-solid fa-calendar-check mr-1"></i> Reservar
+                </button>
+                <button
+                  *ngIf="esPersonalTienda"
+                  (click)="seleccionarProductoParaVenta(prod); tabActiva.set('pos')"
+                  class="btn-secondary"
+                  style="padding: 0.45rem 0.9rem; font-size: 0.78rem;"
+                  title="Cargar prenda al ticket del POS"
+                >
+                  <i class="fa-solid fa-cash-register mr-1"></i> Al POS
+                </button>
               </div>
             </div>
           </div>
@@ -472,7 +543,7 @@ import {
       <!-- =================================================================== -->
       <!-- 8. TAB 4: BANDEJA DE OPERACIONES & AUDITORÍA DE SINCRONIZACIÓN      -->
       <!-- =================================================================== -->
-      <section *ngIf="tabActiva() === 'operaciones'" class="tab-content animate-fade-in">
+      <section *ngIf="esPersonalTienda && tabActiva() === 'operaciones'" class="tab-content animate-fade-in">
         <div class="ops-header">
           <div>
             <h3 class="font-bold text-white text-lg">Registro de Transacciones Locales y Sincronización</h3>
@@ -589,14 +660,14 @@ import {
       <!-- =================================================================== -->
       <!-- 9. TAB 5: CAMBIO DE PRENDA (CU13 - RN20 & RN21)                     -->
       <!-- =================================================================== -->
-      <section *ngIf="tabActiva() === 'cambio'" class="tab-content animate-fade-in">
+      <section *ngIf="esPersonalTienda && tabActiva() === 'cambio'" class="tab-content animate-fade-in">
         <app-pos-cambio-prenda></app-pos-cambio-prenda>
       </section>
 
       <!-- =================================================================== -->
       <!-- 10. TAB 6: CONTROL DE CAJA, ARQUEO Y CIERRE POR TURNO (CU30)       -->
       <!-- =================================================================== -->
-      <section *ngIf="tabActiva() === 'caja'" class="tab-content animate-fade-in">
+      <section *ngIf="esPersonalTienda && tabActiva() === 'caja'" class="tab-content animate-fade-in">
         <app-caja-turno [sucursalIdInput]="sucursalSeleccionadaId"></app-caja-turno>
       </section>
 
@@ -627,6 +698,10 @@ import {
       padding: 0.2rem 0.6rem;
       border-radius: 9999px;
       letter-spacing: 0.05em;
+    }
+    .badge-pwa-client {
+      background: #0369a1 !important;
+      color: #e0f2fe !important;
     }
     .header-actions {
       display: flex;
@@ -1099,9 +1174,19 @@ export class OfflineCentroComponent implements OnInit {
   public syncService = inject(OfflineSyncService);
   private storage = inject(OfflineStorageService);
   private toast = inject(ToastService);
+  public authService = inject(AuthService);
+
+  get esPersonalTienda(): boolean {
+    const r = (this.authService.currentUserValue?.role || '').toLowerCase();
+    return r === 'cajero' || r === 'encargado_sucursal' || r === 'administrador' || r === 'admin' || r === 'superadmin';
+  }
+
+  get esCliente(): boolean {
+    return !this.esPersonalTienda;
+  }
 
   // Estados Reactivos Locales
-  public tabActiva = signal<'pos' | 'reserva' | 'catalogo' | 'operaciones' | 'cambio' | 'caja'>('pos');
+  public tabActiva = signal<'pos' | 'reserva' | 'catalogo' | 'operaciones' | 'cambio' | 'caja'>('catalogo');
   public meta = signal<PaqueteOfflineMeta | null>(null);
   public productos = signal<ProductoOffline[]>([]);
   public variantes = signal<VarianteOffline[]>([]);
@@ -1132,6 +1217,14 @@ export class OfflineCentroComponent implements OnInit {
   public fechaVisitaReserva: string = new Date().toISOString().split('T')[0];
 
   ngOnInit(): void {
+    if (this.esCliente) {
+      this.tabActiva.set('catalogo');
+      if (this.authService.currentUserValue?.nombre_completo) {
+        this.nombreClienteReserva = this.authService.currentUserValue.nombre_completo;
+      }
+    } else {
+      this.tabActiva.set('pos');
+    }
     this.cargarDatosLocales();
   }
 
@@ -1353,6 +1446,18 @@ export class OfflineCentroComponent implements OnInit {
       p.nombre.toLowerCase().includes(q) ||
       (p.descripcion && p.descripcion.toLowerCase().includes(q))
     );
+  }
+
+  iniciarReservaDesdeProducto(prod: ProductoOffline): void {
+    const vars = this.obtenerVariantesDeProducto(prod.id);
+    if (vars.length > 0) {
+      this.varianteReservaId = vars[0].id;
+    }
+    this.tabActiva.set('reserva');
+  }
+
+  obtenerReservasCliente(): OperacionOffline[] {
+    return this.operaciones().filter(o => o.tipo === 'reserva');
   }
 
   obtenerVariantesDeProducto(productoId: number): VarianteOffline[] {

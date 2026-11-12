@@ -81,7 +81,7 @@ import { CarritoService } from '../../services/carrito.service';
 
           <!-- PWA Offline (Desafío II) -->
           <a routerLink="/offline" routerLinkActive="active-link" class="nav-link font-semibold" style="color: #38bdf8;">
-            <i class="fa-solid fa-cloud-bolt"></i> PWA Offline
+            <i class="fa-solid fa-cloud-bolt"></i> {{ esPersonalTienda ? 'PWA Offline POS' : 'Catálogo Offline' }}
           </a>
 
         </nav>
@@ -181,7 +181,7 @@ import { CarritoService } from '../../services/carrito.service';
           <a *ngIf="esAdmin || esEncargado || esCajero" routerLink="/caja" (click)="closeMenu()" class="nav-link font-bold" style="color: #f59e0b;"><i class="fa-solid fa-vault"></i> Control Caja (CU30)</a>
           <a *ngIf="esAdmin && !esSuperAdmin" routerLink="/admin" (click)="closeMenu()" class="nav-link font-bold" style="color: var(--accent);"><i class="fa-solid fa-sliders"></i> Panel Empresa</a>
           <a *ngIf="esSuperAdmin" routerLink="/admin" (click)="closeMenu()" class="nav-link font-bold" style="color: #f59e0b;"><i class="fa-solid fa-crown"></i> Empresas SaaS &amp; Planes</a>
-          <a routerLink="/offline" (click)="closeMenu()" class="nav-link font-semibold" style="color: #38bdf8;"><i class="fa-solid fa-cloud-bolt"></i> PWA Offline</a>
+          <a routerLink="/offline" (click)="closeMenu()" class="nav-link font-semibold" style="color: #38bdf8;"><i class="fa-solid fa-cloud-bolt"></i> {{ esPersonalTienda ? 'PWA Offline POS' : 'Catálogo Offline' }}</a>
 
           <hr style="border-color: var(--border-color);">
           
@@ -375,6 +375,10 @@ export class NavbarComponent implements OnInit {
 
   get esCajero(): boolean {
     return this.currentRole === 'cajero';
+  }
+
+  get esPersonalTienda(): boolean {
+    return this.esAdmin || this.esEncargado || this.esCajero;
   }
 
   get esCliente(): boolean {
