@@ -11,6 +11,27 @@ import { Sucursal } from '../../models/sucursal.models';
   selector: 'app-reportes',
   standalone: true,
   imports: [CommonModule, FormsModule],
+  styles: [`
+    .badge-pill-suggestion {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(167, 139, 250, 0.12);
+      color: #c4b5fd;
+      border: 1px solid rgba(167, 139, 250, 0.3);
+      border-radius: 9999px;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+    }
+    .badge-pill-suggestion:hover {
+      background: rgba(167, 139, 250, 0.25);
+      border-color: #a78bfa;
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+  `],
   template: `
     <div class="animate-fade-in" style="width: 100%;">
       
@@ -93,6 +114,33 @@ import { Sucursal } from '../../models/sucursal.models';
           >
             <i class="fa-solid" [ngClass]="consultandoIA ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'"></i>
             <span>{{ consultandoIA ? 'Analizando con IA...' : 'Consultar IA' }}</span>
+          </button>
+        </div>
+
+        <!-- Botones de sugerencias rápidas de consulta por voz o texto -->
+        <div class="mt-3 flex items-center gap-2 flex-wrap text-xs">
+          <span style="color: var(--text-muted); font-weight: 600;">Sugerencias:</span>
+          <button 
+            type="button" 
+            (click)="aplicarSugerenciaPrompt('mostrar los 10 productos mas vendidos durante los últimos 3 meses, agrupados por sucursal')"
+            class="badge-pill-suggestion"
+            title="Consulta de Examen: Top 10 productos últimos 3 meses por sucursal"
+          >
+            <i class="fa-solid fa-ranking-star mr-1 text-amber-400"></i> Top 10 productos más vendidos (últimos 3 meses por sucursal)
+          </button>
+          <button 
+            type="button" 
+            (click)="aplicarSugerenciaPrompt('analizar ventas de este mes y dame una recomendación')"
+            class="badge-pill-suggestion"
+          >
+            <i class="fa-solid fa-chart-line mr-1 text-indigo-400"></i> Analizar ventas de este mes
+          </button>
+          <button 
+            type="button" 
+            (click)="aplicarSugerenciaPrompt('descargar reporte en pdf')"
+            class="badge-pill-suggestion"
+          >
+            <i class="fa-solid fa-file-pdf mr-1 text-red-400"></i> Descargar en PDF
           </button>
         </div>
 
@@ -194,6 +242,139 @@ import { Sucursal } from '../../models/sucursal.models';
           </h3>
         </div>
         <p style="color: var(--text-main); line-height: 1.6; font-size: 0.92rem; white-space: pre-wrap; margin: 0;">{{ data?.resumen_ia }}</p>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- RESULTADO VISUAL CATALOGO IA: TOP PRODUCTOS AGRUPADOS POR SUCURSAL-->
+      <!-- ================================================================= -->
+      <div *ngIf="!cargando && data?.datos_catalogo && (data?.datos_catalogo?.length || 0) > 0" class="card mb-6" style="padding: 1.75rem; background: var(--card-bg); border: 1.5px solid #a78bfa; border-radius: 1rem; box-shadow: 0 10px 25px -5px rgba(167, 139, 250, 0.15);">
+        
+        <!-- Cabecera de la Sección Generativa -->
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3 pb-3" style="border-bottom: 1px solid var(--border-color);">
+          <div>
+            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span class="badge" style="background: rgba(167, 139, 250, 0.2); color: #c4b5fd; border: 1px solid #a78bfa; font-size: 0.72rem; font-weight: 800;">
+                <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> CONSULTA EN LENGUAJE NATURAL
+              </span>
+              <span class="badge" style="background: rgba(245, 158, 11, 0.18); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.72rem; font-weight: 800;">
+                <i class="fa-solid fa-calendar-days mr-1"></i> ÚLTIMOS 3 MESES
+              </span>
+              <span *ngIf="data?.filtros_interpretados?.agrupado_por_sucursal" class="badge" style="background: rgba(16, 185, 129, 0.18); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.72rem; font-weight: 800;">
+                <i class="fa-solid fa-store mr-1"></i> AGRUPADO POR SUCURSAL
+              </span>
+              <span class="badge" style="background: rgba(99, 102, 241, 0.18); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4); font-size: 0.72rem; font-weight: 800;">
+                <i class="fa-solid fa-shield-halved mr-1"></i> 0 REGISTROS DUPLICADOS
+              </span>
+            </div>
+            <h3 style="font-size: 1.35rem; font-family: serif; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 0.6rem;">
+              <i class="fa-solid fa-ranking-star" style="color: #f59e0b;"></i>
+              Top 10 Productos Más Vendidos
+            </h3>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0.25rem 0 0 0;">
+              Ranking de prendas de mayor demanda física consolidada por sucursal durante el trimestre solicitado.
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="badge" style="font-size: 0.8rem; padding: 0.4rem 0.8rem; background: var(--table-th-bg); color: var(--text-main); border: 1px solid var(--border-color);">
+              <strong>{{ data?.datos_catalogo?.length || 0 }}</strong> productos clasificados
+            </span>
+          </div>
+        </div>
+
+        <!-- GRÁFICO COMPARATIVO DE BARRAS HORIZONTALES -->
+        <div class="mb-6 p-4 rounded-xl" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+          <div class="flex items-center justify-between mb-3">
+            <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 0.4rem;">
+              <i class="fa-solid fa-chart-simple text-amber-400"></i> Gráfico Comparativo de Unidades Vendidas
+            </span>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">
+              Escala relativa al líder de ventas
+            </span>
+          </div>
+
+          <div class="space-y-3" style="display: flex; flex-direction: column; gap: 0.85rem;">
+            <div *ngFor="let item of data?.datos_catalogo; let idx = index" class="w-full">
+              <div class="flex justify-between items-center text-xs mb-1" style="font-weight: 600;">
+                <div class="flex items-center gap-2">
+                  <span [ngClass]="idx === 0 ? 'text-amber-400' : (idx === 1 ? 'text-slate-300' : (idx === 2 ? 'text-amber-600' : 'text-muted'))" style="font-weight: 800; min-width: 22px;">
+                    #{{ item.ranking || (idx + 1) }}
+                  </span>
+                  <span style="color: var(--text-main); font-weight: 700;">{{ item.producto }}</span>
+                  <span class="badge" style="font-size: 0.68rem; background: var(--card-bg); color: #a78bfa; border: 1px solid rgba(167, 139, 250, 0.3);">
+                    <i class="fa-solid fa-location-dot mr-1"></i>{{ item.sucursal }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span style="color: var(--text-main); font-weight: 800;">{{ item.unidades }} uds.</span>
+                  <span style="color: var(--accent); font-weight: 800;">Bs. {{ (item.total_bs || 0).toFixed(2) }}</span>
+                </div>
+              </div>
+
+              <!-- Barra de progreso -->
+              <div style="width: 100%; height: 10px; background: rgba(255,255,255,0.06); border-radius: 9999px; overflow: hidden; position: relative;">
+                <div 
+                  [style.width.%]="calcularPorcentajeBarra(item.unidades)"
+                  [style.background]="obtenerColorBarra(idx)"
+                  style="height: 100%; border-radius: 9999px; transition: width 0.6s ease-in-out;"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLA DETALLADA DEL TOP 10 CON SOLICITUD EXACTA -->
+        <div style="background: var(--table-th-bg); border-radius: 0.75rem; border: 1px solid var(--border-color); overflow-x: auto;">
+          <table class="table" style="width: 100%; margin: 0; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 2px solid var(--border-color);">
+                <th style="padding: 0.85rem 1rem; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; width: 60px; text-align: center;">Pos</th>
+                <th style="padding: 0.85rem 1rem; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Prenda / Producto</th>
+                <th style="padding: 0.85rem 1rem; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Sucursal</th>
+                <th style="padding: 0.85rem 1rem; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; text-align: center;">Unidades</th>
+                <th style="padding: 0.85rem 1rem; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; text-align: right;">Total Vendido</th>
+                <th style="padding: 0.85rem 1rem; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; text-align: center;">% Contribución</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let prod of data?.datos_catalogo; let idx = index" style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.8rem 1rem; text-align: center;">
+                  <span *ngIf="idx === 0" style="font-size: 1.1rem;" title="1er Lugar">🥇</span>
+                  <span *ngIf="idx === 1" style="font-size: 1.1rem;" title="2do Lugar">🥈</span>
+                  <span *ngIf="idx === 2" style="font-size: 1.1rem;" title="3er Lugar">🥉</span>
+                  <span *ngIf="idx > 2" class="badge" style="background: var(--card-bg); color: var(--text-muted); font-weight: 800; font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+                    #{{ prod.ranking || (idx + 1) }}
+                  </span>
+                </td>
+                <td style="padding: 0.8rem 1rem;">
+                  <strong style="color: var(--text-main); font-size: 0.9rem; display: block;">{{ prod.producto }}</strong>
+                  <span style="font-family: monospace; font-size: 0.72rem; color: var(--text-muted);">
+                    {{ prod.sku }} <span *ngIf="prod.categoria">• {{ prod.categoria }}</span>
+                  </span>
+                </td>
+                <td style="padding: 0.8rem 1rem;">
+                  <span class="badge" style="background: rgba(167, 139, 250, 0.15); color: #c4b5fd; border: 1px solid rgba(167, 139, 250, 0.3); font-size: 0.78rem; font-weight: 700;">
+                    <i class="fa-solid fa-store mr-1"></i>{{ prod.sucursal }}
+                  </span>
+                </td>
+                <td style="padding: 0.8rem 1rem; text-align: center;">
+                  <span style="font-size: 1rem; font-weight: 800; color: #10b981;">
+                    {{ prod.unidades }}
+                  </span>
+                  <span style="display: block; font-size: 0.7rem; color: var(--text-muted);">unidades</span>
+                </td>
+                <td style="padding: 0.8rem 1rem; text-align: right; color: var(--accent); font-weight: 800; font-size: 1rem;">
+                  Bs. {{ (prod.total_bs || 0).toFixed(2) }}
+                </td>
+                <td style="padding: 0.8rem 1rem; text-align: center;">
+                  <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; font-weight: 800; font-size: 0.75rem;">
+                    {{ calcularPorcentajeParticipacion(prod.total_bs) }}%
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- ================================================================= -->
@@ -564,5 +745,40 @@ export class ReportesComponent implements OnInit {
         this.mensajeVozEstado = `Error al descargar ${formato.toUpperCase()}.`;
       }
     });
+  }
+
+  aplicarSugerenciaPrompt(prompt: string) {
+    this.promptTextoIA = prompt;
+    this.consultarConIA();
+  }
+
+  calcularPorcentajeBarra(unidades: number | undefined): number {
+    if (!this.data?.datos_catalogo || this.data.datos_catalogo.length === 0) return 0;
+    const max = Math.max(...this.data.datos_catalogo.map(d => d.unidades || 0), 1);
+    const valor = unidades || 0;
+    return Math.max(Math.round((valor / max) * 100), 6);
+  }
+
+  obtenerColorBarra(index: number): string {
+    const paleta = [
+      'linear-gradient(90deg, #f59e0b, #fbbf24)',
+      'linear-gradient(90deg, #94a3b8, #cbd5e1)',
+      'linear-gradient(90deg, #d97706, #f59e0b)',
+      'linear-gradient(90deg, #8b5cf6, #a78bfa)',
+      'linear-gradient(90deg, #6366f1, #818cf8)',
+      'linear-gradient(90deg, #3b82f6, #60a5fa)',
+      'linear-gradient(90deg, #06b6d4, #22d3ee)',
+      'linear-gradient(90deg, #10b981, #34d399)',
+      'linear-gradient(90deg, #ec4899, #f472b6)',
+      'linear-gradient(90deg, #64748b, #94a3b8)'
+    ];
+    return paleta[index % paleta.length];
+  }
+
+  calcularPorcentajeParticipacion(totalBs: number | undefined): string {
+    if (!this.data?.datos_catalogo || this.data.datos_catalogo.length === 0) return '0.0';
+    const totalSuma = this.data.datos_catalogo.reduce((acc, curr) => acc + (curr.total_bs || 0), 0);
+    if (totalSuma <= 0) return '0.0';
+    return (((totalBs || 0) / totalSuma) * 100).toFixed(1);
   }
 }

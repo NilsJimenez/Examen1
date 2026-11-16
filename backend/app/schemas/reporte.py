@@ -18,6 +18,7 @@ class FiltrosInterpretados(BaseModel):
     fecha_inicio: Optional[str] = None
     fecha_fin: Optional[str] = None
     formato_descarga: Optional[str] = None
+    agrupado_por_sucursal: Optional[bool] = False
 
 class DashboardReporteOut(BaseModel):
     kpis: KPIData

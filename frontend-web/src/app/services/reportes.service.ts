@@ -16,11 +16,26 @@ export interface VentasPorDia {
   total: number;
 }
 
+export interface ItemCatalogoReporte {
+  ranking?: number;
+  producto?: string;
+  sku?: string;
+  categoria?: string;
+  sucursal?: string;
+  etiqueta?: string;
+  unidades?: number;
+  total_bs?: number;
+  precio_unitario?: number;
+  stock_disponible?: number;
+}
+
 export interface FiltrosInterpretados {
+  tipo_reporte?: string | null;
   sucursal_id?: number | null;
   fecha_inicio?: string | null;
   fecha_fin?: string | null;
   formato_descarga?: 'pdf' | 'xlsx' | null;
+  agrupado_por_sucursal?: boolean;
 }
 
 export interface DashboardReporteOut {
@@ -29,6 +44,9 @@ export interface DashboardReporteOut {
   mensaje: string | null;
   resumen_ia?: string;
   filtros_interpretados?: FiltrosInterpretados;
+  tipo_reporte_catalogo?: string | null;
+  datos_catalogo?: ItemCatalogoReporte[] | null;
+  solicitud_id?: string | null;
 }
 
 export interface ReportesConvencionalesOut {
