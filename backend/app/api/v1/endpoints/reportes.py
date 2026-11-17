@@ -611,86 +611,84 @@ def reporte_generativo_ia(
     elif any(k in p_lower for k in ["semana", "semanal", "evolución", "evolucion", "tendencia"]):
         tipo_catalogo = "ventas_por_semana"
 
-    import requests
-    from app.core.config import settings
-    api_key = settings.GEMINI_API_KEY
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
-
     sucursal_id = None
     fecha_inicio_str = None
     fecha_fin_str = None
     formato_descarga = "pdf" if "pdf" in p_lower else ("xlsx" if ("excel" in p_lower or "xlsx" in p_lower) else None)
 
-    # Detectar mención de sucursal localmente en caso de que Gemini no responda o como refuerzo
+    # Detectar mención de sucursal localmente
     for s_disp in (req.sucursales_disponibles or []):
         s_nom = str(s_disp.get("nombre", "")).lower()
         if s_nom and s_nom in p_lower:
             sucursal_id = s_disp.get("id")
             break
 
-    try:
-        sucursales_str = json.dumps(req.sucursales_disponibles or [])
-        prompt_parse = f"""
-        Eres un asistente inteligente para un sistema de BI (Reportes).
-        El usuario ha indicado el siguiente comando de voz o texto: "{prompt_clean}"
-        La fecha de hoy es: {datetime.now().strftime("%Y-%m-%d")}
-        Sucursales válidas en el sistema (JSON): {sucursales_str}
-        Tipos del catálogo cerrado: {list(CATALOGO_REPORTES_IA.keys())}
-
-        Devuelve estrictamente un JSON puro (SIN bloques markdown) con:
-        - "tipo_reporte": uno de {list(CATALOGO_REPORTES_IA.keys())}
-        - "sucursal_id": int o null
-        - "fecha_inicio": string "YYYY-MM-DD" o null
-        - "fecha_fin": string "YYYY-MM-DD" o null
-        - "formato_descarga": "pdf" o "xlsx" o null
-        """
-        r_parse = requests.post(url, json={"contents": [{"parts": [{"text": prompt_parse}]}]}, timeout=(2.5, 5.0))
-        if r_parse.status_code == 200:
-            respuesta_json = r_parse.json()["candidates"][0]["content"]["parts"][0]["text"]
-            respuesta_json = respuesta_json.strip().strip("```json").strip("```").strip()
-            params = json.loads(respuesta_json)
-            if params.get("tipo_reporte") in CATALOGO_REPORTES_IA:
-                tipo_catalogo = params.get("tipo_reporte")
-            if params.get("sucursal_id") and not sucursal_id:
-                sucursal_id = params.get("sucursal_id")
-            fecha_inicio_str = params.get("fecha_inicio")
-            fecha_fin_str = params.get("fecha_fin")
-            if params.get("formato_descarga") in ["pdf", "xlsx"]:
-                formato_descarga = params.get("formato_descarga")
-    except Exception:
-        pass
-
+    # Detección determinista ultra-rápida (0 latencia) de periodo temporal y agrupación
     fecha_inicio = None
-    if fecha_inicio_str:
-        try:
-            fecha_inicio = datetime.strptime(str(fecha_inicio_str).strip()[:10], "%Y-%m-%d").date()
-        except Exception:
-            fecha_inicio = None
+    if any(k in p_lower for k in ["3 meses", "tres meses", "trimestre", "ultimos 3 meses", "últimos 3 meses", "90 dias", "90 días"]):
+        fecha_inicio = date.today() - timedelta(days=90)
+        fecha_inicio_str = fecha_inicio.isoformat()
+    elif any(k in p_lower for k in ["mes", "este mes", "mensual", "30 dias", "30 días"]):
+        fecha_inicio = date.today() - timedelta(days=30)
+        fecha_inicio_str = fecha_inicio.isoformat()
+    elif any(k in p_lower for k in ["semana", "esta semana", "7 dias", "7 días"]):
+        fecha_inicio = date.today() - timedelta(days=7)
+        fecha_inicio_str = fecha_inicio.isoformat()
 
     fecha_fin = None
-    if fecha_fin_str:
-        try:
-            fecha_fin = datetime.strptime(str(fecha_fin_str).strip()[:10], "%Y-%m-%d").date()
-        except Exception:
-            fecha_fin = None
-
-    # Detección determinista de periodo temporal y agrupación si no vino de Gemini (RN22)
-    if not fecha_inicio:
-        if any(k in p_lower for k in ["3 meses", "tres meses", "trimestre", "ultimos 3 meses", "últimos 3 meses", "90 dias", "90 días"]):
-            fecha_inicio = date.today() - timedelta(days=90)
-            fecha_inicio_str = fecha_inicio.isoformat()
-        elif any(k in p_lower for k in ["mes", "este mes", "mensual", "30 dias", "30 días"]):
-            fecha_inicio = date.today() - timedelta(days=30)
-            fecha_inicio_str = fecha_inicio.isoformat()
-        elif any(k in p_lower for k in ["semana", "esta semana", "7 dias", "7 días"]):
-            fecha_inicio = date.today() - timedelta(days=7)
-            fecha_inicio_str = fecha_inicio.isoformat()
-
-    if not fecha_fin and fecha_inicio:
+    if fecha_inicio:
         fecha_fin = date.today()
         fecha_fin_str = fecha_fin.isoformat()
 
     agrupar_por_sucursal = any(k in p_lower for k in ["sucursal", "sucursales", "por sucursal", "por tienda", "agrupado por sucursal", "agrupados por sucursal"])
+
+    # Solo si no se pudo determinar el periodo de forma determinista y hay API key válida de Google Gemini (AIza...), intentar parsear
+    from app.core.config import settings
+    api_key = settings.GEMINI_API_KEY
+    if not fecha_inicio and api_key and api_key.startswith("AIza"):
+        try:
+            import requests
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
+            sucursales_str = json.dumps(req.sucursales_disponibles or [])
+            prompt_parse = f"""
+            Eres un asistente inteligente para un sistema de BI (Reportes).
+            El usuario ha indicado el siguiente comando de voz o texto: "{prompt_clean}"
+            La fecha de hoy es: {datetime.now().strftime("%Y-%m-%d")}
+            Sucursales válidas en el sistema (JSON): {sucursales_str}
+            Tipos del catálogo cerrado: {list(CATALOGO_REPORTES_IA.keys())}
+
+            Devuelve estrictamente un JSON puro (SIN bloques markdown) con:
+            - "tipo_reporte": uno de {list(CATALOGO_REPORTES_IA.keys())}
+            - "sucursal_id": int o null
+            - "fecha_inicio": string "YYYY-MM-DD" o null
+            - "fecha_fin": string "YYYY-MM-DD" o null
+            - "formato_descarga": "pdf" o "xlsx" o null
+            """
+            r_parse = requests.post(url, json={"contents": [{"parts": [{"text": prompt_parse}]}]}, timeout=(1.0, 1.5))
+            if r_parse.status_code == 200:
+                respuesta_json = r_parse.json()["candidates"][0]["content"]["parts"][0]["text"]
+                respuesta_json = respuesta_json.strip().strip("```json").strip("```").strip()
+                params = json.loads(respuesta_json)
+                if params.get("tipo_reporte") in CATALOGO_REPORTES_IA:
+                    tipo_catalogo = params.get("tipo_reporte")
+                if params.get("sucursal_id") and not sucursal_id:
+                    sucursal_id = params.get("sucursal_id")
+                if params.get("fecha_inicio"):
+                    fecha_inicio_str = params.get("fecha_inicio")
+                    try:
+                        fecha_inicio = datetime.strptime(str(fecha_inicio_str).strip()[:10], "%Y-%m-%d").date()
+                    except Exception:
+                        pass
+                if params.get("fecha_fin"):
+                    fecha_fin_str = params.get("fecha_fin")
+                    try:
+                        fecha_fin = datetime.strptime(str(fecha_fin_str).strip()[:10], "%Y-%m-%d").date()
+                    except Exception:
+                        pass
+                if params.get("formato_descarga") in ["pdf", "xlsx"]:
+                    formato_descarga = params.get("formato_descarga")
+        except Exception:
+            pass
 
     filtros_interpretados = {
         "tipo_reporte": tipo_catalogo,

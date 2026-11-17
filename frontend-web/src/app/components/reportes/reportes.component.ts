@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, Input } from '@angular/core';
+import { Component, OnInit, inject, Input, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ReportesService, DashboardReporteOut, ReportesConvencionalesOut } from '../../services/reportes.service';
@@ -11,27 +11,6 @@ import { Sucursal } from '../../models/sucursal.models';
   selector: 'app-reportes',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  styles: [`
-    .badge-pill-suggestion {
-      display: inline-flex;
-      align-items: center;
-      background: rgba(167, 139, 250, 0.12);
-      color: #c4b5fd;
-      border: 1px solid rgba(167, 139, 250, 0.3);
-      border-radius: 9999px;
-      padding: 0.35rem 0.85rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease-in-out;
-    }
-    .badge-pill-suggestion:hover {
-      background: rgba(167, 139, 250, 0.25);
-      border-color: #a78bfa;
-      color: #ffffff;
-      transform: translateY(-1px);
-    }
-  `],
   template: `
     <div class="animate-fade-in" style="width: 100%;">
       
@@ -117,32 +96,6 @@ import { Sucursal } from '../../models/sucursal.models';
           </button>
         </div>
 
-        <!-- Botones de sugerencias rápidas de consulta por voz o texto -->
-        <div class="mt-3 flex items-center gap-2 flex-wrap text-xs">
-          <span style="color: var(--text-muted); font-weight: 600;">Sugerencias:</span>
-          <button 
-            type="button" 
-            (click)="aplicarSugerenciaPrompt('mostrar los 10 productos mas vendidos durante los últimos 3 meses, agrupados por sucursal')"
-            class="badge-pill-suggestion"
-            title="Consulta de Examen: Top 10 productos últimos 3 meses por sucursal"
-          >
-            <i class="fa-solid fa-ranking-star mr-1 text-amber-400"></i> Top 10 productos más vendidos (últimos 3 meses por sucursal)
-          </button>
-          <button 
-            type="button" 
-            (click)="aplicarSugerenciaPrompt('analizar ventas de este mes y dame una recomendación')"
-            class="badge-pill-suggestion"
-          >
-            <i class="fa-solid fa-chart-line mr-1 text-indigo-400"></i> Analizar ventas de este mes
-          </button>
-          <button 
-            type="button" 
-            (click)="aplicarSugerenciaPrompt('descargar reporte en pdf')"
-            class="badge-pill-suggestion"
-          >
-            <i class="fa-solid fa-file-pdf mr-1 text-red-400"></i> Descargar en PDF
-          </button>
-        </div>
 
         <div *ngIf="escuchando" class="mt-3 p-3 rounded-lg flex items-center justify-between" style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5;">
           <div class="flex items-center gap-3">
@@ -175,61 +128,6 @@ import { Sucursal } from '../../models/sucursal.models';
             <span style="color: var(--text-muted); font-size: 0.78rem;">
               Tu empresa tiene acceso completo a los <strong>Reportes Convencionales de Ventas e Inventario</strong> abajo. Solicita al SuperAdmin actualizar al <strong>Plan Profesional</strong> para habilitar IA.
             </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- ================================================================= -->
-      <!-- BARRA DE FILTROS Y CONMUTADOR DE REPORTE CONVENCIONAL (CU14)      -->
-      <!-- ================================================================= -->
-      <div class="card p-5 mb-6" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
-        <div class="flex flex-wrap items-end justify-between gap-4">
-          <div class="flex flex-wrap items-end gap-4" style="flex: 1;">
-            <div style="min-width: 150px;">
-              <label style="display: block; font-size: 0.72rem; color: var(--text-muted); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.4rem;">Fecha Inicio</label>
-              <input type="date" [(ngModel)]="filtros.fecha_inicio" class="input" style="width: 100%; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main);">
-            </div>
-            
-            <div style="min-width: 150px;">
-              <label style="display: block; font-size: 0.72rem; color: var(--text-muted); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.4rem;">Fecha Fin</label>
-              <input type="date" [(ngModel)]="filtros.fecha_fin" class="input" style="width: 100%; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main);">
-            </div>
-            
-            <div *ngIf="esAdmin && sucursales.length > 0" style="min-width: 190px;">
-              <label style="display: block; font-size: 0.72rem; color: var(--text-muted); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.4rem;">Sucursal</label>
-              <select [(ngModel)]="filtros.sucursal_id" class="input" style="width: 100%; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main);">
-                <option [ngValue]="null">Todas las sucursales de mi empresa</option>
-                <option *ngFor="let s of sucursales" [ngValue]="s.id">{{ s.nombre }}</option>
-              </select>
-            </div>
-
-            <button (click)="cargarTodo()" class="btn btn-primary" style="height: 40px; padding: 0 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
-              <i class="fa-solid fa-filter"></i> Filtrar Reportes
-            </button>
-          </div>
-
-          <!-- Selector de Vista Convencional (CU14) -->
-          <div style="display: inline-flex; background: var(--card-bg); padding: 0.28rem; border-radius: 12px; border: 1px solid var(--border-color); gap: 0.25rem;">
-            <button
-              type="button"
-              (click)="vistaConvencional = 'ventas'"
-              class="btn"
-              [style.background]="vistaConvencional === 'ventas' ? 'var(--accent)' : 'transparent'"
-              [style.color]="vistaConvencional === 'ventas' ? '#09090b' : 'var(--text-muted)'"
-              style="padding: 0.45rem 0.95rem; font-size: 0.78rem; font-weight: 800; border-radius: 9px; border: none;"
-            >
-              <i class="fa-solid fa-receipt mr-1"></i> Reporte de Ventas ({{ convencionales?.ventas?.length || 0 }})
-            </button>
-            <button
-              type="button"
-              (click)="vistaConvencional = 'inventario'"
-              class="btn"
-              [style.background]="vistaConvencional === 'inventario' ? 'var(--accent)' : 'transparent'"
-              [style.color]="vistaConvencional === 'inventario' ? '#09090b' : 'var(--text-muted)'"
-              style="padding: 0.45rem 0.95rem; font-size: 0.78rem; font-weight: 800; border-radius: 9px; border: none;"
-            >
-              <i class="fa-solid fa-boxes-stacked mr-1"></i> Reporte de Inventario ({{ convencionales?.inventario?.length || 0 }})
-            </button>
           </div>
         </div>
       </div>
@@ -374,6 +272,62 @@ import { Sucursal } from '../../models/sucursal.models';
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+
+      <!-- ================================================================= -->
+      <!-- BARRA DE FILTROS Y CONMUTADOR DE REPORTE CONVENCIONAL (CU14)      -->
+      <!-- ================================================================= -->
+      <div class="card p-5 mb-6" style="background: var(--table-th-bg); border: 1px solid var(--border-color);">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div class="flex flex-wrap items-end gap-4" style="flex: 1;">
+            <div style="min-width: 150px;">
+              <label style="display: block; font-size: 0.72rem; color: var(--text-muted); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.4rem;">Fecha Inicio</label>
+              <input type="date" [(ngModel)]="filtros.fecha_inicio" class="input" style="width: 100%; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main);">
+            </div>
+            
+            <div style="min-width: 150px;">
+              <label style="display: block; font-size: 0.72rem; color: var(--text-muted); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.4rem;">Fecha Fin</label>
+              <input type="date" [(ngModel)]="filtros.fecha_fin" class="input" style="width: 100%; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main);">
+            </div>
+            
+            <div *ngIf="esAdmin && sucursales.length > 0" style="min-width: 190px;">
+              <label style="display: block; font-size: 0.72rem; color: var(--text-muted); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.4rem;">Sucursal</label>
+              <select [(ngModel)]="filtros.sucursal_id" class="input" style="width: 100%; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main);">
+                <option [ngValue]="null">Todas las sucursales de mi empresa</option>
+                <option *ngFor="let s of sucursales" [ngValue]="s.id">{{ s.nombre }}</option>
+              </select>
+            </div>
+
+            <button (click)="cargarTodo()" class="btn btn-primary" style="height: 40px; padding: 0 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-filter"></i> Filtrar Reportes
+            </button>
+          </div>
+
+          <!-- Selector de Vista Convencional (CU14) -->
+          <div style="display: inline-flex; background: var(--card-bg); padding: 0.28rem; border-radius: 12px; border: 1px solid var(--border-color); gap: 0.25rem;">
+            <button
+              type="button"
+              (click)="vistaConvencional = 'ventas'"
+              class="btn"
+              [style.background]="vistaConvencional === 'ventas' ? 'var(--accent)' : 'transparent'"
+              [style.color]="vistaConvencional === 'ventas' ? '#09090b' : 'var(--text-muted)'"
+              style="padding: 0.45rem 0.95rem; font-size: 0.78rem; font-weight: 800; border-radius: 9px; border: none;"
+            >
+              <i class="fa-solid fa-receipt mr-1"></i> Reporte de Ventas ({{ convencionales?.ventas?.length || 0 }})
+            </button>
+            <button
+              type="button"
+              (click)="vistaConvencional = 'inventario'"
+              class="btn"
+              [style.background]="vistaConvencional === 'inventario' ? 'var(--accent)' : 'transparent'"
+              [style.color]="vistaConvencional === 'inventario' ? '#09090b' : 'var(--text-muted)'"
+              style="padding: 0.45rem 0.95rem; font-size: 0.78rem; font-weight: 800; border-radius: 9px; border: none;"
+            >
+              <i class="fa-solid fa-boxes-stacked mr-1"></i> Reporte de Inventario ({{ convencionales?.inventario?.length || 0 }})
+            </button>
+          </div>
         </div>
       </div>
 
@@ -550,6 +504,8 @@ export class ReportesComponent implements OnInit {
   private productoService = inject(ProductoService);
   private authService = inject(AuthService);
   private toastService = inject(ToastService);
+  private ngZone = inject(NgZone);
+  private cdr = inject(ChangeDetectorRef);
   
   @Input() esAdmin: boolean = false;
 
@@ -625,18 +581,24 @@ export class ReportesComponent implements OnInit {
       return;
     }
 
+    this.escuchando = false;
+    this.mensajeVozEstado = '';
     this.consultandoIA = true;
+    this.cdr.detectChanges();
+
     const sucs = (this.sucursales || []).map(s => ({ id: s.id, nombre: s.nombre }));
     this.reportesService.generarReporteIA(comando, sucs).subscribe({
       next: (res) => {
         this.consultandoIA = false;
         this.data = res;
+        this.cdr.detectChanges();
         if (res.filtros_interpretados?.formato_descarga) {
           this.descargar(res.filtros_interpretados.formato_descarga);
         }
       },
       error: (err) => {
         this.consultandoIA = false;
+        this.cdr.detectChanges();
         this.toastService.error('Restricción IA (RN07)', err.error?.detail || 'No se pudo consultar el reporte generativo con IA.');
       }
     });
@@ -664,33 +626,47 @@ export class ReportesComponent implements OnInit {
       this.recognition.interimResults = true;
 
       this.recognition.onstart = () => {
-        this.escuchando = true;
-        this.mensajeVozEstado = 'Escuchando... Di: "Descargar en PDF" o "Analizar ventas de este mes"';
+        this.ngZone.run(() => {
+          this.escuchando = true;
+          this.mensajeVozEstado = 'Escuchando tu voz... Habla y presiona Finalizar o espera.';
+          this.cdr.detectChanges();
+        });
       };
 
       this.recognition.onresult = (event: any) => {
-        let textoParcial = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          textoParcial += event.results[i][0].transcript;
-        }
-        if (textoParcial) {
-          this.promptTextoIA = textoParcial;
-        }
+        this.ngZone.run(() => {
+          let textoParcial = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            textoParcial += event.results[i][0].transcript;
+          }
+          if (textoParcial) {
+            this.promptTextoIA = textoParcial;
+          }
 
-        if (event.results[0] && event.results[0].isFinal) {
-          const textoFinal = event.results[0][0].transcript.trim();
-          this.escuchando = false;
-          this.promptTextoIA = textoFinal;
-          this.consultarConIA();
-        }
+          if (event.results[0] && event.results[0].isFinal) {
+            const textoFinal = event.results[0][0].transcript.trim();
+            this.escuchando = false;
+            this.mensajeVozEstado = '';
+            this.promptTextoIA = textoFinal;
+            this.consultarConIA();
+          }
+          this.cdr.detectChanges();
+        });
       };
 
       this.recognition.onerror = () => {
-        this.escuchando = false;
+        this.ngZone.run(() => {
+          this.escuchando = false;
+          this.mensajeVozEstado = '';
+          this.cdr.detectChanges();
+        });
       };
 
       this.recognition.onend = () => {
-        this.escuchando = false;
+        this.ngZone.run(() => {
+          this.escuchando = false;
+          this.cdr.detectChanges();
+        });
       };
 
       this.recognition.start();
@@ -706,6 +682,11 @@ export class ReportesComponent implements OnInit {
       } catch (e) {}
     }
     this.escuchando = false;
+    this.mensajeVozEstado = '';
+    if (this.promptTextoIA.trim()) {
+      this.consultarConIA();
+    }
+    this.cdr.detectChanges();
   }
 
   procesarComandoVoz(comando: string) {

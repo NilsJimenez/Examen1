@@ -253,6 +253,10 @@ def test_cp_i06_conflicto_stock_savepoint_y_resolucion_cu21():
             .first()
         )
         assert inv is not None
+        inv.cantidad_disponible = 50
+        inv.cantidad_reservada = 0
+        db.commit()
+        db.refresh(inv)
 
         op_conflicto_id = str(uuid.uuid4())
         op_valida_id = str(uuid.uuid4())
